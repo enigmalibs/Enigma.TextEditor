@@ -94,7 +94,7 @@ bindings:
 
 ## PHASE02 — Vim engine port
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-55D7-PHASE02.md`
 **Branch:** `feature/feature-55d7-phase02-vim-engine-port`
 
 ### Steps
