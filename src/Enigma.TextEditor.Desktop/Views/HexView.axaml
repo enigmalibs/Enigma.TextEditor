@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Enigma.TextEditor.Desktop.ViewModels"
+             x:Class="Enigma.TextEditor.Desktop.Views.HexView"
+             x:DataType="vm:EditorTabViewModel">
+
+  <UserControl.Styles>
+    <!-- Rows sit tight, as lines of a text editor do: the default item padding is sized for touch. -->
+    <Style Selector="ListBox#Rows ListBoxItem">
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="ListBox#Rows TextBlock.row">
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, JetBrains Mono, DejaVu Sans Mono, Menlo, Courier New, monospace" />
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- A ListBox for its virtualization: only the rows on screen are realized, and each is read and
+       formatted from the file only when it is. Focusable explicitly: a ListBox is not by default in
+       Avalonia 12, and the rows are where the hex view's keys arrive. -->
+  <ListBox x:Name="Rows"
+           Focusable="True"
+           ItemsSource="{Binding Document.Hex.Rows, FallbackValue={x:Null}}"
+           SelectedIndex="{Binding HexRow}"
+           Background="Transparent"
+           BorderThickness="0"
+           AutomationProperties.Name="Hex rows">
+    <ListBox.ItemTemplate>
+      <DataTemplate x:DataType="x:String">
+        <TextBlock Classes="row" Text="{Binding}" />
+      </DataTemplate>
+    </ListBox.ItemTemplate>
+  </ListBox>
+</UserControl>
