@@ -1,6 +1,6 @@
 # FEATURE-12AF — Help dialog & ex abbreviations
 
-**Status:** IN PROGRESS
+**Status:** DONE — see `docs/done/FEATURE-12AF-PHASE01.md`, `docs/done/FEATURE-12AF-PHASE02.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-12af-<phase>-<slug>` (one per phase)
 **Run:** vibe/2026-10-15-drop-icon-help
@@ -84,7 +84,7 @@
 
 ## PHASE02 — Key bindings help dialog
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-12AF-PHASE02.md`
 **Branch:** `feature/feature-12af-phase02-help-dialog`
 
 ### Steps
