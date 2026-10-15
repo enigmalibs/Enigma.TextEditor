@@ -1,6 +1,6 @@
 # FEATURE-6BB4 — Settings & Help menus
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-6BB4.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-6bb4-settings-help-menus`
 **Run:** vibe/2026-10-15-text-editor-vim

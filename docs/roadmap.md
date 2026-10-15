@@ -24,4 +24,4 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-3AE6 | Read-only hex viewer               | DONE   | docs/plan/FEATURE-3AE6.md |
 | - PHASE01    | Hex view                           | DONE   | (in FEATURE-3AE6.md)      |
 | - PHASE02    | Binary prompt & reopen as hex      | DONE   | (in FEATURE-3AE6.md)      |
-| FEATURE-6BB4 | Settings & Help menus              | TODO   | docs/plan/FEATURE-6BB4.md |
+| FEATURE-6BB4 | Settings & Help menus              | DONE   | docs/plan/FEATURE-6BB4.md |
