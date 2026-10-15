@@ -25,3 +25,8 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Hex view                           | DONE   | (in FEATURE-3AE6.md)      |
 | - PHASE02    | Binary prompt & reopen as hex      | DONE   | (in FEATURE-3AE6.md)      |
 | FEATURE-6BB4 | Settings & Help menus              | DONE   | docs/plan/FEATURE-6BB4.md |
+| FEATURE-37E4 | Open files by drag and drop        | TODO   | docs/plan/FEATURE-37E4.md |
+| FEATURE-08A7 | Application icon                   | TODO   | docs/plan/FEATURE-08A7.md |
+| FEATURE-12AF | Help dialog & ex abbreviations     | TODO   | docs/plan/FEATURE-12AF.md |
+| - PHASE01    | Ex command abbreviations           | TODO   | (in FEATURE-12AF.md)      |
+| - PHASE02    | Key bindings help dialog           | TODO   | (in FEATURE-12AF.md)      |
