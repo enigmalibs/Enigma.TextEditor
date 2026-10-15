@@ -1,6 +1,6 @@
 # FEATURE-08A7 — Application icon
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-08A7.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-08a7-app-icon`
 **Run:** vibe/2026-10-15-drop-icon-help
