@@ -1,6 +1,6 @@
 # FEATURE-3EE8 — Editor panes, tabs & files
 
-**Status:** IN PROGRESS
+**Status:** DONE — see `docs/done/FEATURE-3EE8-PHASE01.md` … `docs/done/FEATURE-3EE8-PHASE04.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-3ee8-<phase>-<slug>` (one per phase)
 **Run:** vibe/2026-10-15-text-editor-vim
@@ -157,7 +157,7 @@ Make the shell an editor:
 
 ## PHASE04 — Syntax highlighting & language
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-3EE8-PHASE04.md`
 **Branch:** `feature/feature-3ee8-phase04-syntax-highlighting`
 
 ### Steps
