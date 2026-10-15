@@ -1,6 +1,6 @@
 # FEATURE-55D7 — Text editor foundation
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch:** `feature/feature-55d7-<phase>-<slug>` (one per phase)
 **Run:** vibe/2026-10-15-text-editor-vim
@@ -49,7 +49,7 @@ bindings:
 
 ## PHASE01 — Solution scaffold & app shell
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-55D7-PHASE01.md`
 **Branch:** `feature/feature-55d7-phase01-solution-scaffold`
 
 ### Steps
