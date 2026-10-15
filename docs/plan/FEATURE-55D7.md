@@ -1,6 +1,6 @@
 # FEATURE-55D7 — Text editor foundation
 
-**Status:** IN PROGRESS
+**Status:** DONE — see `docs/done/FEATURE-55D7-PHASE01.md`, `docs/done/FEATURE-55D7-PHASE02.md`, `docs/done/FEATURE-55D7-PHASE03.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-55d7-<phase>-<slug>` (one per phase)
 **Run:** vibe/2026-10-15-text-editor-vim
@@ -122,7 +122,7 @@ bindings:
 
 ## PHASE03 — Text file I/O
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-55D7-PHASE03.md`
 **Branch:** `feature/feature-55d7-phase03-text-file-io`
 
 ### Steps
