@@ -1,6 +1,6 @@
 # FEATURE-04BC — Multi-split panes
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch:** `feature/feature-04bc-<phase>-<slug>` (one per phase)
 **Run:** vibe/2026-10-15-text-editor-vim
@@ -45,7 +45,7 @@ splits its panes:
 
 ## PHASE01 — Layout tree & split host
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-04BC-PHASE01.md`
 **Branch:** `feature/feature-04bc-phase01-split-host`
 
 ### Steps
