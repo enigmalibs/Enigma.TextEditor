@@ -1,6 +1,6 @@
 # FEATURE-3AE6 — Read-only hex viewer
 
-**Status:** IN PROGRESS
+**Status:** DONE — see `docs/done/FEATURE-3AE6-PHASE01.md`, `docs/done/FEATURE-3AE6-PHASE02.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-3ae6-<phase>-<slug>` (one per phase)
 **Run:** vibe/2026-10-15-text-editor-vim
@@ -65,7 +65,7 @@ and available for any file on demand.
 
 ## PHASE02 — Binary prompt & reopen as hex
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-3AE6-PHASE02.md`
 **Branch:** `feature/feature-3ae6-phase02-binary-prompt`
 
 ### Steps
