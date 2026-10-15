@@ -17,7 +17,7 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-04BC | Multi-split panes                  | DONE   | docs/plan/FEATURE-04BC.md |
 | - PHASE01    | Layout tree & split host           | DONE   | (in FEATURE-04BC.md)      |
 | - PHASE02    | Vim window commands & shared state | DONE   | (in FEATURE-04BC.md)      |
-| FEATURE-5731 | Vim search highlight               | TODO   | docs/plan/FEATURE-5731.md |
+| FEATURE-5731 | Vim search highlight               | DONE   | docs/plan/FEATURE-5731.md |
 | FEATURE-316E | Encoding, EOL & indent tools       | TODO   | docs/plan/FEATURE-316E.md |
 | - PHASE01    | Encoding tools                     | TODO   | (in FEATURE-316E.md)      |
 | - PHASE02    | Line-ending & indentation tools    | TODO   | (in FEATURE-316E.md)      |

@@ -1,6 +1,6 @@
 # FEATURE-5731 — Vim search highlight
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-5731.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-5731-search-highlight`
 **Run:** vibe/2026-10-15-text-editor-vim
