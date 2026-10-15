@@ -1,6 +1,6 @@
 # FEATURE-04BC — Multi-split panes
 
-**Status:** IN PROGRESS
+**Status:** DONE — see `docs/done/FEATURE-04BC-PHASE01.md`, `docs/done/FEATURE-04BC-PHASE02.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-04bc-<phase>-<slug>` (one per phase)
 **Run:** vibe/2026-10-15-text-editor-vim
@@ -82,7 +82,7 @@ splits its panes:
 
 ## PHASE02 — Vim window commands & shared state
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-04BC-PHASE02.md`
 **Branch:** `feature/feature-04bc-phase02-vim-window-commands`
 
 ### Steps
