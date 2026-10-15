@@ -1,6 +1,6 @@
 # FEATURE-37E4 — Open files by drag and drop
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-37E4.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-37e4-file-drop`
 **Run:** vibe/2026-10-15-drop-icon-help
