@@ -11,7 +11,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE03    | Text file I/O                      | DONE        | (in FEATURE-55D7.md)      |
 | FEATURE-3EE8 | Editor panes, tabs & files         | IN PROGRESS | docs/plan/FEATURE-3EE8.md |
 | - PHASE01    | Editor pane & tabs                 | DONE        | (in FEATURE-3EE8.md)      |
-| - PHASE02    | Unsaved changes & startup args     | TODO        | (in FEATURE-3EE8.md)      |
+| - PHASE02    | Unsaved changes & startup args     | DONE        | (in FEATURE-3EE8.md)      |
 | - PHASE03    | Vim integration & ex requests      | TODO        | (in FEATURE-3EE8.md)      |
 | - PHASE04    | Syntax highlighting & language     | TODO        | (in FEATURE-3EE8.md)      |
 | FEATURE-04BC | Multi-split panes                  | TODO        | docs/plan/FEATURE-04BC.md |
