@@ -89,7 +89,7 @@ Make the shell an editor:
 
 ## PHASE02 — Unsaved changes & startup args
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-3EE8-PHASE02.md`
 **Branch:** `feature/feature-3ee8-phase02-unsaved-changes-args`
 
 ### Steps
