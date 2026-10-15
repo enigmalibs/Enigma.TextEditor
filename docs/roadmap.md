@@ -7,7 +7,7 @@ completion records live in `docs/done/<ID>.md`.
 |--------------|------------------------------------|-------------|---------------------------|
 | FEATURE-55D7 | Text editor foundation             | IN PROGRESS | docs/plan/FEATURE-55D7.md |
 | - PHASE01    | Solution scaffold & app shell      | DONE        | (in FEATURE-55D7.md)      |
-| - PHASE02    | Vim engine port                    | TODO        | (in FEATURE-55D7.md)      |
+| - PHASE02    | Vim engine port                    | DONE        | (in FEATURE-55D7.md)      |
 | - PHASE03    | Text file I/O                      | TODO        | (in FEATURE-55D7.md)      |
 | FEATURE-3EE8 | Editor panes, tabs & files         | TODO        | docs/plan/FEATURE-3EE8.md |
 | - PHASE01    | Editor pane & tabs                 | TODO        | (in FEATURE-3EE8.md)      |
