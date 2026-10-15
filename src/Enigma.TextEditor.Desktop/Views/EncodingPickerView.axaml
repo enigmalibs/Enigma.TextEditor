@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Enigma.TextEditor.Desktop.ViewModels"
+             xmlns:documents="using:Enigma.TextEditor.Core.Documents"
+             x:Class="Enigma.TextEditor.Desktop.Views.EncodingPickerView"
+             x:DataType="vm:EncodingPickerViewModel"
+             Width="340">
+  <ListBox x:Name="Encodings"
+           ItemsSource="{Binding Items}"
+           SelectedItem="{Binding Selected}"
+           DoubleTapped="OnEncodingsDoubleTapped"
+           AutomationProperties.Name="Encodings">
+    <ListBox.ItemTemplate>
+      <DataTemplate x:DataType="documents:TextEncoding">
+        <TextBlock Text="{Binding DisplayName}" />
+      </DataTemplate>
+    </ListBox.ItemTemplate>
+  </ListBox>
+</UserControl>

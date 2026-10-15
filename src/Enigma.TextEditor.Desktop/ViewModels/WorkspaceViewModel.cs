@@ -1,0 +1,862 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Core.Layout;
+using Enigma.TextEditor.Core.Vim;
+using Enigma.TextEditor.Desktop.Services;
+
+namespace Enigma.TextEditor.Desktop.ViewModels;
+
+/// <summary>
+/// The editor area: its panes, arranged by a <see cref="LayoutTree"/>, the one with the keyboard, and
+/// the file and window commands that act on it.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The split model is Enigma.FileExplorer's: a binary tree of rows and columns whose leaves are
+/// panes, one <see cref="EditorPaneViewModel"/> per leaf. A split shows the active buffer in the new
+/// pane, as Vim's <c>:split</c> does, so both halves edit one text.
+/// </para>
+/// <para>
+/// A pane that loses its last tab closes, unless it is the only pane: closing tabs is how panes go
+/// away, so <c>:q</c> in a split closes the split and <c>:q</c> on the last tab of the last pane
+/// quits.
+/// </para>
+/// </remarks>
+public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
+{
+    /// <summary>
+    /// How far one resize command moves a splitter, as a share of the split.
+    /// </summary>
+    public const double ResizeStep = 0.05;
+
+    private readonly IDocumentService _documents;
+    private readonly DocumentRegistry _registry;
+    private readonly IFilePrompts _prompts;
+    private readonly IUnsavedChangesPrompt _unsaved;
+    private readonly StatusMessages _status;
+    private readonly ExCommandHandler _ex;
+    private readonly WindowCommandHandler _window;
+    private readonly Dictionary<PaneId, EditorPaneViewModel> _byId = [];
+    private int _batch;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceViewModel"/> class with one empty pane.
+    /// </summary>
+    /// <param name="documents">Opens and saves buffers.</param>
+    /// <param name="registry">The open buffers.</param>
+    /// <param name="prompts">The open picker.</param>
+    /// <param name="unsaved">Asks about unsaved changes before a buffer is closed.</param>
+    /// <param name="status">The status bar's message line.</param>
+    /// <param name="vim">The Vim session every pane's engine reports to.</param>
+    /// <param name="vimShared">What every pane's Vim engine shares.</param>
+    /// <param name="shutdown">Ends the application, for <c>:q</c> on the last tab and <c>:qa</c>.</param>
+    /// <param name="preferences">How every editor looks.</param>
+    /// <param name="help">The key-binding help, for <c>:help</c>.</param>
+    public WorkspaceViewModel(
+        IDocumentService documents,
+        DocumentRegistry registry,
+        IFilePrompts prompts,
+        IUnsavedChangesPrompt unsaved,
+        StatusMessages status,
+        IVimSession vim,
+        VimSharedState vimShared,
+        IAppShutdown shutdown,
+        EditorPreferences preferences,
+        IHelpDialogService help)
+    {
+        _documents = documents ?? throw new ArgumentNullException(nameof(documents));
+        _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        _prompts = prompts ?? throw new ArgumentNullException(nameof(prompts));
+        _unsaved = unsaved ?? throw new ArgumentNullException(nameof(unsaved));
+        _status = status ?? throw new ArgumentNullException(nameof(status));
+        Vim = vim ?? throw new ArgumentNullException(nameof(vim));
+        VimShared = vimShared ?? throw new ArgumentNullException(nameof(vimShared));
+        _ex = new ExCommandHandler(
+            this,
+            shutdown ?? throw new ArgumentNullException(nameof(shutdown)),
+            status,
+            help ?? throw new ArgumentNullException(nameof(help)));
+        _window = new WindowCommandHandler(this, _ex, status);
+        Preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
+
+        Layout = new LayoutTree();
+        Layout.Changed += (_, _) =>
+        {
+            // Inside a batch the panes are not in step with the tree yet; the batch reports once at its end.
+            if (_batch == 0)
+            {
+                LayoutChanged?.Invoke(this, EventArgs.Empty);
+            }
+        };
+
+        NewCommand = new RelayCommand(() => NewDocument());
+        OpenCommand = new AsyncRelayCommand(OnOpenAsync);
+        OpenHexCommand = new AsyncRelayCommand(OnOpenHexAsync);
+        SaveCommand = new AsyncRelayCommand(() => SaveAsync(ActiveDocument), () => ActiveDocument is { IsHex: false });
+        SaveAsCommand = new AsyncRelayCommand(() => SaveAsAsync(ActiveDocument), () => ActiveDocument is { IsHex: false });
+        SaveAllCommand = new AsyncRelayCommand(SaveAllAsync, () => _registry.Documents.Count > 0);
+        CloseTabCommand = new AsyncRelayCommand(OnCloseActiveTabAsync, () => ActiveTab is not null);
+        NextTabCommand = new RelayCommand(() => ActivePane.NextTab());
+        PreviousTabCommand = new RelayCommand(() => ActivePane.PreviousTab());
+
+        SplitRightCommand = new RelayCommand(() => Split(SplitAxis.Columns));
+        SplitDownCommand = new RelayCommand(() => Split(SplitAxis.Rows));
+        ClosePaneCommand = new AsyncRelayCommand(() => ClosePaneAsync(ActivePane), () => _byId.Count > 1);
+        OnlyPaneCommand = new AsyncRelayCommand(OnlyAsync, () => _byId.Count > 1);
+        EqualizeCommand = new RelayCommand(Equalize, () => _byId.Count > 1);
+        FocusNextPaneCommand = new RelayCommand(FocusNext, () => _byId.Count > 1);
+        FocusPreviousPaneCommand = new RelayCommand(FocusPrevious, () => _byId.Count > 1);
+
+        // After the commands: making a pane active refreshes them.
+        ActivePaneId = Layout.Panes[0];
+        ActivePane = AddPane(ActivePaneId);
+        UpdateActiveFlags();
+    }
+
+    /// <summary>
+    /// Raised when the arrangement of panes has changed and the view has to be rebuilt.
+    /// </summary>
+    public event EventHandler? LayoutChanged;
+
+    /// <summary>
+    /// Gets how every editor looks.
+    /// </summary>
+    public EditorPreferences Preferences { get; }
+
+    /// <inheritdoc />
+    public IVimSession Vim { get; }
+
+    /// <inheritdoc />
+    public VimSharedState VimShared { get; }
+
+    /// <summary>
+    /// Gets the arrangement of panes.
+    /// </summary>
+    public LayoutTree Layout { get; }
+
+    /// <summary>
+    /// Gets the panes, in reading order.
+    /// </summary>
+    public IReadOnlyList<EditorPaneViewModel> Panes => [.. Layout.Panes.Select(id => _byId[id])];
+
+    /// <summary>
+    /// Gets the id of the pane with the keyboard.
+    /// </summary>
+    public PaneId ActivePaneId { get; private set; }
+
+    /// <summary>
+    /// Gets the pane with the keyboard, which the file commands act on.
+    /// </summary>
+    public EditorPaneViewModel ActivePane
+    {
+        get;
+        private set
+        {
+            if (SetProperty(ref field, value))
+            {
+                OnPropertyChanged(nameof(ActiveTab));
+                OnPropertyChanged(nameof(ActiveDocument));
+                RefreshCommands();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the tab the active pane is showing.
+    /// </summary>
+    public EditorTabViewModel? ActiveTab => ActivePane.ActiveTab;
+
+    /// <summary>
+    /// Gets the buffer the active pane is showing.
+    /// </summary>
+    public DocumentViewModel? ActiveDocument => ActiveTab?.Document;
+
+    /// <summary>
+    /// Gets a value indicating whether any open buffer has unsaved changes.
+    /// </summary>
+    public bool HasUnsavedChanges => _registry.Documents.Any(document => document.IsDirty);
+
+    /// <summary>
+    /// Gets a value indicating whether any pane has a tab.
+    /// </summary>
+    public bool HasTabs => _byId.Values.Any(pane => pane.Tabs.Count > 0);
+
+    /// <summary>
+    /// Gets <em>File → New</em>.
+    /// </summary>
+    public RelayCommand NewCommand { get; }
+
+    /// <summary>
+    /// Gets <em>File → Open…</em>.
+    /// </summary>
+    public AsyncRelayCommand OpenCommand { get; }
+
+    /// <summary>
+    /// Gets <em>File → Open as Hex…</em>.
+    /// </summary>
+    public AsyncRelayCommand OpenHexCommand { get; }
+
+    /// <summary>
+    /// Gets <em>File → Save</em>.
+    /// </summary>
+    public AsyncRelayCommand SaveCommand { get; }
+
+    /// <summary>
+    /// Gets <em>File → Save As…</em>.
+    /// </summary>
+    public AsyncRelayCommand SaveAsCommand { get; }
+
+    /// <summary>
+    /// Gets <em>File → Save All</em>.
+    /// </summary>
+    public AsyncRelayCommand SaveAllCommand { get; }
+
+    /// <summary>
+    /// Gets <em>File → Close Tab</em>.
+    /// </summary>
+    public AsyncRelayCommand CloseTabCommand { get; }
+
+    /// <summary>
+    /// Gets the command showing the active pane's next tab.
+    /// </summary>
+    public RelayCommand NextTabCommand { get; }
+
+    /// <summary>
+    /// Gets the command showing the active pane's previous tab.
+    /// </summary>
+    public RelayCommand PreviousTabCommand { get; }
+
+    /// <summary>
+    /// Gets <em>View → Split Right</em>.
+    /// </summary>
+    public RelayCommand SplitRightCommand { get; }
+
+    /// <summary>
+    /// Gets <em>View → Split Down</em>.
+    /// </summary>
+    public RelayCommand SplitDownCommand { get; }
+
+    /// <summary>
+    /// Gets <em>View → Close Pane</em>.
+    /// </summary>
+    public AsyncRelayCommand ClosePaneCommand { get; }
+
+    /// <summary>
+    /// Gets <em>View → Only This Pane</em>.
+    /// </summary>
+    public AsyncRelayCommand OnlyPaneCommand { get; }
+
+    /// <summary>
+    /// Gets <em>View → Equalize Panes</em>.
+    /// </summary>
+    public RelayCommand EqualizeCommand { get; }
+
+    /// <summary>
+    /// Gets <em>View → Focus Next Pane</em>.
+    /// </summary>
+    public RelayCommand FocusNextPaneCommand { get; }
+
+    /// <summary>
+    /// Gets <em>View → Focus Previous Pane</em>.
+    /// </summary>
+    public RelayCommand FocusPreviousPaneCommand { get; }
+
+    /// <summary>
+    /// The pane a layout leaf stands for.
+    /// </summary>
+    /// <param name="id">The leaf.</param>
+    /// <returns>The pane.</returns>
+    public EditorPaneViewModel PaneFor(PaneId id) => _byId[id];
+
+    /// <summary>
+    /// The layout leaf a pane stands at.
+    /// </summary>
+    /// <param name="pane">The pane.</param>
+    /// <returns>Its id, or <see langword="null"/> for a pane that is not in this workspace.</returns>
+    public PaneId? IdOf(EditorPaneViewModel pane)
+    {
+        foreach ((PaneId id, EditorPaneViewModel candidate) in _byId)
+        {
+            if (ReferenceEquals(candidate, pane))
+            {
+                return id;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Gives a pane the keyboard.
+    /// </summary>
+    /// <param name="pane">The pane.</param>
+    public void Activate(EditorPaneViewModel pane)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+
+        if (IdOf(pane) is { } id)
+        {
+            Activate(id);
+        }
+    }
+
+    /// <summary>
+    /// Splits the active pane, showing its buffer in the new pane, which takes the keyboard.
+    /// </summary>
+    /// <param name="axis">Side by side (<see cref="SplitAxis.Columns"/>) or one above the other.</param>
+    /// <param name="showActiveBuffer">
+    /// Whether the new pane shows the active buffer, as <c>:split</c> does — or starts empty, for a
+    /// split that is about to open something else (<c>:split file</c>, <c>:new</c>).
+    /// </param>
+    /// <returns>The new pane.</returns>
+    public EditorPaneViewModel Split(SplitAxis axis, bool showActiveBuffer = true)
+    {
+        EditorTabViewModel? source = showActiveBuffer ? ActivePane.ActiveTab : null;
+        EditorPaneViewModel? created = null;
+
+        Batch(() =>
+        {
+            PaneId id = Layout.Split(ActivePaneId, axis);
+            created = AddPane(id);
+            Activate(id);
+
+            if (source is not null)
+            {
+                EditorTabViewModel tab = Show(source.Document);
+
+                // Vim's split shows the same place: the new view starts where the old one is.
+                tab.CaretOffset = source.CaretOffset;
+                tab.VerticalScrollOffset = source.VerticalScrollOffset;
+                tab.HorizontalScrollOffset = source.HorizontalScrollOffset;
+            }
+        });
+
+        UpdateActiveFlags();
+        RefreshCommands();
+
+        return created ?? throw new InvalidOperationException("The split did not create a pane.");
+    }
+
+    /// <summary>
+    /// Closes a pane: every tab of it, asking about unsaved changes no other pane keeps open.
+    /// </summary>
+    /// <param name="pane">The pane.</param>
+    /// <returns>
+    /// Whether the pane closed. The last pane never closes, and a cancelled question keeps the pane with
+    /// the tabs it still has.
+    /// </returns>
+    public async Task<bool> ClosePaneAsync(EditorPaneViewModel pane)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+
+        if ((_byId.Count <= 1) || (IdOf(pane) is not { } id))
+        {
+            return false;
+        }
+
+        foreach (EditorTabViewModel tab in pane.Tabs.ToList())
+        {
+            if (!await CloseTabAsync(pane, tab, discard: false, keepEmptyPane: true))
+            {
+                return false;
+            }
+        }
+
+        RemovePane(id);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Closes every pane but the active one.
+    /// </summary>
+    /// <returns>Whether every other pane closed.</returns>
+    public async Task<bool> OnlyAsync()
+    {
+        foreach (EditorPaneViewModel pane in Panes.Where(pane => !ReferenceEquals(pane, ActivePane)).ToList())
+        {
+            EditorPaneViewModel keep = ActivePane;
+
+            if (!await ClosePaneAsync(pane))
+            {
+                return false;
+            }
+
+            Activate(keep);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Gives every pane an equal share of its split.
+    /// </summary>
+    public void Equalize() => Layout.Equalize();
+
+    /// <summary>
+    /// Moves the keyboard to the pane next to the active one in a direction.
+    /// </summary>
+    /// <param name="direction">The direction.</param>
+    /// <returns>Whether there was a pane there.</returns>
+    public bool Focus(FocusDirection direction)
+    {
+        if (Layout.FindNeighbor(ActivePaneId, direction) is not { } neighbour)
+        {
+            return false;
+        }
+
+        Activate(neighbour);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Moves the keyboard to the next pane, in reading order, wrapping round.
+    /// </summary>
+    public void FocusNext() => Activate(Layout.Next(ActivePaneId));
+
+    /// <summary>
+    /// Moves the keyboard to the previous pane, in reading order, wrapping round.
+    /// </summary>
+    public void FocusPrevious() => Activate(Layout.Previous(ActivePaneId));
+
+    /// <summary>
+    /// Grows or shrinks the active pane along an axis.
+    /// </summary>
+    /// <param name="axis">Columns for wider and narrower, rows for taller and shorter.</param>
+    /// <param name="delta">The share of the split to move, positive to grow.</param>
+    /// <returns>Whether the pane had a split along that axis to resize.</returns>
+    public bool Resize(SplitAxis axis, double delta) => Layout.Resize(ActivePaneId, axis, delta);
+
+    /// <summary>
+    /// Opens a file in the active pane, or shows it there when it is already open.
+    /// </summary>
+    /// <param name="filePath">The file.</param>
+    /// <returns>The tab showing it, or <see langword="null"/> when it could not be opened.</returns>
+    public async Task<EditorTabViewModel?> OpenAsync(string filePath)
+    {
+        DocumentViewModel? document = await _documents.OpenAsync(filePath);
+
+        return document is null ? null : Show(document);
+    }
+
+    /// <summary>
+    /// Opens a file in the hex viewer in the active pane, or shows its hex view there when it is open.
+    /// </summary>
+    /// <param name="filePath">The file.</param>
+    /// <returns>The tab showing it, or <see langword="null"/> when it could not be opened.</returns>
+    public async Task<EditorTabViewModel?> OpenHexAsync(string filePath)
+    {
+        DocumentViewModel? document = await _documents.OpenHexAsync(filePath);
+
+        return document is null ? null : Show(document);
+    }
+
+    /// <summary>
+    /// Shows the active tab's file in the other view — the hex viewer for text, text for hex — in the
+    /// tab's own place.
+    /// </summary>
+    /// <param name="asHex">Whether to reopen as hex; otherwise as text.</param>
+    /// <returns>Whether the tab now shows the file the other way.</returns>
+    /// <remarks>
+    /// Leaving a text view asks about unsaved changes as closing it would, when no other tab still
+    /// shows the buffer.
+    /// </remarks>
+    public async Task<bool> ReopenActiveAsync(bool asHex)
+    {
+        if ((ActiveTab is not { Document: { FilePath: { } path } current } tab) || (current.IsHex == asHex))
+        {
+            return false;
+        }
+
+        EditorPaneViewModel pane = ActivePane;
+
+        if ((_registry.ViewCount(current) <= 1) && current.IsDirty && !await ResolveUnsavedAsync(current))
+        {
+            return false;
+        }
+
+        DocumentViewModel? replacement = asHex
+            ? await _documents.OpenHexAsync(path)
+            : await _documents.OpenAsync(path, forceText: true);
+
+        if ((replacement is null) || !pane.Tabs.Contains(tab))
+        {
+            return false;
+        }
+
+        pane.Replace(tab, replacement, out bool created);
+
+        if (created)
+        {
+            _registry.Retain(replacement);
+        }
+
+        _registry.Release(current);
+        RefreshCommands();
+
+        return true;
+    }
+
+    /// <summary>
+    /// Creates an untitled buffer and shows it in the active pane.
+    /// </summary>
+    /// <returns>Its tab.</returns>
+    public EditorTabViewModel NewDocument() => Show(_documents.CreateUntitled());
+
+    /// <summary>
+    /// Shows a buffer in the active pane.
+    /// </summary>
+    /// <param name="document">The buffer, already in the registry.</param>
+    /// <returns>Its tab.</returns>
+    public EditorTabViewModel Show(DocumentViewModel document)
+    {
+        EditorTabViewModel tab = ActivePane.Show(document, out bool created);
+
+        if (created)
+        {
+            _registry.Retain(document);
+        }
+
+        RefreshCommands();
+
+        return tab;
+    }
+
+    /// <summary>
+    /// Saves a buffer.
+    /// </summary>
+    /// <param name="document">The buffer, or <see langword="null"/> for nothing.</param>
+    /// <returns>Whether it was written.</returns>
+    public Task<bool> SaveAsync(DocumentViewModel? document)
+        => document is null ? Task.FromResult(false) : _documents.SaveAsync(document);
+
+    /// <summary>
+    /// Saves a buffer under a name the user chooses.
+    /// </summary>
+    /// <param name="document">The buffer, or <see langword="null"/> for nothing.</param>
+    /// <returns>Whether it was written.</returns>
+    public Task<bool> SaveAsAsync(DocumentViewModel? document)
+        => document is null ? Task.FromResult(false) : _documents.SaveAsAsync(document);
+
+    /// <summary>
+    /// Saves a buffer to a given file, which becomes its file.
+    /// </summary>
+    /// <param name="document">The buffer.</param>
+    /// <param name="filePath">The file.</param>
+    /// <returns>Whether it was written.</returns>
+    public Task<bool> SaveAsAsync(DocumentViewModel document, string filePath)
+        => _documents.SaveAsAsync(document, filePath);
+
+    /// <summary>
+    /// Saves every buffer with unsaved changes, stopping at the first that cannot be saved.
+    /// </summary>
+    /// <returns>Whether every one was written.</returns>
+    public async Task<bool> SaveAllAsync()
+    {
+        foreach (DocumentViewModel document in _registry.Documents.Where(document => document.IsDirty).ToList())
+        {
+            if (!await _documents.SaveAsync(document))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public Task<bool> CloseTabAsync(EditorPaneViewModel pane, EditorTabViewModel tab, bool discard = false)
+        => CloseTabAsync(pane, tab, discard, keepEmptyPane: false);
+
+    /// <inheritdoc />
+    public Task ExecuteExAsync(EditorPaneViewModel pane, VimExRequest request) => _ex.ExecuteAsync(pane, request);
+
+    /// <inheritdoc />
+    public Task ExecuteWindowAsync(EditorPaneViewModel pane, VimWindowCommand command) => _window.ExecuteAsync(pane, command);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The pane takes the keyboard first, so every file opens where it was dropped, each through the same
+    /// door as <em>File → Open</em>. Folders and paths that have gone are skipped and named once on the
+    /// status line, as the command line's are.
+    /// </remarks>
+    public async Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+        ArgumentNullException.ThrowIfNull(paths);
+
+        Activate(pane);
+
+        List<string> problems = [];
+
+        foreach (string path in paths)
+        {
+            if (Directory.Exists(path))
+            {
+                problems.Add($"{NameOf(path)} is a folder");
+            }
+            else if (File.Exists(path))
+            {
+                await OpenAsync(path);
+            }
+            else
+            {
+                problems.Add($"{NameOf(path)} does not exist");
+            }
+        }
+
+        if (problems.Count > 0)
+        {
+            _status.Show($"Not opened: {string.Join("; ", problems)}.");
+        }
+
+        // A drive root has no name of its own.
+        static string NameOf(string path)
+            => Path.GetFileName(Path.TrimEndingDirectorySeparator(path)) is { Length: > 0 } name ? name : path;
+    }
+
+    /// <inheritdoc />
+    public void ShowStatus(string message) => _status.Show(message);
+
+    /// <summary>
+    /// Asks about every buffer with unsaved changes before the window closes.
+    /// </summary>
+    /// <returns>
+    /// Whether the window may close: every buffer was saved or discarded. One <em>Cancel</em>, or one
+    /// save that did not happen, keeps it open.
+    /// </returns>
+    public async Task<bool> ConfirmCloseAllAsync()
+    {
+        foreach (DocumentViewModel document in _registry.Documents.Where(document => document.IsDirty).ToList())
+        {
+            // Shown while it is asked about, so the user can see what they are deciding on.
+            if (Panes.FirstOrDefault(pane => pane.Tabs.Any(tab => ReferenceEquals(tab.Document, document))) is { } pane)
+            {
+                pane.ActiveTab = pane.Tabs.First(tab => ReferenceEquals(tab.Document, document));
+                Activate(pane);
+            }
+
+            if (!await ResolveUnsavedAsync(document))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Opens the files named on the command line, the last one active.
+    /// </summary>
+    /// <param name="startup">The files, as read from the arguments.</param>
+    /// <returns>A task that completes when every file has been opened or reported.</returns>
+    /// <remarks>
+    /// A missing file becomes an empty buffer the first save creates, unless its folder does not exist
+    /// either, which no save could fix. With nothing to open, an untitled buffer is ready to type into,
+    /// as Vim starts.
+    /// </remarks>
+    public async Task OpenStartupFilesAsync(StartupFiles startup)
+    {
+        ArgumentNullException.ThrowIfNull(startup);
+
+        List<string> problems = [.. startup.Skipped.Select(skipped => $"{skipped} is not a file")];
+
+        foreach (StartupFile file in startup.Files)
+        {
+            if (file.Exists)
+            {
+                await OpenAsync(file.Path);
+            }
+            else if (Directory.Exists(Path.GetDirectoryName(file.Path)))
+            {
+                Show(_documents.CreateForMissingFile(file.Path));
+            }
+            else
+            {
+                problems.Add($"{file.Path} is in a folder that does not exist");
+            }
+        }
+
+        if (ActiveTab is null)
+        {
+            NewDocument();
+        }
+
+        if (problems.Count > 0)
+        {
+            _status.Show($"Not opened: {string.Join("; ", problems)}.");
+        }
+    }
+
+    /// <summary>
+    /// The folder a picker starts in: the active buffer's.
+    /// </summary>
+    /// <returns>The folder, or <see langword="null"/> when the active buffer has no file.</returns>
+    public string? ActiveFolder()
+        => ActiveDocument?.FilePath is { } path ? Path.GetDirectoryName(path) : null;
+
+    private async Task<bool> CloseTabAsync(EditorPaneViewModel pane, EditorTabViewModel tab, bool discard, bool keepEmptyPane)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+        ArgumentNullException.ThrowIfNull(tab);
+
+        if (!pane.Tabs.Contains(tab))
+        {
+            return false;
+        }
+
+        // Only the last tab of a buffer can lose anything: another tab still showing it — in this pane
+        // or another — keeps the changes open.
+        bool last = _registry.ViewCount(tab.Document) <= 1;
+
+        if (last && tab.Document.IsDirty && !discard && !await ResolveUnsavedAsync(tab.Document))
+        {
+            return false;
+        }
+
+        pane.Remove(tab);
+        _registry.Release(tab.Document);
+
+        if (!keepEmptyPane && (pane.Tabs.Count == 0) && (_byId.Count > 1) && (IdOf(pane) is { } id))
+        {
+            RemovePane(id);
+        }
+
+        RefreshCommands();
+
+        return true;
+    }
+
+    private async Task<bool> ResolveUnsavedAsync(DocumentViewModel document)
+    {
+        switch (await _unsaved.AskAsync(document.Title))
+        {
+            case UnsavedChangesChoice.Save:
+                return await _documents.SaveAsync(document);
+
+            case UnsavedChangesChoice.Discard:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private EditorPaneViewModel AddPane(PaneId id)
+    {
+        EditorPaneViewModel pane = new(Preferences, this);
+        pane.PropertyChanged += OnPanePropertyChanged;
+        _byId[id] = pane;
+
+        return pane;
+    }
+
+    private void RemovePane(PaneId id)
+    {
+        Batch(() =>
+        {
+            if (Layout.Close(id, out PaneId successor) && _byId.Remove(id, out EditorPaneViewModel? removed))
+            {
+                removed.PropertyChanged -= OnPanePropertyChanged;
+
+                if (id == ActivePaneId)
+                {
+                    Activate(successor);
+                }
+            }
+        });
+
+        UpdateActiveFlags();
+        RefreshCommands();
+    }
+
+    private void Activate(PaneId id)
+    {
+        if (!_byId.TryGetValue(id, out EditorPaneViewModel? pane))
+        {
+            return;
+        }
+
+        ActivePaneId = id;
+        ActivePane = pane;
+        UpdateActiveFlags();
+    }
+
+    private void UpdateActiveFlags()
+    {
+        bool several = _byId.Count > 1;
+
+        foreach ((PaneId id, EditorPaneViewModel pane) in _byId)
+        {
+            bool active = id == ActivePaneId;
+            pane.IsActive = active;
+            pane.IsFramed = active && several;
+        }
+    }
+
+    private void Batch(Action action)
+    {
+        _batch++;
+
+        try
+        {
+            action();
+        }
+        finally
+        {
+            _batch--;
+        }
+
+        LayoutChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnPanePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (ReferenceEquals(sender, ActivePane) && (e.PropertyName == nameof(EditorPaneViewModel.ActiveTab)))
+        {
+            OnPropertyChanged(nameof(ActiveTab));
+            OnPropertyChanged(nameof(ActiveDocument));
+            RefreshCommands();
+        }
+    }
+
+    private void RefreshCommands()
+    {
+        SaveCommand.NotifyCanExecuteChanged();
+        SaveAsCommand.NotifyCanExecuteChanged();
+        SaveAllCommand.NotifyCanExecuteChanged();
+        CloseTabCommand.NotifyCanExecuteChanged();
+        ClosePaneCommand.NotifyCanExecuteChanged();
+        OnlyPaneCommand.NotifyCanExecuteChanged();
+        EqualizeCommand.NotifyCanExecuteChanged();
+        FocusNextPaneCommand.NotifyCanExecuteChanged();
+        FocusPreviousPaneCommand.NotifyCanExecuteChanged();
+    }
+
+    private async Task OnOpenAsync()
+    {
+        foreach (string path in await _prompts.AskFilesToOpenAsync(ActiveFolder()))
+        {
+            await OpenAsync(path);
+        }
+    }
+
+    private async Task OnOpenHexAsync()
+    {
+        foreach (string path in await _prompts.AskFilesToOpenAsync(ActiveFolder()))
+        {
+            await OpenHexAsync(path);
+        }
+    }
+
+    private Task OnCloseActiveTabAsync()
+        => ActiveTab is { } tab ? CloseTabAsync(ActivePane, tab) : Task.CompletedTask;
+}

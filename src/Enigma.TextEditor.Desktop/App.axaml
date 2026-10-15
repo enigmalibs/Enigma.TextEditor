@@ -1,0 +1,27 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Enigma.TextEditor.Desktop.App">
+
+  <!-- FluentTheme must stay: Enigma.Avalonia.Desktop declares ControlThemes only for its own
+       controls, so without it every framework control loses its template. -->
+  <Application.Styles>
+    <FluentTheme />
+    <!-- AvaloniaEdit ships its control theme separately from the assembly's default styles: without
+         this include the TextEditor renders as an untemplated blank. It has to come after
+         FluentTheme, whose ScrollViewer/ScrollBar themes it builds on. -->
+    <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+  </Application.Styles>
+
+  <!-- The Enigma theme is a ResourceDictionary, so it is merged as a ResourceInclude into
+       Application.Resources; a StyleInclude here fails the build with AVLN2000.
+       RequestedThemeVariant is deliberately unset: App assigns it from the persisted Theme setting
+       before the window is shown, and IThemeService assigns it whenever the setting changes. -->
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Enigma.Avalonia.Desktop/Themes/Fluent.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+</Application>
