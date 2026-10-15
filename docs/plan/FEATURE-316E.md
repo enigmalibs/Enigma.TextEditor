@@ -1,6 +1,6 @@
 # FEATURE-316E — Encoding, EOL & indent tools
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch:** `feature/feature-316e-<phase>-<slug>` (one per phase)
 **Run:** vibe/2026-10-15-text-editor-vim
@@ -41,7 +41,7 @@ The Tools menu and status-bar items the draft asks for, beyond *Set language*:
 
 ## PHASE01 — Encoding tools
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-316E-PHASE01.md`
 **Branch:** `feature/feature-316e-phase01-encoding-tools`
 
 ### Steps
