@@ -1,6 +1,6 @@
 # FEATURE-3EE8 — Editor panes, tabs & files
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch:** `feature/feature-3ee8-<phase>-<slug>` (one per phase)
 **Run:** vibe/2026-10-15-text-editor-vim
@@ -47,7 +47,7 @@ Make the shell an editor:
 
 ## PHASE01 — Editor pane & tabs
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-3EE8-PHASE01.md`
 **Branch:** `feature/feature-3ee8-phase01-editor-pane-tabs`
 
 ### Steps
