@@ -118,7 +118,7 @@ Make the shell an editor:
 
 ## PHASE03 — Vim integration & ex requests
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-3EE8-PHASE03.md`
 **Branch:** `feature/feature-3ee8-phase03-vim-integration`
 
 ### Steps
