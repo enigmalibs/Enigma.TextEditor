@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The application icon, hinted for the 16 and 32 pixel frames: enigma-text-editor.svg with two text
+  lines instead of four, a bigger page and a wider cursor, every edge on a 16-unit grid so it lands
+  on whole pixels at both sizes, and darker lines, because at that size the master's 12-unit lines
+  twelve units apart blur into one shade. Regenerating the frames is described in
+  enigma-text-editor.svg.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256">
+  <rect x="8" y="8" width="240" height="240" rx="48" fill="#1E1F22"/>
+  <path d="M60 32H160L208 80V212A12 12 0 0 1 196 224H60A12 12 0 0 1 48 212V44A12 12 0 0 1 60 32Z" fill="#3574F0"/>
+  <path d="M160 32V80H208Z" fill="#2558C4"/>
+  <rect x="80" y="96" width="96" height="16" fill="#274174"/>
+  <rect x="80" y="144" width="32" height="16" fill="#274174"/>
+  <rect x="128" y="128" width="32" height="48" fill="#3FB950"/>
+</svg>

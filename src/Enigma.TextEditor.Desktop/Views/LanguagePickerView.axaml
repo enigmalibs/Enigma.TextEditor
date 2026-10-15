@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Enigma.TextEditor.Desktop.ViewModels"
+             xmlns:services="using:Enigma.TextEditor.Desktop.Services"
+             x:Class="Enigma.TextEditor.Desktop.Views.LanguagePickerView"
+             x:DataType="vm:LanguagePickerViewModel"
+             Width="380">
+  <DockPanel>
+    <TextBox x:Name="FilterBox"
+             DockPanel.Dock="Top"
+             Margin="0,0,0,8"
+             PlaceholderText="Filter languages"
+             Text="{Binding Filter}"
+             AutomationProperties.Name="Filter languages" />
+    <ListBox x:Name="Languages"
+             Height="320"
+             ItemsSource="{Binding Items}"
+             SelectedItem="{Binding Selected}"
+             DoubleTapped="OnLanguagesDoubleTapped">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="services:LanguageInfo">
+          <TextBlock Text="{Binding DisplayName}" />
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>

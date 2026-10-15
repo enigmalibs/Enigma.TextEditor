@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The application icon: the master for the 48, 64, 128 and 256 pixel frames.
+  The 16 and 32 pixel frames come from enigma-text-editor-small.svg, hinted for their size.
+
+  A page of text with a block cursor in green at the end of its last line: what the editor shows in
+  Vim's normal mode, drawn on the tile and in the colours of the other Enigma applications.
+
+  Regenerating the frames: render each master to a square 32-bit RGBA PNG with any SVG rasterizer,
+  for example, from the repository root:
+
+    rsvg-convert -w N -h N packaging/icon/enigma-text-editor.svg       -o enigma-text-editor-N.png   (48 64 128 256)
+    rsvg-convert -w N -h N packaging/icon/enigma-text-editor-small.svg -o enigma-text-editor-N.png   (16 32)
+
+  then pack the six PNGs, unchanged and smallest first, as the 32-bit PNG entries of
+  src/Enigma.TextEditor.Desktop/Assets/app.ico, and copy the 256 one byte for byte to
+  src/Enigma.TextEditor.Desktop/Assets/app-256.png.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect x="8" y="8" width="240" height="240" rx="48" fill="#1E1F22"/>
+  <path d="M74 44H158L194 80V200A12 12 0 0 1 182 212H74A12 12 0 0 1 62 200V56A12 12 0 0 1 74 44Z" fill="#3574F0"/>
+  <path d="M158 44V80H194Z" fill="#2558C4"/>
+  <rect x="82" y="100" width="92" height="12" rx="4" fill="#2D56A8"/>
+  <rect x="82" y="124" width="68" height="12" rx="4" fill="#2D56A8"/>
+  <rect x="82" y="148" width="84" height="12" rx="4" fill="#2D56A8"/>
+  <rect x="82" y="172" width="40" height="12" rx="4" fill="#2D56A8"/>
+  <rect x="128" y="164" width="18" height="28" rx="3" fill="#3FB950"/>
+</svg>
