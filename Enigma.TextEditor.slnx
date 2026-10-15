@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Enigma.TextEditor.Core/Enigma.TextEditor.Core.csproj" />
+    <Project Path="src/Enigma.TextEditor.Desktop/Enigma.TextEditor.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Enigma.TextEditor.Core.UnitTests/Enigma.TextEditor.Core.UnitTests.csproj" />
+    <Project Path="tests/Enigma.TextEditor.Desktop.UnitTests/Enigma.TextEditor.Desktop.UnitTests.csproj" />
+  </Folder>
+</Solution>

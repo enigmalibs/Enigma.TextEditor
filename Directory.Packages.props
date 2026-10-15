@@ -1,0 +1,60 @@
+<Project>
+
+  <!-- Central Package Management: every PackageReference version in the solution is pinned
+       here so shared dependencies (e.g. Avalonia) cannot drift between projects. Projects
+       reference packages WITHOUT a Version attribute (<PackageReference Include="Foo" />);
+       the version comes from the matching <PackageVersion> below. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- Core (Enigma.TextEditor.Core) — no Avalonia dependency ever. Enigma.Configuration reads and
+       writes the JSON settings; it brings only the DI abstractions, so Core stays free of the
+       hosting stack as well as of Avalonia. -->
+  <ItemGroup>
+    <PackageVersion Include="Enigma.Configuration" Version="1.0.0" />
+  </ItemGroup>
+
+  <!-- Desktop (Avalonia) — a version-coupled ecosystem: Avalonia, its Desktop/Fluent/Inter/Headless/
+       Skia companions and the Enigma control and icon libraries are bumped TOGETHER, never one
+       package at a time. 12.1.2 is the set Enigma.MarkdownEditor ships AvaloniaEdit 12.0.0 with,
+       and it satisfies the 12.1.1 floor of Enigma.Avalonia.Desktop 1.2.0. -->
+  <ItemGroup>
+    <PackageVersion Include="Avalonia" Version="12.1.2" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.2" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.2" />
+    <PackageVersion Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
+    <PackageVersion Include="Enigma.Avalonia.Desktop" Version="1.2.0" />
+    <PackageVersion Include="Enigma.Icons.Avalonia" Version="1.0.0" />
+  </ItemGroup>
+
+  <!-- Text editor. Versioned independently of the Avalonia set: AvaloniaEdit ships its own 12.0.0
+       built against Avalonia 12.x. AvaloniaEdit.TextMate brings TextMateSharp and its grammars and
+       themes transitively. -->
+  <ItemGroup>
+    <PackageVersion Include="Avalonia.AvaloniaEdit" Version="12.0.0" />
+    <PackageVersion Include="AvaloniaEdit.TextMate" Version="12.0.0" />
+  </ItemGroup>
+
+  <!-- Hosting & logging. Not part of the Avalonia coupled set: Hosting tracks the .NET runtime band
+       (10.0.x) and is bumped with the SDK; Enigma.Logging.NLog is an NLog/Microsoft.Extensions.Logging
+       adapter with no Avalonia dependency, versioned on its own schedule. -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
+    <PackageVersion Include="Enigma.Logging.NLog" Version="1.0.0" />
+  </ItemGroup>
+
+  <!-- Tests (MTP-native: xunit.v3 only; Microsoft.Testing.Extensions.CodeCoverage for coverage).
+       No Microsoft.NET.Test.Sdk, no coverlet.collector. Avalonia.Headless renders real controls
+       off-screen and Avalonia.Skia turns those frames into pixels — both part of the coupled
+       Avalonia set above. Avalonia.Headless.XUnit is deliberately absent: its 12.1.x builds pin
+       xunit.v3 3.x, so the Desktop suite drives the headless platform through its own fixture. -->
+  <ItemGroup>
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
+    <PackageVersion Include="Avalonia.Headless" Version="12.1.2" />
+    <PackageVersion Include="Avalonia.Skia" Version="12.1.2" />
+  </ItemGroup>
+
+</Project>

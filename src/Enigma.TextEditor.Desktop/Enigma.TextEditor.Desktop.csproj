@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- WinExe suppresses the console window on Windows; on Linux and macOS it behaves like Exe. -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Enigma.TextEditor.Desktop</RootNamespace>
+    <!-- The product version; the Core csproj carries the same value and the two move together. -->
+    <Version>0.1.0</Version>
+    <!-- Required by Avalonia's Windows backend (drag & drop, native dialogs). -->
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <!-- Compiled bindings are the default in Avalonia 12; making it explicit documents that every view
+         root and DataTemplate must carry x:DataType, or the XAML compiler fails (AVLN2100). -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Embeds the icon in the Windows executable; the running window gets it from MainWindow's Icon,
+         which is the only one Linux and macOS use. -->
+    <ApplicationIcon>Assets/app.ico</ApplicationIcon>
+  </PropertyGroup>
+  <!-- LangVersion / Nullable / ImplicitUsings / TreatWarningsAsErrors are deliberately absent: they
+       come from Directory.Build.props. No Version attribute on a PackageReference either — versions
+       live in Directory.Packages.props (CPM). The <Version> property above is the product version. -->
+  <ItemGroup>
+    <!-- Version-coupled Avalonia set (12.1.2): bump them together, never one alone. -->
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <!-- Avalonia.Diagnostics was removed in 12; this is its replacement, and it is Debug-only:
+         outside Debug the assets are dropped so no dev-tools code ships in a Release build. -->
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Enigma.Avalonia.Desktop" />
+    <PackageReference Include="Enigma.Icons.Avalonia" />
+    <!-- The text editor control and its TextMate syntax highlighting. -->
+    <PackageReference Include="Avalonia.AvaloniaEdit" />
+    <PackageReference Include="AvaloniaEdit.TextMate" />
+    <!-- Supplies Microsoft.Extensions.DependencyInjection, which Enigma.Avalonia.Desktop does not
+         bring transitively. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <!-- NLog-backed ILogger<T> writing the application's file log. -->
+    <PackageReference Include="Enigma.Logging.NLog" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Enigma.TextEditor.Core/Enigma.TextEditor.Core.csproj" />
+  </ItemGroup>
+  <!-- The icon's frames, rendered from packaging/icon/*.svg. -->
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
+  <!-- The composition root stays internal; the unit-test project drives it. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Enigma.TextEditor.Desktop.UnitTests" />
+  </ItemGroup>
+</Project>
