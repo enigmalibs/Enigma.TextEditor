@@ -97,7 +97,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         };
 
         NewCommand = new RelayCommand(() => NewDocument());
-        OpenCommand = new AsyncRelayCommand(OnOpenAsync);
+        OpenCommand = new AsyncRelayCommand(OpenFromPromptAsync);
         OpenHexCommand = new AsyncRelayCommand(OnOpenHexAsync);
         SaveCommand = new AsyncRelayCommand(() => SaveAsync(ActiveDocument), () => ActiveDocument is { IsHex: false });
         SaveAsCommand = new AsyncRelayCommand(() => SaveAsAsync(ActiveDocument), () => ActiveDocument is { IsHex: false });
@@ -446,6 +446,19 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         DocumentViewModel? document = await _documents.OpenAsync(filePath);
 
         return document is null ? null : Show(document);
+    }
+
+    /// <summary>
+    /// Asks which files to open, starting in the active buffer's folder, and opens each in the active
+    /// pane — <em>File → Open…</em>.
+    /// </summary>
+    /// <returns>A task that completes when every chosen file has been opened or reported.</returns>
+    public async Task OpenFromPromptAsync()
+    {
+        foreach (string path in await _prompts.AskFilesToOpenAsync(ActiveFolder()))
+        {
+            await OpenAsync(path);
+        }
     }
 
     /// <summary>
@@ -872,14 +885,6 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         EqualizeCommand.NotifyCanExecuteChanged();
         FocusNextPaneCommand.NotifyCanExecuteChanged();
         FocusPreviousPaneCommand.NotifyCanExecuteChanged();
-    }
-
-    private async Task OnOpenAsync()
-    {
-        foreach (string path in await _prompts.AskFilesToOpenAsync(ActiveFolder()))
-        {
-            await OpenAsync(path);
-        }
     }
 
     private async Task OnOpenHexAsync()

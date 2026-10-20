@@ -47,7 +47,6 @@ public sealed class ExCommandParserTests
     [InlineData("w!")]
     [InlineData("x!")]
     [InlineData("wqa")]
-    [InlineData("e")]
     [InlineData("e!")]
     [InlineData("e! notes.md")]
     [InlineData("q notes.md")]
@@ -88,6 +87,16 @@ public sealed class ExCommandParserTests
     [InlineData("w notes.md", VimExCommand.Write, "notes.md")]
     public void TheRequestsAddedHere_AreReadWithTheirFile(string line, VimExCommand command, string? argument)
         => Assert.Equal(new VimExRequest(command, argument), ExCommandParser.Parse(line));
+
+    [Theory]
+    // Every spelling of ':edit' with nothing after it: the application asks which file.
+    [InlineData("e")]
+    [InlineData("ed")]
+    [InlineData("edi")]
+    [InlineData("edit")]
+    [InlineData(" e ")]
+    public void EditWithoutAFile_IsReadWithNoArgument(string line)
+        => Assert.Equal(new VimExRequest(VimExCommand.Edit), ExCommandParser.Parse(line));
 
     [Theory]
     // Vim's abbreviations: any start of the full name from the shortest spelling on.
@@ -135,7 +144,7 @@ public sealed class ExCommandParserTests
     [InlineData("help!")]
     [InlineData("helps")]
     [InlineData("clos notes.md")]
-    [InlineData("ed")]
+    [InlineData("ed!")]
     // ':en' is two letters short of ':ene', and ':enew' opens nothing named.
     [InlineData("en")]
     [InlineData("enews")]

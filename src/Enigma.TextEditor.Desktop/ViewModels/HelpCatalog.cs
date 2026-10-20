@@ -128,7 +128,7 @@ public static class HelpCatalog
             Ex("", "Save every buffer with changes", VimExCommand.WriteAll),
             Ex("", "Quit, asking about unsaved changes", VimExCommand.QuitAll),
             Ex("", "Quit, throwing every change away", VimExCommand.QuitAllDiscard, bang: true),
-            Ex("Ctrl+O", "Open a file in this pane", VimExCommand.Edit, " {file}"),
+            Ex("Ctrl+O", "Open a file in this pane; without one, pick it", VimExCommand.Edit, " [file]"),
             Ex("Ctrl+N", "New untitled buffer in a new tab", VimExCommand.EditNew),
             Ex("", "New untitled buffer in this tab's place, throwing its changes away", VimExCommand.EditNewDiscard, bang: true),
             Ex("Ctrl+Tab", "Next tab", VimExCommand.BufferNext),

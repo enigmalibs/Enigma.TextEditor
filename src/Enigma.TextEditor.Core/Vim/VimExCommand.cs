@@ -50,6 +50,10 @@ public enum VimExCommand
     /// <c>:e[dit] {file}</c> — open a file in the current pane, or show it there
     /// when it is already open.
     /// </summary>
+    /// <remarks>
+    /// Without a file, the request carries no argument and the application asks which files to open,
+    /// as <em>File → Open</em> does.
+    /// </remarks>
     Edit,
 
     /// <summary>
