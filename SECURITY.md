@@ -12,7 +12,8 @@ Security fixes are provided for the latest released version. Enigma.TextEditor f
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.0.x   | :white_check_mark: |
+| 1.1.x   | :white_check_mark: |
+| 1.0.x   | :x:                |
 
 ## Reporting a vulnerability
 
@@ -45,7 +46,9 @@ The following are in scope:
 - the way it writes a file back, in its encoding and with its line endings;
 - the syntax highlighting it runs over a file's text;
 - the Vim engine's handling of what is typed into it, including search and substitution patterns;
-- the way it reads and writes its settings file and its log.
+- the way it reads and writes its settings file and its log;
+- the Linux install and uninstall scripts in `packaging/linux`: what they write into your home directory, what they
+  remove, and the desktop entry they generate.
 
 Issues rooted in Avalonia, AvaloniaEdit, TextMateSharp and its grammars, SkiaSharp or the .NET runtime should also be
 reported to those projects.
