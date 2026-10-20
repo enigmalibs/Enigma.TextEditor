@@ -735,6 +735,33 @@ public sealed class KeySequenceParserTests
         Assert.False(parser.HasPendingSequence);
     }
 
+    [Theory]
+    [InlineData("gh", 'h')]
+    [InlineData("gj", 'j')]
+    [InlineData("gk", 'k')]
+    [InlineData("gl", 'l')]
+    public void GHJKL_AreThePaneCommands_InNormalAndVisualMode(string keys, char letter)
+    {
+        VimCommand expected = new(VimAction.FocusPane, Argument: letter);
+
+        Assert.Equal(expected, Feed(keys, out KeySequenceParser parser).Command);
+        Assert.False(parser.HasPendingSequence);
+        Assert.Equal(expected, FeedIn(keys, VimMode.Visual, out _).Command);
+        Assert.Equal(expected, FeedIn(keys, VimMode.VisualLine, out _).Command);
+    }
+
+    [Theory]
+    [InlineData("dgj")]
+    [InlineData("ygl")]
+    public void APaneCommand_BehindAnOperator_IsDead(string keys)
+    {
+        VimParseResult dead = Feed(keys, out KeySequenceParser parser);
+
+        Assert.Equal(VimParseStatus.Invalid, dead.Status);
+        Assert.Equal(keys, dead.Sequence);
+        Assert.False(parser.HasPendingSequence);
+    }
+
     [Fact]
     public void GV_IsACommandInNormalModeAndNothingBehindAnOperator()
     {

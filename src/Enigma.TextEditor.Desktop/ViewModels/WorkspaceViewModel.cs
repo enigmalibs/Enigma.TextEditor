@@ -20,8 +20,10 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// <remarks>
 /// <para>
 /// The split model is Enigma.FileExplorer's: a binary tree of rows and columns whose leaves are
-/// panes, one <see cref="EditorPaneViewModel"/> per leaf. A split shows the active buffer in the new
-/// pane, as Vim's <c>:split</c> does, so both halves edit one text.
+/// panes, one <see cref="EditorPaneViewModel"/> per leaf. A split opens a new untitled buffer in the
+/// new pane, whatever the split pane was showing, so the two halves never start out editing one text;
+/// <c>:split file</c> opens that file there instead. One buffer can still be shown in two panes, by
+/// opening it in both.
 /// </para>
 /// <para>
 /// A pane that loses its last tab closes, unless it is the only pane: closing tabs is how panes go
@@ -97,7 +99,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         };
 
         NewCommand = new RelayCommand(() => NewDocument());
-        OpenCommand = new AsyncRelayCommand(OnOpenAsync);
+        OpenCommand = new AsyncRelayCommand(OpenFromPromptAsync);
         OpenHexCommand = new AsyncRelayCommand(OnOpenHexAsync);
         SaveCommand = new AsyncRelayCommand(() => SaveAsync(ActiveDocument), () => ActiveDocument is { IsHex: false });
         SaveAsCommand = new AsyncRelayCommand(() => SaveAsAsync(ActiveDocument), () => ActiveDocument is { IsHex: false });
@@ -106,7 +108,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         NextTabCommand = new RelayCommand(() => ActivePane.NextTab());
         PreviousTabCommand = new RelayCommand(() => ActivePane.PreviousTab());
 
-        // A split shows the active buffer: with none, it would only add an empty pane.
+        // A split needs a tab to split from: with none, the pane split would stand empty beside the new one.
         SplitRightCommand = new RelayCommand(() => Split(SplitAxis.Columns), () => ActiveTab is not null);
         SplitDownCommand = new RelayCommand(() => Split(SplitAxis.Rows), () => ActiveTab is not null);
         ClosePaneCommand = new AsyncRelayCommand(() => ClosePaneAsync(ActivePane), () => _byId.Count > 1);
@@ -309,17 +311,16 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     }
 
     /// <summary>
-    /// Splits the active pane, showing its buffer in the new pane, which takes the keyboard.
+    /// Splits the active pane, with a new untitled buffer in the new pane, which takes the keyboard.
     /// </summary>
     /// <param name="axis">Side by side (<see cref="SplitAxis.Columns"/>) or one above the other.</param>
-    /// <param name="showActiveBuffer">
-    /// Whether the new pane shows the active buffer, as <c>:split</c> does — or starts empty, for a
-    /// split that is about to open something else (<c>:split file</c>, <c>:new</c>).
+    /// <param name="newDocument">
+    /// Whether the new pane starts with a new untitled buffer, as every split the user asks for does —
+    /// or empty, for a split that is about to open a file there (<c>:split file</c>).
     /// </param>
     /// <returns>The new pane.</returns>
-    public EditorPaneViewModel Split(SplitAxis axis, bool showActiveBuffer = true)
+    public EditorPaneViewModel Split(SplitAxis axis, bool newDocument = true)
     {
-        EditorTabViewModel? source = showActiveBuffer ? ActivePane.ActiveTab : null;
         EditorPaneViewModel? created = null;
 
         Batch(() =>
@@ -328,14 +329,9 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
             created = AddPane(id);
             Activate(id);
 
-            if (source is not null)
+            if (newDocument)
             {
-                EditorTabViewModel tab = Show(source.Document);
-
-                // Vim's split shows the same place: the new view starts where the old one is.
-                tab.CaretOffset = source.CaretOffset;
-                tab.VerticalScrollOffset = source.VerticalScrollOffset;
-                tab.HorizontalScrollOffset = source.HorizontalScrollOffset;
+                NewDocument();
             }
         });
 
@@ -449,6 +445,19 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     }
 
     /// <summary>
+    /// Asks which files to open, starting in the active buffer's folder, and opens each in the active
+    /// pane — <em>File → Open…</em>.
+    /// </summary>
+    /// <returns>A task that completes when every chosen file has been opened or reported.</returns>
+    public async Task OpenFromPromptAsync()
+    {
+        foreach (string path in await _prompts.AskFilesToOpenAsync(ActiveFolder()))
+        {
+            await OpenAsync(path);
+        }
+    }
+
+    /// <summary>
     /// Opens a file in the hex viewer in the active pane, or shows its hex view there when it is open.
     /// </summary>
     /// <param name="filePath">The file.</param>
@@ -511,6 +520,36 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// </summary>
     /// <returns>Its tab.</returns>
     public EditorTabViewModel NewDocument() => Show(_documents.CreateUntitled());
+
+    /// <summary>
+    /// Puts a new untitled buffer in a tab's place, without asking about the buffer it replaces.
+    /// </summary>
+    /// <param name="pane">The pane the tab is on.</param>
+    /// <param name="tab">The tab.</param>
+    /// <returns>The tab showing the new buffer.</returns>
+    /// <remarks>
+    /// What the replaced buffer had not saved is gone, unless another tab still shows it and keeps it
+    /// open — the rule closing a tab follows.
+    /// </remarks>
+    public EditorTabViewModel ReplaceWithNewDocument(EditorPaneViewModel pane, EditorTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+        ArgumentNullException.ThrowIfNull(tab);
+
+        DocumentViewModel replaced = tab.Document;
+        DocumentViewModel untitled = _documents.CreateUntitled();
+        EditorTabViewModel replacement = pane.Replace(tab, untitled, out bool created);
+
+        if (created)
+        {
+            _registry.Retain(untitled);
+        }
+
+        _registry.Release(replaced);
+        RefreshCommands();
+
+        return replacement;
+    }
 
     /// <summary>
     /// Shows a buffer in the active pane.
@@ -842,14 +881,6 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         EqualizeCommand.NotifyCanExecuteChanged();
         FocusNextPaneCommand.NotifyCanExecuteChanged();
         FocusPreviousPaneCommand.NotifyCanExecuteChanged();
-    }
-
-    private async Task OnOpenAsync()
-    {
-        foreach (string path in await _prompts.AskFilesToOpenAsync(ActiveFolder()))
-        {
-            await OpenAsync(path);
-        }
     }
 
     private async Task OnOpenHexAsync()

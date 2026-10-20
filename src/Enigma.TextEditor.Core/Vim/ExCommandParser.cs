@@ -61,9 +61,11 @@ public static class ExCommandParser
         new("wq", 2, VimExCommand.WriteQuit, BangCommand: VimExCommand.WriteQuit),
         new("x", 1, VimExCommand.WriteQuit),
 
-        // ':e' with no file reloads the buffer in vim, and ':e!' throws its changes away: neither exists
-        // here, so both are refused rather than read as something else.
-        new("edit", 1, VimExCommand.Edit, VimExArgument.Required),
+        // ':e' with no file reloads the buffer in vim. Nothing here reloads a buffer, so a bare ':e' asks
+        // which file to open instead, as File -> Open does. ':e!' throws the buffer's changes away in
+        // vim, and stays refused rather than read as something else.
+        new("edit", 1, VimExCommand.Edit, VimExArgument.Optional),
+        new("enew", 3, VimExCommand.EditNew, BangCommand: VimExCommand.EditNewDiscard),
         new("bnext", 2, VimExCommand.BufferNext),
         new("bprevious", 2, VimExCommand.BufferPrevious),
         new("wall", 2, VimExCommand.WriteAll),

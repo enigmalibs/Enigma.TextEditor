@@ -128,20 +128,24 @@ public static class HelpCatalog
             Ex("", "Save every buffer with changes", VimExCommand.WriteAll),
             Ex("", "Quit, asking about unsaved changes", VimExCommand.QuitAll),
             Ex("", "Quit, throwing every change away", VimExCommand.QuitAllDiscard, bang: true),
-            Ex("Ctrl+O", "Open a file in this pane", VimExCommand.Edit, " {file}"),
+            Ex("Ctrl+O", "Open a file in this pane; without one, pick it", VimExCommand.Edit, " [file]"),
+            Ex("Ctrl+N", "New untitled buffer in a new tab", VimExCommand.EditNew),
+            Ex("", "New untitled buffer in this tab's place, throwing its changes away", VimExCommand.EditNewDiscard, bang: true),
             Ex("Ctrl+Tab", "Next tab", VimExCommand.BufferNext),
             Ex("Ctrl+Shift+Tab", "Previous tab", VimExCommand.BufferPrevious),
             Keys("Drop files on a pane", "Open them in that pane"),
         ]),
         Section("Panes", PhosphorIcon.Columns, "Ctrl+W, then the key",
         [
-            Ex("Ctrl+W s, Ctrl+W S", "Split, one above the other; with a file, open it there", VimExCommand.Split, " [file]")
+            Ex("Ctrl+W s, Ctrl+W S", "Split one above the other, with a new buffer; with a file, open it there", VimExCommand.Split, " [file]")
                 with { WindowCommands = [VimWindowCommand.SplitHorizontal] },
-            Ex("Ctrl+W v", "Split side by side; with a file, open it there", VimExCommand.VerticalSplit, " [file]")
+            Ex("Ctrl+W v", "Split side by side, with a new buffer; with a file, open it there", VimExCommand.VerticalSplit, " [file]")
                 with { WindowCommands = [VimWindowCommand.SplitVertical] },
             Ex("", "Split one above the other, with a new buffer", VimExCommand.New),
             Ex("", "Split side by side, with a new buffer", VimExCommand.VerticalNew),
             Window("Ctrl+W h, j, k, l, Ctrl+W ←, ↓, ↑, →", "The pane to the left, below, above, to the right",
+                VimWindowCommand.FocusLeft, VimWindowCommand.FocusDown, VimWindowCommand.FocusUp, VimWindowCommand.FocusRight),
+            Window("gh, gj, gk, gl", "The same, without Ctrl+W",
                 VimWindowCommand.FocusLeft, VimWindowCommand.FocusDown, VimWindowCommand.FocusUp, VimWindowCommand.FocusRight),
             Window("Ctrl+W w, Ctrl+W W", "Next, previous pane", VimWindowCommand.FocusNext, VimWindowCommand.FocusPrevious),
             Ex("Ctrl+W c", "Close the pane", VimExCommand.Close) with { WindowCommands = [VimWindowCommand.Close] },
@@ -165,7 +169,6 @@ public static class HelpCatalog
         Section("Application", PhosphorIcon.Keyboard, null,
         [
             Ex("F1", "This help", VimExCommand.Help),
-            Keys("Ctrl+N", "New file"),
             Keys("Ctrl+Shift+S", "Save as"),
             Keys("Ctrl+F4", "Close the tab"),
             Keys("Ctrl+=, Ctrl+-, Ctrl+0", "Zoom in, out, back to the default"),
