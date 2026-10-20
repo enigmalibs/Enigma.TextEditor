@@ -137,9 +137,9 @@ public static class HelpCatalog
         ]),
         Section("Panes", PhosphorIcon.Columns, "Ctrl+W, then the key",
         [
-            Ex("Ctrl+W s, Ctrl+W S", "Split, one above the other; with a file, open it there", VimExCommand.Split, " [file]")
+            Ex("Ctrl+W s, Ctrl+W S", "Split one above the other, with a new buffer; with a file, open it there", VimExCommand.Split, " [file]")
                 with { WindowCommands = [VimWindowCommand.SplitHorizontal] },
-            Ex("Ctrl+W v", "Split side by side; with a file, open it there", VimExCommand.VerticalSplit, " [file]")
+            Ex("Ctrl+W v", "Split side by side, with a new buffer; with a file, open it there", VimExCommand.VerticalSplit, " [file]")
                 with { WindowCommands = [VimWindowCommand.SplitVertical] },
             Ex("", "Split one above the other, with a new buffer", VimExCommand.New),
             Ex("", "Split side by side, with a new buffer", VimExCommand.VerticalNew),

@@ -122,17 +122,54 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal(["b.txt"], harness.Workspace.ActivePane.Tabs.Select(tab => tab.Document.Title));
         });
 
-    [Fact]
-    public void ColonSplitAlone_ShowsTheSameBuffer()
+    [Theory]
+    [InlineData(VimExCommand.Split)]
+    [InlineData(VimExCommand.VerticalSplit)]
+    [InlineData(VimExCommand.New)]
+    [InlineData(VimExCommand.VerticalNew)]
+    public void TheSplitExCommandsAlone_OpenANewBuffer(VimExCommand command)
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
             EditorTabViewModel tab = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a")))!;
 
-            await Ex(harness, VimExCommand.Split);
+            await Ex(harness, command);
 
-            Assert.Same(tab.Document, harness.Workspace.ActiveDocument);
             Assert.Equal(2, harness.Workspace.Panes.Count);
+            Assert.Null(Assert.Single(harness.Workspace.ActivePane.Tabs).Document.FilePath);
+            Assert.Same(tab, Assert.Single(harness.Workspace.Panes.Single(pane => !pane.IsActive).Tabs));
+        });
+
+    [Theory]
+    [InlineData(VimWindowCommand.SplitHorizontal)]
+    [InlineData(VimWindowCommand.SplitVertical)]
+    public void CtrlWSAndV_OpenANewBuffer(VimWindowCommand command)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            EditorTabViewModel tab = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a")))!;
+
+            await Window(harness, command);
+
+            Assert.Null(Assert.Single(harness.Workspace.ActivePane.Tabs).Document.FilePath);
+            Assert.Equal(1, harness.Registry.ViewCount(tab.Document));
+        });
+
+    [Fact]
+    public void TheViewMenusSplits_OpenANewBuffer()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a"));
+
+            harness.Workspace.SplitRightCommand.Execute(null);
+            Assert.Null(Assert.Single(harness.Workspace.ActivePane.Tabs).Document.FilePath);
+
+            harness.Workspace.SplitDownCommand.Execute(null);
+            Assert.Null(Assert.Single(harness.Workspace.ActivePane.Tabs).Document.FilePath);
+
+            Assert.Equal(3, harness.Workspace.Panes.Count);
+            Assert.Equal(3, harness.Registry.Documents.Count);
         });
 
     [Fact]
@@ -183,21 +220,27 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             await Pump();
             Assert.Equal(2, harness.Workspace.Panes.Count);
 
-            // Yank in the new (right) pane, move to the left one — another engine — and put there.
+            // Back to the left pane to yank its line, then to the new (right) one — another engine — to
+            // put it into a file opened there.
             EditorPaneViewModel left = harness.Workspace.Panes[0];
-            window.KeyTextInput("yy");
+            EditorPaneViewModel right = harness.Workspace.Panes[1];
             window.KeyPressQwerty(PhysicalKey.W, RawInputModifiers.Control);
             window.KeyTextInput("h");
             await Pump();
             Assert.Same(left, harness.Workspace.ActivePane);
+            window.KeyTextInput("yy");
+            window.KeyPressQwerty(PhysicalKey.W, RawInputModifiers.Control);
+            window.KeyTextInput("l");
+            await Pump();
+            Assert.Same(right, harness.Workspace.ActivePane);
 
             await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "other\n"));
             await Pump();
             window.KeyTextInput("p");
             await Pump();
 
-            Assert.Equal("b.txt", left.ActiveTab?.Document.Title);
-            Assert.Equal("other\nfirst line\n", left.ActiveTab?.Document.Document.Text);
+            Assert.Equal("b.txt", right.ActiveTab?.Document.Title);
+            Assert.Equal("other\nfirst line\n", right.ActiveTab?.Document.Document.Text);
             window.Close();
         });
 

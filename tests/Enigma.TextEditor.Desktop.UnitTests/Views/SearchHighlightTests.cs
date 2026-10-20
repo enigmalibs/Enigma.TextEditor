@@ -5,6 +5,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
+using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
 using Xunit;
 
@@ -92,8 +93,9 @@ public sealed class SearchHighlightTests(HeadlessAvaloniaFixture fixture)
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
-            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Text));
+            EditorTabViewModel tab = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Text)))!;
             harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Show(tab.Document);
             MainWindow window = Show(harness);
             EditorPaneView[] panes = [.. window.GetVisualDescendants().OfType<EditorPaneView>()];
             panes[1].FocusEditor();

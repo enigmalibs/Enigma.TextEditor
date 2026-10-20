@@ -142,14 +142,13 @@ public sealed class ExCommandHandler
                 await SplitAsync(SplitAxis.Columns, request.Argument, tab?.Document);
                 break;
 
+            // What ':sp' and ':vs' do too, now that every split opens a new buffer.
             case VimExCommand.New:
-                _workspace.Split(SplitAxis.Rows, showActiveBuffer: false);
-                _workspace.NewDocument();
+                _workspace.Split(SplitAxis.Rows);
                 break;
 
             case VimExCommand.VerticalNew:
-                _workspace.Split(SplitAxis.Columns, showActiveBuffer: false);
-                _workspace.NewDocument();
+                _workspace.Split(SplitAxis.Columns);
                 break;
 
             case VimExCommand.Only:
@@ -208,7 +207,7 @@ public sealed class ExCommandHandler
         // Resolved before the split, against the buffer it was typed in.
         if (Resolve(file, relativeTo) is { } path)
         {
-            EditorPaneViewModel created = _workspace.Split(axis, showActiveBuffer: false);
+            EditorPaneViewModel created = _workspace.Split(axis, newDocument: false);
 
             // The pane was made for that file: when it could not be opened, the pane goes again rather
             // than stand empty beside the others, and the one it was split from takes the keyboard back.

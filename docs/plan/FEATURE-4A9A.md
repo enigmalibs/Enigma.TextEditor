@@ -1,6 +1,6 @@
 # FEATURE-4A9A — Split opens a new document
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-4A9A.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-4a9a-split-new-document`
 **Run:** vibe/2026-10-20-menus-enew-pane-focus

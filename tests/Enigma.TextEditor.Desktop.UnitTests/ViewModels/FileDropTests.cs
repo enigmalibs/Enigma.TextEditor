@@ -29,7 +29,7 @@ public sealed class FileDropTests(HeadlessAvaloniaFixture fixture)
             Assert.Same(left, harness.Workspace.ActivePane);
             Assert.Equal(["a.txt", "b.txt"], left.Tabs.Select(tab => tab.Document.Title));
             Assert.Equal("b.txt", left.ActiveTab?.Document.Title);
-            Assert.Empty(right.Tabs);
+            Assert.Null(Assert.Single(right.Tabs).Document.FilePath);
             Assert.Null(harness.StatusLine.Current);
         });
 
