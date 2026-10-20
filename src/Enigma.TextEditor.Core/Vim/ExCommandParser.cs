@@ -64,6 +64,7 @@ public static class ExCommandParser
         // ':e' with no file reloads the buffer in vim, and ':e!' throws its changes away: neither exists
         // here, so both are refused rather than read as something else.
         new("edit", 1, VimExCommand.Edit, VimExArgument.Required),
+        new("enew", 3, VimExCommand.EditNew, BangCommand: VimExCommand.EditNewDiscard),
         new("bnext", 2, VimExCommand.BufferNext),
         new("bprevious", 2, VimExCommand.BufferPrevious),
         new("wall", 2, VimExCommand.WriteAll),

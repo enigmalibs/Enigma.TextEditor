@@ -112,6 +112,10 @@ public sealed class ExCommandParserTests
     [InlineData("hel", VimExCommand.Help, null)]
     [InlineData("help", VimExCommand.Help, null)]
     [InlineData("help vsplit", VimExCommand.Help, "vsplit")]
+    [InlineData("ene", VimExCommand.EditNew, null)]
+    [InlineData("enew", VimExCommand.EditNew, null)]
+    [InlineData("ene!", VimExCommand.EditNewDiscard, null)]
+    [InlineData("enew!", VimExCommand.EditNewDiscard, null)]
     public void AShortenedName_IsReadAsVimReadsIt(string line, VimExCommand command, string? argument)
         => Assert.Equal(new VimExRequest(command, argument), ExCommandParser.Parse(line));
 
@@ -132,6 +136,11 @@ public sealed class ExCommandParserTests
     [InlineData("helps")]
     [InlineData("clos notes.md")]
     [InlineData("ed")]
+    // ':en' is two letters short of ':ene', and ':enew' opens nothing named.
+    [InlineData("en")]
+    [InlineData("enews")]
+    [InlineData("enew notes.md")]
+    [InlineData("ene! notes.md")]
     public void ANameThatIsNotAStartOfOne_IsNotACommand(string line)
         => Assert.Null(ExCommandParser.Parse(line));
 
@@ -168,6 +177,7 @@ public sealed class ExCommandParserTests
     [InlineData("new", false, ":new")]
     [InlineData("vnew", false, ":vne[w]")]
     [InlineData("edit", false, ":e[dit]")]
+    [InlineData("enew", true, ":ene[w]!")]
     public void ASpelling_BracketsThePartThatMayBeLeftOut(string name, bool bang, string spelling)
         => Assert.Equal(spelling, ExCommandParser.Definitions.Single(definition => definition.Name == name).Spelling(bang));
 

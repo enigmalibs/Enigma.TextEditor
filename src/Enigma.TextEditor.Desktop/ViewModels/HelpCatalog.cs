@@ -129,6 +129,8 @@ public static class HelpCatalog
             Ex("", "Quit, asking about unsaved changes", VimExCommand.QuitAll),
             Ex("", "Quit, throwing every change away", VimExCommand.QuitAllDiscard, bang: true),
             Ex("Ctrl+O", "Open a file in this pane", VimExCommand.Edit, " {file}"),
+            Ex("Ctrl+N", "New untitled buffer in a new tab", VimExCommand.EditNew),
+            Ex("", "New untitled buffer in this tab's place, throwing its changes away", VimExCommand.EditNewDiscard, bang: true),
             Ex("Ctrl+Tab", "Next tab", VimExCommand.BufferNext),
             Ex("Ctrl+Shift+Tab", "Previous tab", VimExCommand.BufferPrevious),
             Keys("Drop files on a pane", "Open them in that pane"),
@@ -167,7 +169,6 @@ public static class HelpCatalog
         Section("Application", PhosphorIcon.Keyboard, null,
         [
             Ex("F1", "This help", VimExCommand.Help),
-            Keys("Ctrl+N", "New file"),
             Keys("Ctrl+Shift+S", "Save as"),
             Keys("Ctrl+F4", "Close the tab"),
             Keys("Ctrl+=, Ctrl+-, Ctrl+0", "Zoom in, out, back to the default"),
