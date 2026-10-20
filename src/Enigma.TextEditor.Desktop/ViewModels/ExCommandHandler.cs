@@ -186,8 +186,14 @@ public sealed class ExCommandHandler
         // Resolved before the split, against the buffer it was typed in.
         if (Resolve(file, relativeTo) is { } path)
         {
-            _workspace.Split(axis, showActiveBuffer: false);
-            await _workspace.OpenAsync(path);
+            EditorPaneViewModel created = _workspace.Split(axis, showActiveBuffer: false);
+
+            // The pane was made for that file: when it could not be opened, the pane goes again rather
+            // than stand empty beside the others, and the one it was split from takes the keyboard back.
+            if ((await _workspace.OpenAsync(path) is null) && (created.Tabs.Count == 0))
+            {
+                await _workspace.ClosePaneAsync(created);
+            }
         }
     }
 

@@ -111,6 +111,41 @@ public sealed class SplitPaneTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal(1, harness.Shutdown.ExitRequests);
         });
 
+    [Theory]
+    [InlineData(VimExCommand.Split)]
+    [InlineData(VimExCommand.VerticalSplit)]
+    public void ASplitOnAFileThatCannotBeOpened_LeavesNoEmptyPane(VimExCommand command)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
+            EditorPaneViewModel original = harness.Workspace.ActivePane;
+
+            await original.ExecuteExAsync(new VimExRequest(command, "missing.txt"));
+
+            Assert.Same(original, Assert.Single(harness.Workspace.Panes));
+            Assert.Same(original, harness.Workspace.ActivePane);
+            Assert.True(original.IsActive);
+            Assert.Single(harness.Messages.Errors);
+        });
+
+    [Fact]
+    public void TheSplitCommands_NeedATabToShow()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            Assert.False(harness.Workspace.SplitRightCommand.CanExecute(null));
+            Assert.False(harness.Workspace.SplitDownCommand.CanExecute(null));
+
+            EditorTabViewModel tab = harness.Workspace.NewDocument();
+            Assert.True(harness.Workspace.SplitRightCommand.CanExecute(null));
+            Assert.True(harness.Workspace.SplitDownCommand.CanExecute(null));
+
+            await harness.Workspace.CloseTabAsync(harness.Workspace.ActivePane, tab);
+            Assert.False(harness.Workspace.SplitRightCommand.CanExecute(null));
+            Assert.False(harness.Workspace.SplitDownCommand.CanExecute(null));
+        });
+
     [Fact]
     public void Only_ClosesEveryOtherPane()
         => fixture.RunAsync(async () =>
