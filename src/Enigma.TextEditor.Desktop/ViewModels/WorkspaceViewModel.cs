@@ -106,8 +106,9 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         NextTabCommand = new RelayCommand(() => ActivePane.NextTab());
         PreviousTabCommand = new RelayCommand(() => ActivePane.PreviousTab());
 
-        SplitRightCommand = new RelayCommand(() => Split(SplitAxis.Columns));
-        SplitDownCommand = new RelayCommand(() => Split(SplitAxis.Rows));
+        // A split shows the active buffer: with none, it would only add an empty pane.
+        SplitRightCommand = new RelayCommand(() => Split(SplitAxis.Columns), () => ActiveTab is not null);
+        SplitDownCommand = new RelayCommand(() => Split(SplitAxis.Rows), () => ActiveTab is not null);
         ClosePaneCommand = new AsyncRelayCommand(() => ClosePaneAsync(ActivePane), () => _byId.Count > 1);
         OnlyPaneCommand = new AsyncRelayCommand(OnlyAsync, () => _byId.Count > 1);
         EqualizeCommand = new RelayCommand(Equalize, () => _byId.Count > 1);
@@ -834,6 +835,8 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         SaveAsCommand.NotifyCanExecuteChanged();
         SaveAllCommand.NotifyCanExecuteChanged();
         CloseTabCommand.NotifyCanExecuteChanged();
+        SplitRightCommand.NotifyCanExecuteChanged();
+        SplitDownCommand.NotifyCanExecuteChanged();
         ClosePaneCommand.NotifyCanExecuteChanged();
         OnlyPaneCommand.NotifyCanExecuteChanged();
         EqualizeCommand.NotifyCanExecuteChanged();

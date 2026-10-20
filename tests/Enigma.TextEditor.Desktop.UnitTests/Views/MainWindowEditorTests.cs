@@ -1,4 +1,5 @@
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -105,6 +106,29 @@ public sealed class MainWindowEditorTests(HeadlessAvaloniaFixture fixture)
             Assert.False(window.FindControl<TextBlock>("CaretStatus")?.IsEffectivelyVisible);
             window.Close();
         });
+
+    [Theory]
+    [InlineData("IndentationStatus")]
+    [InlineData("EncodingStatus")]
+    [InlineData("LanguageStatus")]
+    [InlineData("LineEndingStatus")]
+    public void TheStatusButtonsText_SitsOnTheCaretTextsLine(string button)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x"));
+            MainWindow window = Show(harness);
+            TextBlock caret = window.FindControl<TextBlock>("CaretStatus")!;
+            TextBlock text = window.FindControl<Button>(button)!.GetVisualDescendants().OfType<TextBlock>().First();
+
+            // Same font, same size: lined up when their boxes start and end at the same height.
+            Assert.Equal(caret.Bounds.Height, text.Bounds.Height, 0.5);
+            Assert.Equal(TopOf(caret, window), TopOf(text, window), 0.5);
+            Assert.Equal(26, window.FindControl<Border>("StatusBar")!.Bounds.Height, 0.5);
+            window.Close();
+        });
+
+    private static double TopOf(Visual visual, Visual root) => visual.TranslatePoint(default, root)!.Value.Y;
 
     private static MainWindow Show(EditorHarness harness)
     {

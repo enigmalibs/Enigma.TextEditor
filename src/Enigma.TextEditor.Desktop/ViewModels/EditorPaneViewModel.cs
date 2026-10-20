@@ -173,6 +173,11 @@ public sealed class EditorPaneViewModel : ObservableObject
     /// </summary>
     /// <param name="tab">The tab.</param>
     /// <returns>Whether the tab was on this pane.</returns>
+    /// <remarks>
+    /// The neighbour is shown before the tab leaves the strip. The other way round, the tab strip — a
+    /// list whose selection is bound to <see cref="ActiveTab"/> — sees its selected tab disappear and
+    /// writes <see langword="null"/> back, and the pane is left with tabs but none showing.
+    /// </remarks>
     public bool Remove(EditorTabViewModel tab)
     {
         ArgumentNullException.ThrowIfNull(tab);
@@ -184,12 +189,12 @@ public sealed class EditorPaneViewModel : ObservableObject
             return false;
         }
 
-        Tabs.RemoveAt(index);
-
         if (ReferenceEquals(ActiveTab, tab))
         {
-            ActiveTab = Tabs.Count == 0 ? null : Tabs[Math.Min(index, Tabs.Count - 1)];
+            ActiveTab = Tabs.Count == 1 ? null : Tabs[index == (Tabs.Count - 1) ? index - 1 : index + 1];
         }
+
+        Tabs.RemoveAt(index);
 
         return true;
     }

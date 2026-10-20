@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Enigma.TextEditor.Core.Layout;
+using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
@@ -83,6 +84,74 @@ public sealed class SplitHostTests(HeadlessAvaloniaFixture fixture)
             Assert.Single(window.GetVisualDescendants().OfType<EditorPaneView>());
             window.Close();
         });
+
+    [Fact]
+    public void QuittingATabOfASplit_ThatHasAnother_ShowsTheOtherTab()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a"));
+            MainWindow window = Show(harness);
+            EditorPaneViewModel right = harness.Workspace.Split(SplitAxis.Columns);
+            await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b"));
+            Dispatcher.UIThread.RunJobs();
+
+            await right.ExecuteExAsync(new VimExRequest(VimExCommand.Quit));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(2, harness.Workspace.Panes.Count);
+            Assert.Equal("a.txt", right.ActiveTab?.Document.Title);
+            EditorPaneView view = window.GetVisualDescendants().OfType<EditorPaneView>().Single(pane => ReferenceEquals(pane.DataContext, right));
+            Assert.False(PlaceholderOf(view).IsEffectivelyVisible);
+            Assert.True(view.FindControl<ListBox>("Tabs")!.IsEffectivelyVisible);
+            Assert.Same(right.ActiveTab!.Document.Document, view.EditorControl.Document);
+            window.Close();
+        });
+
+    [Fact]
+    public void QuittingTheLastTabOfASplit_GivesItsSpaceToTheOtherPane()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a"));
+            MainWindow window = Show(harness);
+            EditorPaneViewModel right = harness.Workspace.Split(SplitAxis.Columns);
+            Dispatcher.UIThread.RunJobs();
+
+            await right.ExecuteExAsync(new VimExRequest(VimExCommand.Quit));
+            Dispatcher.UIThread.RunJobs();
+
+            EditorPaneView remaining = Assert.Single(window.GetVisualDescendants().OfType<EditorPaneView>());
+            Assert.Same(harness.Workspace.ActivePane, remaining.DataContext);
+            Assert.False(PlaceholderOf(remaining).IsEffectivelyVisible);
+            Assert.Equal(window.FindControl<SplitHost>("Splits")!.Bounds.Width, remaining.Bounds.Width);
+            window.Close();
+        });
+
+    [Fact]
+    public void ClosingASplit_AndTheLastTab_SayNothingAboutHighlighting()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.cs", "class A {}"));
+            MainWindow window = Show(harness);
+            harness.Workspace.Split(SplitAxis.Columns);
+            Dispatcher.UIThread.RunJobs();
+
+            await harness.Workspace.ClosePaneCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Null(harness.StatusLine.Current);
+
+            // The last tab of the last pane: the editor is left without a document.
+            await harness.Workspace.CloseTabCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Null(harness.StatusLine.Current);
+            Assert.Null(Assert.Single(window.GetVisualDescendants().OfType<EditorPaneView>()).EditorControl.Document);
+            window.Close();
+        });
+
+    private static TextBlock PlaceholderOf(EditorPaneView view)
+        => view.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Classes.Contains("placeholder"));
 
     private static MainWindow Show(EditorHarness harness)
     {
