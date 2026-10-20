@@ -1,5 +1,54 @@
 # Release notes
 
+## 1.1.0 — 2026-10-20
+
+A minor release. The editor now installs on Linux with one command: it lands in your application launcher and in your
+file manager's *Open With* for text files, and it comes out again just as easily. The editor itself is unchanged.
+
+### Install on Linux
+
+- **`packaging/linux/install.sh`** builds the editor from the repository and installs it for you. It needs no root
+  and no `sudo`, and writes nothing outside your home directory:
+  - the application, in `~/.local/share/enigma-text-editor`;
+  - an `enigma-text-editor [file …]` command, in `~/.local/bin`;
+  - a desktop entry, *Enigma Text Editor*;
+  - the icon in six sizes.
+
+  `XDG_DATA_HOME` and `XDG_BIN_HOME` are honoured.
+- **The .NET runtime is bundled** by default (about 123 MB), so the editor runs whatever is installed on the machine.
+  The options:
+  - `--framework-dependent` builds against an installed .NET 10 runtime instead (about 44 MB). When that runtime is
+    somewhere a launcher would not look, such as `~/.dotnet`, the desktop entry carries its location;
+  - `--from DIR` installs a folder you published yourself;
+  - `--rid` picks another runtime identifier.
+- **Open With.** The desktop entry hands files to the editor, so it is offered for text files: plain text, source
+  code, configuration. Each file opens in a tab. It does not make itself the default for anything.
+- **Upgrade in place:** run the installer again. A new build is staged beside the old one and swapped in, so a failed
+  build leaves the installed version as it was.
+- **`packaging/linux/uninstall.sh`** removes those four things and nothing else. Your settings and the log, in
+  `~/.config/Enigma.TextEditor`, stay as they are.
+
+### Upgrading from 1.0
+
+- **Nothing you saved changes.** Settings and the log stay where they are, in the same format, and going back to 1.0
+  keeps everything.
+- A 1.0 build you published yourself can be installed as it is, with `install.sh --from <folder>`.
+
+### Dependencies
+
+- No package had an update outside the Avalonia set. The set is held back at **12.1.2**, with Enigma.Avalonia.Desktop
+  1.2.0 and AvaloniaEdit 12.0.0. Avalonia 12.1.4 is out, but the set moves as a whole.
+
+### Compatibility
+
+- Unchanged from 1.0.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.2 and AvaloniaEdit 12.0.0.
+- The installer is for Linux. On Windows and macOS, run a published folder as before.
+
+### Version
+
+- **1.1.0** is a minor release under Semantic Versioning. It adds the Linux installer, keeps every stored format, and
+  removes nothing.
+
 ## 1.0.0 — 2026-10-20
 
 The first release: a desktop text editor driven by Vim's keys. It has tabs, panes that split any way you like, and

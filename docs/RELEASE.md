@@ -85,7 +85,9 @@ Substitute the runtime identifier for the target platform: `linux-arm64`, `win-x
   (`--self-contained false`).
 - `./artifacts` is a build output: it is not committed.
 
-There is no installer: run the published folder as it is.
+On Linux, `packaging/linux/install.sh --from ./artifacts` installs that folder for the current user, with a launcher
+entry and the icon (the README's *Install on Linux* has the rest). On Windows and macOS there is no installer: run the
+published folder as it is.
 
 ## 6. Post-release verification
 
@@ -102,13 +104,16 @@ Windows, NLog, Oniguruma) and Apache 2.0 (some of TextMateSharp's grammars) ask 
 binaries. Before handing a build to anyone, ship a third-party notices file beside it. The 1.0.0 licence audit, in
 `docs/done/FEATURE-8F24-PHASE02.md`, lists the components.
 
-## Why there is no NuGet step or installer
+## Why there is no NuGet step or MSI
 
 `dotnet-release` drives a library's release to NuGet, and offers a WixSharp MSI profile for an application. Neither
-applies to 1.0.0:
+has applied so far:
 
 - the editor is an application, not a package;
-- no Windows installer was asked for.
+- no Windows installer has been asked for.
+
+Linux has an installer, `packaging/linux/install.sh`, but it is not a release step. It builds or copies an application
+into the current user's home, so a release has nothing to produce for it.
 
 When one is wanted, generate the **first** MSI profile then. Its `upgradeCode` is created once and reused verbatim in
 every later version; its `productId` is new each time.
