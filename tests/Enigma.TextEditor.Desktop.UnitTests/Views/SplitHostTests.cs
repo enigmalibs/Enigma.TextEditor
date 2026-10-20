@@ -128,6 +128,28 @@ public sealed class SplitHostTests(HeadlessAvaloniaFixture fixture)
             window.Close();
         });
 
+    [Fact]
+    public void ClosingASplit_AndTheLastTab_SayNothingAboutHighlighting()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.cs", "class A {}"));
+            MainWindow window = Show(harness);
+            harness.Workspace.Split(SplitAxis.Columns);
+            Dispatcher.UIThread.RunJobs();
+
+            await harness.Workspace.ClosePaneCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Null(harness.StatusLine.Current);
+
+            // The last tab of the last pane: the editor is left without a document.
+            await harness.Workspace.CloseTabCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Null(harness.StatusLine.Current);
+            Assert.Null(Assert.Single(window.GetVisualDescendants().OfType<EditorPaneView>()).EditorControl.Document);
+            window.Close();
+        });
+
     private static TextBlock PlaceholderOf(EditorPaneView view)
         => view.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Classes.Contains("placeholder"));
 

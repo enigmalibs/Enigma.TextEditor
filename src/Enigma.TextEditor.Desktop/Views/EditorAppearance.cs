@@ -2,6 +2,7 @@ using System;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using AvaloniaEdit.TextMate;
 using Enigma.TextEditor.Desktop.Services;
 using TextMateSharp.Grammars;
@@ -49,7 +50,9 @@ public sealed class EditorAppearance : IDisposable
     /// </summary>
     /// <param name="editor">The editor.</param>
     /// <param name="variant">The variant to paint it in.</param>
-    /// <param name="failureHandler">Told when the background tokenizer fails, so it can be reported.</param>
+    /// <param name="failureHandler">
+    /// Told when the colouring fails, so it can be reported — not when the editor merely has no document.
+    /// </param>
     public EditorAppearance(AvaloniaTextEditor editor, ThemeVariant variant, Action<Exception> failureHandler)
     {
         _editor = editor ?? throw new ArgumentNullException(nameof(editor));
@@ -61,7 +64,16 @@ public sealed class EditorAppearance : IDisposable
         // editor dark for a frame in a light window.
         _themeApplied = ThemeNameFor(variant);
         _registry = new RegistryOptions(_themeApplied);
-        _installation = _editor.InstallTextMate(_registry, initCurrentDocument: true, failureHandler);
+        _installation = _editor.InstallTextMate(
+            _registry,
+            initCurrentDocument: true,
+            failure =>
+            {
+                if (!IsDocumentless(failure))
+                {
+                    failureHandler(failure);
+                }
+            });
 
         ApplyChrome(variant);
     }
@@ -135,6 +147,16 @@ public sealed class EditorAppearance : IDisposable
         // Takes the line transformer off the text view and stops the background tokenizer.
         _installation.Dispose();
     }
+
+    // The installation builds a model for whatever document the editor is given, and an editor whose
+    // pane has no tab is given none: the model throws on it, and the installation hands that on as a
+    // failure. Nothing is lost — the next document gets a model of its own — so it is not reported.
+    // Checked on the UI thread only: the background tokenizer reports from its own thread, and the
+    // editor must not be touched from there.
+    private bool IsDocumentless(Exception failure)
+        => (failure is ArgumentNullException { ParamName: "document" })
+           && Dispatcher.UIThread.CheckAccess()
+           && (_editor.Document is null);
 
     private void ApplyChrome(ThemeVariant variant)
     {

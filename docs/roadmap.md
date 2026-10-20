@@ -31,5 +31,5 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Ex command abbreviations           | DONE   | (in FEATURE-12AF.md)      |
 | - PHASE02    | Key bindings help dialog           | DONE   | (in FEATURE-12AF.md)      |
 | BUG-52A2     | Empty pane after closing a split   | DONE   | docs/plan/BUG-52A2.md     |
-| BUG-1529     | False highlighting error on close  | TODO   | docs/plan/BUG-1529.md     |
+| BUG-1529     | False highlighting error on close  | DONE   | docs/plan/BUG-1529.md     |
 | BUG-0D06     | Status bar button text too high    | TODO   | docs/plan/BUG-0D06.md     |
