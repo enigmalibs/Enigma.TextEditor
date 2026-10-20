@@ -1,6 +1,6 @@
 # BUG-0D06 — Status bar button text too high
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/BUG-0D06.md`
 **Type:** BUG
 **Branch:** `bugfix/bug-0d06-status-button-alignment`
 **Run:** vibe/2026-10-20-split-close-statusbar
