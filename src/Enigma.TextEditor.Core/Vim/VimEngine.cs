@@ -665,6 +665,14 @@ public sealed class VimEngine
                 ReselectVisual();
                 break;
 
+            case VimAction.FocusPane:
+                if (VimWindowKeys.Map(VimKey.Typed(command.Argument)) is { } window)
+                {
+                    WindowCommandRequested?.Invoke(this, window);
+                }
+
+                break;
+
             case VimAction.WriteQuit:
                 ExCommandRequested?.Invoke(this, new VimExRequest(VimExCommand.WriteQuit));
                 break;

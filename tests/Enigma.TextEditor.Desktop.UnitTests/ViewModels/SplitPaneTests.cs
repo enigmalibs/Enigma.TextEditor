@@ -9,45 +9,81 @@ using Xunit;
 namespace Enigma.TextEditor.Desktop.UnitTests.ViewModels;
 
 /// <summary>
-/// The workspace's panes: splitting, closing, keeping one, moving the keyboard between them — and the
-/// buffers they share.
+/// The workspace's panes: splitting, closing, keeping one, moving the keyboard between them — and a
+/// buffer two of them show.
 /// </summary>
 [Collection(HeadlessCollection.Name)]
 public sealed class SplitPaneTests(HeadlessAvaloniaFixture fixture)
 {
     [Fact]
-    public void ASplit_ShowsTheSameBufferInANewActivePane()
+    public void ASplitOfAFile_OpensANewUntitledBufferInANewActivePane()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
             EditorTabViewModel tab = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc")))!;
-            tab.CaretOffset = 2;
             EditorPaneViewModel first = harness.Workspace.ActivePane;
 
             EditorPaneViewModel second = harness.Workspace.Split(SplitAxis.Columns);
 
             Assert.Equal(2, harness.Workspace.Panes.Count);
             Assert.Same(second, harness.Workspace.ActivePane);
-            Assert.Same(tab.Document, second.ActiveTab?.Document);
-            Assert.Equal(2, second.ActiveTab?.CaretOffset);
-            Assert.Equal(2, harness.Registry.ViewCount(tab.Document));
+            DocumentViewModel created = Assert.Single(second.Tabs).Document;
+            Assert.NotSame(tab.Document, created);
+            Assert.Null(created.FilePath);
+            Assert.Equal(string.Empty, created.Document.Text);
+            Assert.Same(tab, Assert.Single(first.Tabs));
+            Assert.Equal(1, harness.Registry.ViewCount(tab.Document));
             Assert.False(first.IsActive);
             Assert.True(second.IsActive);
             Assert.True(second.IsFramed);
         });
 
     [Fact]
-    public void AnEditInOnePane_IsTheEditInTheOther()
+    public void ASplitOfAnUntitledBuffer_OpensAnotherOne()
+        => fixture.Run(() =>
+        {
+            using EditorHarness harness = new();
+            DocumentViewModel untitled = harness.Workspace.NewDocument().Document;
+            untitled.Document.Text = "typed";
+
+            EditorPaneViewModel second = harness.Workspace.Split(SplitAxis.Rows);
+
+            DocumentViewModel created = Assert.Single(second.Tabs).Document;
+            Assert.NotSame(untitled, created);
+            Assert.Null(created.FilePath);
+            Assert.NotEqual(untitled.Title, created.Title);
+            Assert.Equal(string.Empty, created.Document.Text);
+            Assert.Equal("typed", untitled.Document.Text);
+        });
+
+    [Fact]
+    public void ASplitOfAHexTab_OpensAnUntitledTextBuffer()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
-            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
+            await harness.Workspace.OpenHexAsync(harness.Folder.Write("a.bin", "abc"));
+
+            EditorPaneViewModel second = harness.Workspace.Split(SplitAxis.Columns);
+
+            DocumentViewModel created = Assert.Single(second.Tabs).Document;
+            Assert.False(created.IsHex);
+            Assert.Null(created.FilePath);
+        });
+
+    [Fact]
+    public void ABufferShownInTwoPanes_TakesAnEditInEitherInBoth()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            DocumentViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc")))!.Document;
             EditorPaneViewModel first = harness.Workspace.ActivePane;
             EditorPaneViewModel second = harness.Workspace.Split(SplitAxis.Rows);
+            harness.Workspace.Show(a);
 
             second.ActiveTab!.Document.Document.Insert(0, "x");
 
             Assert.Equal("xabc", first.ActiveTab!.Document.Document.Text);
+            Assert.Equal(2, harness.Registry.ViewCount(a));
         });
 
     [Fact]
@@ -55,8 +91,10 @@ public sealed class SplitPaneTests(HeadlessAvaloniaFixture fixture)
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
-            (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc")))!.Document.Document.Insert(0, "x");
+            DocumentViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc")))!.Document;
+            a.Document.Insert(0, "x");
             EditorPaneViewModel second = harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Show(a);
 
             bool closed = await harness.Workspace.ClosePaneAsync(second);
 
@@ -109,6 +147,41 @@ public sealed class SplitPaneTests(HeadlessAvaloniaFixture fixture)
             await harness.Workspace.ActivePane.ExecuteExAsync(new VimExRequest(VimExCommand.Quit));
 
             Assert.Equal(1, harness.Shutdown.ExitRequests);
+        });
+
+    [Theory]
+    [InlineData(VimExCommand.Split)]
+    [InlineData(VimExCommand.VerticalSplit)]
+    public void ASplitOnAFileThatCannotBeOpened_LeavesNoEmptyPane(VimExCommand command)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
+            EditorPaneViewModel original = harness.Workspace.ActivePane;
+
+            await original.ExecuteExAsync(new VimExRequest(command, "missing.txt"));
+
+            Assert.Same(original, Assert.Single(harness.Workspace.Panes));
+            Assert.Same(original, harness.Workspace.ActivePane);
+            Assert.True(original.IsActive);
+            Assert.Single(harness.Messages.Errors);
+        });
+
+    [Fact]
+    public void TheSplitCommands_NeedATabToShow()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            Assert.False(harness.Workspace.SplitRightCommand.CanExecute(null));
+            Assert.False(harness.Workspace.SplitDownCommand.CanExecute(null));
+
+            EditorTabViewModel tab = harness.Workspace.NewDocument();
+            Assert.True(harness.Workspace.SplitRightCommand.CanExecute(null));
+            Assert.True(harness.Workspace.SplitDownCommand.CanExecute(null));
+
+            await harness.Workspace.CloseTabAsync(harness.Workspace.ActivePane, tab);
+            Assert.False(harness.Workspace.SplitRightCommand.CanExecute(null));
+            Assert.False(harness.Workspace.SplitDownCommand.CanExecute(null));
         });
 
     [Fact]
@@ -175,7 +248,7 @@ public sealed class SplitPaneTests(HeadlessAvaloniaFixture fixture)
 
             await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b"));
 
-            Assert.Equal(["a.txt", "b.txt"], second.Tabs.Select(tab => tab.Document.Title));
+            Assert.Equal([null, harness.Folder.PathOf("b.txt")], second.Tabs.Select(tab => tab.Document.FilePath));
             Assert.Equal(["a.txt"], harness.Workspace.Panes[0].Tabs.Select(tab => tab.Document.Title));
             Assert.StartsWith("b.txt", harness.Window.Title, System.StringComparison.Ordinal);
         });

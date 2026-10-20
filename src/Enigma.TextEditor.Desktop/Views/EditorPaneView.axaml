@@ -171,7 +171,23 @@
                      FontSize="{Binding Preferences.FontSize}"
                      Background="Transparent"
                      HorizontalScrollBarVisibility="Auto"
-                     VerticalScrollBarVisibility="Auto" />
+                     VerticalScrollBarVisibility="Auto">
+      <!-- The Edit menu's commands, on this pane's text whichever pane has the keyboard. The gestures
+           are shown, not bound: they are the editor's own keys. -->
+      <edit:TextEditor.ContextMenu>
+        <ContextMenu x:Name="EditorMenu" Opening="OnEditorMenuOpening">
+          <MenuItem x:Name="MenuUndo" Header="_Undo" InputGesture="Ctrl+Z" views:VimHint.Keys="u" Click="OnMenuUndoClick" />
+          <MenuItem x:Name="MenuRedo" Header="_Redo" InputGesture="Ctrl+Y" views:VimHint.Keys="Ctrl+R" Click="OnMenuRedoClick" />
+          <Separator />
+          <MenuItem x:Name="MenuCut" Header="Cu_t" InputGesture="Ctrl+X" Click="OnMenuCutClick" />
+          <MenuItem x:Name="MenuCopy" Header="_Copy" InputGesture="Ctrl+C" Click="OnMenuCopyClick" />
+          <MenuItem x:Name="MenuPaste" Header="_Paste" InputGesture="Ctrl+V" Click="OnMenuPasteClick" />
+          <MenuItem x:Name="MenuDelete" Header="_Delete" InputGesture="Delete" views:VimHint.Keys="x" Click="OnMenuDeleteClick" />
+          <Separator />
+          <MenuItem x:Name="MenuSelectAll" Header="Select _All" InputGesture="Ctrl+A" views:VimHint.Keys="ggVG" Click="OnMenuSelectAllClick" />
+        </ContextMenu>
+      </edit:TextEditor.ContextMenu>
+    </edit:TextEditor>
   </Grid>
   </Border>
 </UserControl>

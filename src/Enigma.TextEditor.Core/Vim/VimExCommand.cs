@@ -50,7 +50,31 @@ public enum VimExCommand
     /// <c>:e[dit] {file}</c> — open a file in the current pane, or show it there
     /// when it is already open.
     /// </summary>
+    /// <remarks>
+    /// Without a file, the request carries no argument and the application asks which files to open,
+    /// as <em>File → Open</em> does.
+    /// </remarks>
     Edit,
+
+    /// <summary>
+    /// <c>:ene[w]</c> — a new untitled buffer in a new tab of the current pane.
+    /// </summary>
+    /// <remarks>
+    /// Vim's <c>:enew</c> with <c>hidden</c> set: the buffer that was showing stays open, here in its
+    /// own tab, as it does after <c>:e {file}</c>.
+    /// </remarks>
+    EditNew,
+
+    /// <summary>
+    /// <c>:ene[w]!</c> — a new untitled buffer in the current tab's place, throwing away what has not
+    /// been saved of the buffer it replaces, without asking.
+    /// </summary>
+    /// <remarks>
+    /// A different request from <see cref="EditNew"/> for the reason <see cref="QuitDiscard"/> is one:
+    /// the point is the question the application does not ask. A buffer another tab still shows loses
+    /// nothing.
+    /// </remarks>
+    EditNewDiscard,
 
     /// <summary>
     /// <c>:bn[ext]</c> — show the next tab.
@@ -82,12 +106,19 @@ public enum VimExCommand
     /// <c>:sp[lit]</c> — split the pane, one above the other; with a file, open it in the
     /// new pane.
     /// </summary>
+    /// <remarks>
+    /// Without a file, the application decides what the new pane shows; this editor opens a new
+    /// untitled buffer there rather than showing the same one twice.
+    /// </remarks>
     Split,
 
     /// <summary>
     /// <c>:vs[plit]</c> — split the pane side by side; with a file, open it in the new
     /// pane.
     /// </summary>
+    /// <remarks>
+    /// Without a file, as <see cref="Split"/>.
+    /// </remarks>
     VerticalSplit,
 
     /// <summary>

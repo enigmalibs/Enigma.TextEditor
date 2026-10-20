@@ -286,4 +286,15 @@ public enum VimAction
     /// <c>z-</c> — <see cref="ScrollCaretBottom"/>, and the caret goes to the line's first non-blank.
     /// </summary>
     ScrollCaretBottomToFirstNonBlank,
+
+    /// <summary>
+    /// <c>gh</c>, <c>gj</c>, <c>gk</c>, <c>gl</c> — the pane to the left, below, above, to the right:
+    /// <c>Ctrl+W</c> and the same letter.
+    /// </summary>
+    /// <remarks>
+    /// The letter is the command's argument, and the engine reads it through <see cref="VimWindowKeys"/>
+    /// so that the two spellings cannot come to mean different things. Like every window command it
+    /// leaves the engine as a request, and it is not a change: <c>.</c> never repeats it.
+    /// </remarks>
+    FocusPane,
 }

@@ -63,6 +63,34 @@ public sealed class EditorPaneViewModelTests
     }
 
     [Fact]
+    public void RemovingTheActiveTab_ShowsTheNeighbourBeforeTheTabLeavesTheStrip()
+    {
+        EditorPaneViewModel pane = NewPane(out _);
+        pane.Show(Buffer("a.txt"), out _);
+        EditorTabViewModel b = pane.Show(Buffer("b.txt"), out _);
+        EditorTabViewModel c = pane.Show(Buffer("c.txt"), out _);
+        pane.ActiveTab = b;
+        EditorTabViewModel? showingAsItLeft = null;
+
+        // What the tab strip does: a list whose selection is bound to ActiveTab clears it when the
+        // selected tab leaves.
+        pane.Tabs.CollectionChanged += (_, e) =>
+        {
+            showingAsItLeft = pane.ActiveTab;
+
+            if (e.OldItems?.Contains(pane.ActiveTab) == true)
+            {
+                pane.ActiveTab = null;
+            }
+        };
+
+        pane.Remove(b);
+
+        Assert.Same(c, showingAsItLeft);
+        Assert.Same(c, pane.ActiveTab);
+    }
+
+    [Fact]
     public void NextAndPrevious_WrapRoundTheStrip()
     {
         EditorPaneViewModel pane = NewPane(out _);

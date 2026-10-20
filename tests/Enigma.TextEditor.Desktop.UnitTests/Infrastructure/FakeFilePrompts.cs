@@ -17,8 +17,17 @@ internal sealed class FakeFilePrompts : IFilePrompts
 
     public string? LastSuggestedName { get; private set; }
 
+    public int OpenQuestions { get; private set; }
+
+    public string? LastOpenDirectory { get; private set; }
+
     public Task<IReadOnlyList<string>> AskFilesToOpenAsync(string? startDirectory)
-        => Task.FromResult(FilesToOpen.Count > 0 ? FilesToOpen.Dequeue() : (IReadOnlyList<string>)[]);
+    {
+        OpenQuestions++;
+        LastOpenDirectory = startDirectory;
+
+        return Task.FromResult(FilesToOpen.Count > 0 ? FilesToOpen.Dequeue() : (IReadOnlyList<string>)[]);
+    }
 
     public Task<string?> AskWhereToSaveAsync(string suggestedName, string? startDirectory)
     {

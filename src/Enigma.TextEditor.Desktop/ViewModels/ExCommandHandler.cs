@@ -22,6 +22,11 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// <c>:q</c> on its last window. A file argument is relative to the active buffer's folder, or to the
 /// working directory for an untitled buffer.
 /// </para>
+/// <para>
+/// The tabs are the buffer list, so <c>:enew</c> adds an untitled tab as <em>File → New</em> does, and
+/// the buffer that was showing stays open — Vim's <c>:enew</c> with <c>hidden</c> set. <c>:enew!</c>
+/// is the one that replaces it, and the <c>!</c> is the user's answer to the unsaved-changes question.
+/// </para>
 /// </remarks>
 public sealed class ExCommandHandler
 {
@@ -92,6 +97,23 @@ public sealed class ExCommandHandler
 
                 break;
 
+            case VimExCommand.Edit:
+                await _workspace.OpenFromPromptAsync();
+                break;
+
+            case VimExCommand.EditNew:
+                _workspace.NewDocument();
+                break;
+
+            case VimExCommand.EditNewDiscard when tab is not null:
+                _workspace.ReplaceWithNewDocument(pane, tab);
+                break;
+
+            // Nothing to replace in an empty pane: ':enew!' there is ':enew'.
+            case VimExCommand.EditNewDiscard:
+                _workspace.NewDocument();
+                break;
+
             case VimExCommand.BufferNext:
                 pane.NextTab();
                 break;
@@ -120,14 +142,13 @@ public sealed class ExCommandHandler
                 await SplitAsync(SplitAxis.Columns, request.Argument, tab?.Document);
                 break;
 
+            // What ':sp' and ':vs' do too, now that every split opens a new buffer.
             case VimExCommand.New:
-                _workspace.Split(SplitAxis.Rows, showActiveBuffer: false);
-                _workspace.NewDocument();
+                _workspace.Split(SplitAxis.Rows);
                 break;
 
             case VimExCommand.VerticalNew:
-                _workspace.Split(SplitAxis.Columns, showActiveBuffer: false);
-                _workspace.NewDocument();
+                _workspace.Split(SplitAxis.Columns);
                 break;
 
             case VimExCommand.Only:
@@ -186,8 +207,14 @@ public sealed class ExCommandHandler
         // Resolved before the split, against the buffer it was typed in.
         if (Resolve(file, relativeTo) is { } path)
         {
-            _workspace.Split(axis, showActiveBuffer: false);
-            await _workspace.OpenAsync(path);
+            EditorPaneViewModel created = _workspace.Split(axis, newDocument: false);
+
+            // The pane was made for that file: when it could not be opened, the pane goes again rather
+            // than stand empty beside the others, and the one it was split from takes the keyboard back.
+            if ((await _workspace.OpenAsync(path) is null) && (created.Tabs.Count == 0))
+            {
+                await _workspace.ClosePaneAsync(created);
+            }
         }
     }
 

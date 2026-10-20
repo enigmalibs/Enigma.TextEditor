@@ -77,7 +77,7 @@ public sealed class HelpTests(HeadlessAvaloniaFixture fixture)
     [InlineData(VimExCommand.WriteQuit, ":wq, :x")]
     [InlineData(VimExCommand.QuitDiscard, ":q!")]
     [InlineData(VimExCommand.QuitAllDiscard, ":qa[ll]!")]
-    [InlineData(VimExCommand.Edit, ":e[dit] {file}")]
+    [InlineData(VimExCommand.Edit, ":e[dit] [file]")]
     [InlineData(VimExCommand.Help, ":h[elp]")]
     public void TheExColumn_IsWrittenFromTheParsersTable(VimExCommand command, string expected)
         => Assert.Equal(expected, Rows().Single(row => row.ExCommands.Contains(command)).ExCommand);

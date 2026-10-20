@@ -1,5 +1,7 @@
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
@@ -130,6 +132,107 @@ public sealed class ExCommandHandlerTests(HeadlessAvaloniaFixture fixture)
 
             Assert.Equal("bee", harness.Workspace.ActiveDocument?.Document.Text);
             Assert.Equal(2, harness.Workspace.ActivePane.Tabs.Count);
+        });
+
+    [Fact]
+    public void EditWithoutAFile_AsksFromTheActiveBuffersFolder_AndOpensWhatWasPicked()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            string a = harness.Folder.Write("a.txt", "a");
+            await harness.Workspace.OpenAsync(a);
+            harness.Prompts.FilesToOpen.Enqueue([harness.Folder.Write("b.txt", "bee"), harness.Folder.Write("c.txt", "sea")]);
+
+            await Run(harness, VimExCommand.Edit);
+
+            Assert.Equal(1, harness.Prompts.OpenQuestions);
+            Assert.Equal(Path.GetDirectoryName(a), harness.Prompts.LastOpenDirectory);
+            Assert.Equal(["a.txt", "b.txt", "c.txt"], harness.Workspace.ActivePane.Tabs.Select(tab => tab.Document.Title));
+            Assert.Equal("sea", harness.Workspace.ActiveDocument?.Document.Text);
+        });
+
+    [Fact]
+    public void EditWithoutAFile_Cancelled_OpensNothing()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a")))!;
+
+            await Run(harness, VimExCommand.Edit);
+
+            Assert.Equal(1, harness.Prompts.OpenQuestions);
+            Assert.Same(a, Assert.Single(harness.Workspace.ActivePane.Tabs));
+        });
+
+    [Fact]
+    public void EditNew_AddsAnUntitledTab_AndKeepsTheOneThatWasShowing()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a")))!;
+            a.Document.Document.Insert(0, "x");
+
+            await Run(harness, VimExCommand.EditNew);
+
+            Assert.Equal(2, harness.Workspace.ActivePane.Tabs.Count);
+            Assert.Same(a, harness.Workspace.ActivePane.Tabs[0]);
+            Assert.Null(harness.Workspace.ActiveDocument?.FilePath);
+            Assert.Equal(string.Empty, harness.Workspace.ActiveDocument?.Document.Text);
+            Assert.Empty(harness.Unsaved.AskedAbout);
+        });
+
+    [Fact]
+    public void EditNewDiscard_ReplacesTheTab_WithoutAsking_AndItsChangesAreGone()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("first.txt", "1"));
+            string path = harness.Folder.Write("a.txt", "a");
+            DocumentViewModel a = (await harness.Workspace.OpenAsync(path))!.Document;
+            await harness.Workspace.OpenAsync(harness.Folder.Write("last.txt", "3"));
+            harness.Workspace.ActivePane.ActiveTab = harness.Workspace.ActivePane.Tabs[1];
+            a.Document.Insert(0, "x");
+
+            await Run(harness, VimExCommand.EditNewDiscard);
+
+            EditorPaneViewModel pane = harness.Workspace.ActivePane;
+            Assert.Equal(3, pane.Tabs.Count);
+            Assert.Same(pane.Tabs[1], pane.ActiveTab);
+            Assert.Null(pane.ActiveTab?.Document.FilePath);
+            Assert.DoesNotContain(a, harness.Registry.Documents);
+            Assert.Empty(harness.Unsaved.AskedAbout);
+            Assert.Equal("a", File.ReadAllText(path));
+        });
+
+    [Fact]
+    public void EditNewDiscard_OnABufferAnotherPaneShows_KeepsItOpenThere()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            DocumentViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a")))!.Document;
+            EditorPaneViewModel left = harness.Workspace.ActivePane;
+            harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Show(a);
+            a.Document.Insert(0, "x");
+
+            await Run(harness, VimExCommand.EditNewDiscard);
+
+            Assert.NotSame(a, harness.Workspace.ActiveDocument);
+            Assert.Same(a, left.ActiveTab?.Document);
+            Assert.Equal("xa", a.Document.Text);
+            Assert.Contains(a, harness.Registry.Documents);
+            Assert.Empty(harness.Unsaved.AskedAbout);
+        });
+
+    [Fact]
+    public void EditNewDiscard_InAnEmptyPane_OpensAnUntitledTab()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+
+            await Run(harness, VimExCommand.EditNewDiscard);
+
+            Assert.Null(Assert.Single(harness.Workspace.ActivePane.Tabs).Document.FilePath);
         });
 
     [Fact]
