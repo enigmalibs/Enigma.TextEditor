@@ -39,3 +39,6 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-4A9A | Split opens a new document         | DONE   | docs/plan/FEATURE-4A9A.md |
 | FEATURE-5D83 | Editor context menu                | DONE   | docs/plan/FEATURE-5D83.md |
 | FEATURE-21A7 | Vim shortcuts in menus             | DONE   | docs/plan/FEATURE-21A7.md |
+| FEATURE-8F24 | Release 1.0.0                      | TODO   | docs/plan/FEATURE-8F24.md |
+| - PHASE01    | README & SECURITY.md               | TODO   | (in FEATURE-8F24.md)      |
+| - PHASE02    | Version 1.0.0, notes & runbook     | TODO   | (in FEATURE-8F24.md)      |
