@@ -1,6 +1,6 @@
 # FEATURE-7F58 — Linux installer
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-7F58.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-7f58-linux-installer`
 **Run:** feature/2026-10-20-linux-install-release

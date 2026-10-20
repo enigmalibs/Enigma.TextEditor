@@ -1,0 +1,27 @@
+[Desktop Entry]
+# Template. install.sh writes the Exec line below as the quoted absolute path it installed the
+# application to: a desktop entry's Exec must be absolute and this format performs no $HOME
+# expansion, so the one value that depends on where the user installed cannot be baked in here.
+# (The placeholder is deliberately not named in this comment — the substitution is global, so a
+# second occurrence would be rewritten here too and leave the installed entry saying nonsense.)
+#
+# %F hands the launcher's files to the editor, which opens every file named on its command line,
+# each in a tab; with none it starts on an untitled document. MimeType= is what puts the editor in
+# a file manager's Open With list for text files. text/plain is the parent of the text/x-* types,
+# so source code and configuration files are covered too. Nothing here makes it the default.
+Type=Application
+Version=1.5
+Name=Enigma Text Editor
+GenericName=Text Editor
+Comment=A text editor driven by Vim's keys, with tabs, split panes and a hex viewer
+Exec=@EXEC@ %F
+Icon=enigma-text-editor
+Terminal=false
+MimeType=text/plain;
+Categories=Utility;TextEditor;
+Keywords=text;editor;vim;code;encoding;hex;
+StartupNotify=true
+# Matches the WM_CLASS Avalonia derives from the process name, so the running window docks onto
+# this launcher rather than showing up as a second, unnamed taskbar entry — and so the desktop can
+# end the startup notification above as soon as that window maps.
+StartupWMClass=Enigma.TextEditor.Desktop
