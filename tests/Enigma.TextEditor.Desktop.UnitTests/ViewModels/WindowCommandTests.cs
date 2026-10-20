@@ -201,6 +201,54 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             window.Close();
         });
 
+    [Fact]
+    public void TypedInTheWindow_GHJKL_MoveTheKeyboardBetweenPanes()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
+            EditorPaneViewModel left = harness.Workspace.ActivePane;
+            EditorPaneViewModel right = harness.Workspace.Split(SplitAxis.Columns);
+            MainWindow window = new() { DataContext = harness.Window, Width = 1000, Height = 700 };
+            window.Show();
+            await FocusAsync(window, right);
+
+            window.KeyTextInput("gh");
+            await Pump();
+            Assert.Same(left, harness.Workspace.ActivePane);
+
+            window.KeyTextInput("gl");
+            await Pump();
+            Assert.Same(right, harness.Workspace.ActivePane);
+
+            // The right-hand pane split in two: one above the other.
+            EditorPaneViewModel below = harness.Workspace.Split(SplitAxis.Rows);
+            await FocusAsync(window, below);
+
+            window.KeyTextInput("gk");
+            await Pump();
+            Assert.Same(right, harness.Workspace.ActivePane);
+
+            window.KeyTextInput("gj");
+            await Pump();
+            Assert.Same(below, harness.Workspace.ActivePane);
+
+            // Nothing below the bottom pane: the keyboard stays, and nothing was typed.
+            string text = below.ActiveTab!.Document.Document.Text;
+            window.KeyTextInput("gj");
+            await Pump();
+            Assert.Same(below, harness.Workspace.ActivePane);
+            Assert.Equal(text, below.ActiveTab.Document.Document.Text);
+            window.Close();
+        });
+
+    private static async Task FocusAsync(MainWindow window, EditorPaneViewModel pane)
+    {
+        await Pump();
+        window.GetVisualDescendants().OfType<EditorPaneView>().Single(view => ReferenceEquals(view.DataContext, pane)).FocusEditor();
+        await Pump();
+    }
+
     private static Task Window(EditorHarness harness, VimWindowCommand command)
         => harness.Workspace.ActivePane.ExecuteWindowAsync(command);
 

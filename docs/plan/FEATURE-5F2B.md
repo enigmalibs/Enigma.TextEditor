@@ -1,6 +1,6 @@
 # FEATURE-5F2B — Pane focus with gh, gj, gk, gl
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-5F2B.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-5f2b-g-pane-focus`
 **Run:** vibe/2026-10-20-menus-enew-pane-focus

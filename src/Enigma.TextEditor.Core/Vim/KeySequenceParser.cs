@@ -48,7 +48,8 @@ namespace Enigma.TextEditor.Core.Vim;
 /// </para>
 /// <para>
 /// <c>g</c> is a table rather than a key: <c>gg</c> is a motion, <c>gJ</c> and <c>gv</c> are commands,
-/// and <c>gu</c>, <c>gU</c> and <c>g~</c> are operators that then wait for a motion like any other. A
+/// so are <c>gh</c> <c>gj</c> <c>gk</c> <c>gl</c>, which move to another pane, and <c>gu</c>,
+/// <c>gU</c> and <c>g~</c> are operators that then wait for a motion like any other. A
 /// doubled case operator accepts either spelling of its second half — <c>guu</c> and <c>gugu</c> are
 /// the same command — because both are vim's.
 /// </para>
@@ -819,10 +820,11 @@ public sealed class KeySequenceParser
     /// </summary>
     /// <remarks>
     /// Three kinds of partner: a motion (<c>gg</c>), an operator (<c>gu</c>, <c>gU</c>, <c>g~</c>)
-    /// that goes on to wait for its own motion — or, typed again behind itself, doubles — and the two
-    /// commands <c>gJ</c> and <c>gv</c>, which like every other command have no meaning behind an
-    /// operator. Both are commands in a visual mode too: <c>gJ</c> joins the selected lines, and
-    /// <c>gv</c> swaps the selection for the one before it.
+    /// that goes on to wait for its own motion — or, typed again behind itself, doubles — and the
+    /// commands <c>gJ</c>, <c>gv</c> and the four pane keys <c>gh</c> <c>gj</c> <c>gk</c> <c>gl</c>,
+    /// which like every other command have no meaning behind an operator. All of them are commands in
+    /// a visual mode too: <c>gJ</c> joins the selected lines, <c>gv</c> swaps the selection for the one
+    /// before it, and the pane keys move to another pane as <c>Ctrl+W</c> does from a selection.
     /// </remarks>
     private VimParseResult SecondG(char character, bool visual)
     {
@@ -845,6 +847,7 @@ public sealed class KeySequenceParser
         {
             'J' => Complete(new VimCommand(VimAction.JoinRaw, VimMotion.None, TotalCount)),
             'v' => Complete(new VimCommand(VimAction.ReselectVisual, VimMotion.None, TotalCount)),
+            'h' or 'j' or 'k' or 'l' => Complete(new VimCommand(VimAction.FocusPane, VimMotion.None, TotalCount, VimOperator.None, character)),
             _ => Dead(),
         };
     }
