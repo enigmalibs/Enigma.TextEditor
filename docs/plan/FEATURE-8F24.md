@@ -1,6 +1,6 @@
 # FEATURE-8F24 — Release 1.0.0
 
-**Status:** IN PROGRESS
+**Status:** DONE — see `docs/done/FEATURE-8F24-PHASE01.md`, `docs/done/FEATURE-8F24-PHASE02.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-8f24-<phase>-<slug>` (one per phase)
 **Run:** feature/2026-10-20-release-1-0-0
@@ -105,7 +105,7 @@ is tagged `1.0.0`, as the request asks. Nothing is pushed.
 
 ## PHASE02 — Version 1.0.0, notes & runbook
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-8F24-PHASE02.md`
 **Branch:** `feature/feature-8f24-phase02-version-notes`
 
 ### Steps

@@ -5,6 +5,10 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
+> **What's new in 1.0** — the first release: tabs, split panes and Vim's keys; files read and written in their own
+> encoding, line endings and indentation; syntax highlighting; a read-only hex viewer. See
+> [RELEASENOTES.md](RELEASENOTES.md).
+
 **Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its
 **×**, a middle click or Ctrl+F4. Ctrl+Tab and Ctrl+Shift+Tab move between tabs. Panes split any way you like:
 right or down from the **View** menu, `Ctrl+W v` and `Ctrl+W s`, or `:vs` and `:sp`, each opening a new untitled
@@ -102,6 +106,8 @@ dotnet run --project src/Enigma.TextEditor.Desktop -- [file …]
 dotnet test --solution Enigma.TextEditor.slnx
 ```
 
+To run it on a machine without the SDK, publish it for that platform; `docs/RELEASE.md` has the command.
+
 ## Solution layout
 
 | Path                                        | What it is                                                             |
@@ -111,7 +117,7 @@ dotnet test --solution Enigma.TextEditor.slnx
 | `tests/Enigma.TextEditor.Core.UnitTests`    | xUnit v3 tests for the core library                                    |
 | `tests/Enigma.TextEditor.Desktop.UnitTests` | xUnit v3 tests for the app, including headless Avalonia tests          |
 | `packaging/icon`                            | The application icon's SVG sources                                     |
-| `docs/`                                     | Roadmap, plans and completion records                                  |
+| `docs/`                                     | Roadmap, plans, completion records and the release runbook             |
 
 ## License
 
