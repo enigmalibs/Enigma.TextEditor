@@ -1,6 +1,6 @@
 # FEATURE-5D83 — Editor context menu
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-5D83.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-5d83-editor-context-menu`
 **Run:** vibe/2026-10-20-menus-enew-pane-focus

@@ -217,6 +217,39 @@ public partial class EditorPaneView : UserControl
         _pane?.CloseTabCommand.Execute(tab);
     }
 
+    // What can run is read as the menu opens: the editor's Can* answers are not observable.
+    private void OnEditorMenuOpening(object? sender, CancelEventArgs e)
+    {
+        MenuUndo.IsEnabled = Editor.CanUndo;
+        MenuRedo.IsEnabled = Editor.CanRedo;
+        MenuCut.IsEnabled = Editor.CanCut;
+        MenuCopy.IsEnabled = Editor.CanCopy;
+        MenuPaste.IsEnabled = Editor.CanPaste;
+        MenuDelete.IsEnabled = Editor.CanDelete;
+        MenuSelectAll.IsEnabled = Editor.CanSelectAll;
+    }
+
+    private void OnMenuUndoClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Undo());
+
+    private void OnMenuRedoClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Redo());
+
+    private void OnMenuCutClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Cut());
+
+    private void OnMenuCopyClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Copy());
+
+    private void OnMenuPasteClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Paste());
+
+    private void OnMenuDeleteClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Delete());
+
+    private void OnMenuSelectAllClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.SelectAll());
+
+    // The focus goes back to the text the menu was opened on, which also gives its pane the keyboard.
+    private void EditFromMenu(Action<AvaloniaTextEditor> action)
+    {
+        action(Editor);
+        Editor.TextArea.Focus();
+    }
+
     private void OnDragOver(object? sender, DragEventArgs e)
     {
         IReadOnlyList<string> paths = DroppedFiles.ReadPaths(e.DataTransfer);
