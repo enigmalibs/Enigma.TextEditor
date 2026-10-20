@@ -1,6 +1,6 @@
 # FEATURE-5301 — Release 1.1.0
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-5301.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-5301-release-1-1-0`
 **Run:** feature/2026-10-20-linux-install-release
