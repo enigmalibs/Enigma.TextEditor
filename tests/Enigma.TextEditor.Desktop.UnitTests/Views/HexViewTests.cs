@@ -86,10 +86,15 @@ public sealed class HexViewTests(HeadlessAvaloniaFixture fixture)
             using EditorHarness harness = new();
             EditorTabViewModel tab = (await harness.Workspace.OpenHexAsync(harness.Folder.Write("data.bin", new byte[40])))!;
 
+            EditorPaneViewModel first = harness.Workspace.ActivePane;
+
             EditorPaneViewModel second = harness.Workspace.Split(SplitAxis.Columns);
 
-            Assert.Same(tab.Document, second.ActiveTab?.Document);
-            Assert.True(second.IsHexActive);
+            // A new untitled text buffer in the new pane, as for a text tab; the hex view stays where it was.
+            Assert.Null(second.ActiveTab?.Document.FilePath);
+            Assert.True(second.IsTextActive);
+            Assert.Same(tab, first.ActiveTab);
+            Assert.True(first.IsHexActive);
         });
 
     [Fact]

@@ -85,6 +85,7 @@ public sealed class LineEndingAndIndentationToolsTests(HeadlessAvaloniaFixture f
             using EditorHarness harness = new();
             EditorTabViewModel tab = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "line\n")))!;
             harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Show(tab.Document);
             MainWindow window = Show(harness);
             EditorPaneView[] panes = [.. window.GetVisualDescendants().OfType<EditorPaneView>()];
 

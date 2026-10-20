@@ -20,8 +20,10 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// <remarks>
 /// <para>
 /// The split model is Enigma.FileExplorer's: a binary tree of rows and columns whose leaves are
-/// panes, one <see cref="EditorPaneViewModel"/> per leaf. A split shows the active buffer in the new
-/// pane, as Vim's <c>:split</c> does, so both halves edit one text.
+/// panes, one <see cref="EditorPaneViewModel"/> per leaf. A split opens a new untitled buffer in the
+/// new pane, whatever the split pane was showing, so the two halves never start out editing one text;
+/// <c>:split file</c> opens that file there instead. One buffer can still be shown in two panes, by
+/// opening it in both.
 /// </para>
 /// <para>
 /// A pane that loses its last tab closes, unless it is the only pane: closing tabs is how panes go
@@ -106,7 +108,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         NextTabCommand = new RelayCommand(() => ActivePane.NextTab());
         PreviousTabCommand = new RelayCommand(() => ActivePane.PreviousTab());
 
-        // A split shows the active buffer: with none, it would only add an empty pane.
+        // A split needs a tab to split from: with none, the pane split would stand empty beside the new one.
         SplitRightCommand = new RelayCommand(() => Split(SplitAxis.Columns), () => ActiveTab is not null);
         SplitDownCommand = new RelayCommand(() => Split(SplitAxis.Rows), () => ActiveTab is not null);
         ClosePaneCommand = new AsyncRelayCommand(() => ClosePaneAsync(ActivePane), () => _byId.Count > 1);
@@ -309,17 +311,16 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     }
 
     /// <summary>
-    /// Splits the active pane, showing its buffer in the new pane, which takes the keyboard.
+    /// Splits the active pane, with a new untitled buffer in the new pane, which takes the keyboard.
     /// </summary>
     /// <param name="axis">Side by side (<see cref="SplitAxis.Columns"/>) or one above the other.</param>
-    /// <param name="showActiveBuffer">
-    /// Whether the new pane shows the active buffer, as <c>:split</c> does — or starts empty, for a
-    /// split that is about to open something else (<c>:split file</c>, <c>:new</c>).
+    /// <param name="newDocument">
+    /// Whether the new pane starts with a new untitled buffer, as every split the user asks for does —
+    /// or empty, for a split that is about to open a file there (<c>:split file</c>).
     /// </param>
     /// <returns>The new pane.</returns>
-    public EditorPaneViewModel Split(SplitAxis axis, bool showActiveBuffer = true)
+    public EditorPaneViewModel Split(SplitAxis axis, bool newDocument = true)
     {
-        EditorTabViewModel? source = showActiveBuffer ? ActivePane.ActiveTab : null;
         EditorPaneViewModel? created = null;
 
         Batch(() =>
@@ -328,14 +329,9 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
             created = AddPane(id);
             Activate(id);
 
-            if (source is not null)
+            if (newDocument)
             {
-                EditorTabViewModel tab = Show(source.Document);
-
-                // Vim's split shows the same place: the new view starts where the old one is.
-                tab.CaretOffset = source.CaretOffset;
-                tab.VerticalScrollOffset = source.VerticalScrollOffset;
-                tab.HorizontalScrollOffset = source.HorizontalScrollOffset;
+                NewDocument();
             }
         });
 

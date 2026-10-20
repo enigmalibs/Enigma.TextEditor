@@ -106,12 +106,19 @@ public enum VimExCommand
     /// <c>:sp[lit]</c> — split the pane, one above the other; with a file, open it in the
     /// new pane.
     /// </summary>
+    /// <remarks>
+    /// Without a file, the application decides what the new pane shows; this editor opens a new
+    /// untitled buffer there rather than showing the same one twice.
+    /// </remarks>
     Split,
 
     /// <summary>
     /// <c>:vs[plit]</c> — split the pane side by side; with a file, open it in the new
     /// pane.
     /// </summary>
+    /// <remarks>
+    /// Without a file, as <see cref="Split"/>.
+    /// </remarks>
     VerticalSplit,
 
     /// <summary>

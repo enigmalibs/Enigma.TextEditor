@@ -31,7 +31,7 @@ public sealed class FileDropViewTests(HeadlessAvaloniaFixture fixture)
         {
             using EditorHarness harness = new();
             await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "some text\n"));
-            harness.Workspace.Split(SplitAxis.Columns, showActiveBuffer: false);
+            harness.Workspace.Split(SplitAxis.Columns, newDocument: false);
             MainWindow window = Show(harness);
             (EditorPaneView withText, EditorPaneView empty) = Panes(window);
             DataTransfer files = await CarryingAsync(window, harness.Folder.Write("b.txt", "b"));
@@ -57,7 +57,7 @@ public sealed class FileDropViewTests(HeadlessAvaloniaFixture fixture)
         {
             using EditorHarness harness = new();
             await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "some text\n"));
-            harness.Workspace.Split(SplitAxis.Columns, showActiveBuffer: false);
+            harness.Workspace.Split(SplitAxis.Columns, newDocument: false);
             MainWindow window = Show(harness);
             (EditorPaneView withText, _) = Panes(window);
             EditorPaneViewModel target = (EditorPaneViewModel)withText.DataContext!;
