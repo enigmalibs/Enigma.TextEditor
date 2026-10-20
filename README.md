@@ -5,9 +5,10 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.0** — the first release: tabs, split panes and Vim's keys; files read and written in their own
-> encoding, line endings and indentation; syntax highlighting; a read-only hex viewer. See
-> [RELEASENOTES.md](RELEASENOTES.md).
+> **What's new in 1.1** — a Linux installer: one command puts the editor in your application launcher and in *Open
+> With* for text files, and another takes it out again. 1.0, the first release, brought tabs, split panes and Vim's
+> keys; files read and written in their own encoding, line endings and indentation; syntax highlighting; and a
+> read-only hex viewer. See [RELEASENOTES.md](RELEASENOTES.md).
 
 **Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its
 **×**, a middle click or Ctrl+F4. Ctrl+Tab and Ctrl+Shift+Tab move between tabs. Panes split any way you like:
