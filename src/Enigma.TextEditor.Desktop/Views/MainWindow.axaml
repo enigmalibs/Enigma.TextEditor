@@ -12,7 +12,8 @@
         Width="1200" Height="800"
         MinWidth="640" MinHeight="400"
         WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource EnigmaBackgroundBrush}">
+        Background="{DynamicResource EnigmaBackgroundBrush}"
+        views:VimHint.IsShown="{Binding Settings.IsVimEnabled}">
 
   <Window.Styles>
     <!-- The status bar: one quiet strip under the content, with a hairline between the two. -->
@@ -119,37 +120,37 @@
       <Border DockPanel.Dock="Top" Classes="menuBar">
         <Menu x:Name="MainMenu">
           <MenuItem Header="_File">
-            <MenuItem Header="_New" Command="{Binding Workspace.NewCommand}" InputGesture="Ctrl+N" />
-            <MenuItem Header="_Open…" Command="{Binding Workspace.OpenCommand}" InputGesture="Ctrl+O" />
+            <MenuItem Header="_New" Command="{Binding Workspace.NewCommand}" InputGesture="Ctrl+N" views:VimHint.Keys=":enew" />
+            <MenuItem Header="_Open…" Command="{Binding Workspace.OpenCommand}" InputGesture="Ctrl+O" views:VimHint.Keys=":e" />
             <MenuItem Header="Open as _Hex…" Command="{Binding Workspace.OpenHexCommand}" />
             <Separator />
-            <MenuItem Header="_Save" Command="{Binding Workspace.SaveCommand}" InputGesture="Ctrl+S" />
-            <MenuItem Header="Save _As…" Command="{Binding Workspace.SaveAsCommand}" InputGesture="Ctrl+Shift+S" />
-            <MenuItem Header="Save A_ll" Command="{Binding Workspace.SaveAllCommand}" />
+            <MenuItem Header="_Save" Command="{Binding Workspace.SaveCommand}" InputGesture="Ctrl+S" views:VimHint.Keys=":w" />
+            <MenuItem Header="Save _As…" Command="{Binding Workspace.SaveAsCommand}" InputGesture="Ctrl+Shift+S" views:VimHint.Keys=":w {file}" />
+            <MenuItem Header="Save A_ll" Command="{Binding Workspace.SaveAllCommand}" views:VimHint.Keys=":wa" />
             <Separator />
-            <MenuItem Header="_Close Tab" Command="{Binding Workspace.CloseTabCommand}" InputGesture="Ctrl+F4" />
+            <MenuItem Header="_Close Tab" Command="{Binding Workspace.CloseTabCommand}" InputGesture="Ctrl+F4" views:VimHint.Keys=":q" />
             <Separator />
-            <MenuItem Header="E_xit" Command="{Binding ExitCommand}" InputGesture="Alt+F4" />
+            <MenuItem Header="E_xit" Command="{Binding ExitCommand}" InputGesture="Alt+F4" views:VimHint.Keys=":qa" />
           </MenuItem>
           <MenuItem Header="_Edit">
-            <MenuItem x:Name="UndoItem" Header="_Undo" Click="OnUndoClick" InputGesture="Ctrl+Z" />
-            <MenuItem x:Name="RedoItem" Header="_Redo" Click="OnRedoClick" InputGesture="Ctrl+Y" />
+            <MenuItem x:Name="UndoItem" Header="_Undo" Click="OnUndoClick" InputGesture="Ctrl+Z" views:VimHint.Keys="u" />
+            <MenuItem x:Name="RedoItem" Header="_Redo" Click="OnRedoClick" InputGesture="Ctrl+Y" views:VimHint.Keys="Ctrl+R" />
             <Separator />
             <MenuItem Header="Cu_t" Click="OnCutClick" InputGesture="Ctrl+X" />
             <MenuItem Header="_Copy" Click="OnCopyClick" InputGesture="Ctrl+C" />
             <MenuItem Header="_Paste" Click="OnPasteClick" InputGesture="Ctrl+V" />
             <Separator />
-            <MenuItem Header="Select _All" Click="OnSelectAllClick" InputGesture="Ctrl+A" />
+            <MenuItem Header="Select _All" Click="OnSelectAllClick" InputGesture="Ctrl+A" views:VimHint.Keys="ggVG" />
           </MenuItem>
           <MenuItem Header="_View">
-            <MenuItem Header="Split _Right" Command="{Binding Workspace.SplitRightCommand}" />
-            <MenuItem Header="Split _Down" Command="{Binding Workspace.SplitDownCommand}" />
-            <MenuItem Header="_Close Pane" Command="{Binding Workspace.ClosePaneCommand}" />
-            <MenuItem Header="_Only This Pane" Command="{Binding Workspace.OnlyPaneCommand}" />
-            <MenuItem Header="_Equalize Panes" Command="{Binding Workspace.EqualizeCommand}" />
+            <MenuItem Header="Split _Right" Command="{Binding Workspace.SplitRightCommand}" views:VimHint.Keys="Ctrl+W v" />
+            <MenuItem Header="Split _Down" Command="{Binding Workspace.SplitDownCommand}" views:VimHint.Keys="Ctrl+W s" />
+            <MenuItem Header="_Close Pane" Command="{Binding Workspace.ClosePaneCommand}" views:VimHint.Keys="Ctrl+W c" />
+            <MenuItem Header="_Only This Pane" Command="{Binding Workspace.OnlyPaneCommand}" views:VimHint.Keys="Ctrl+W o" />
+            <MenuItem Header="_Equalize Panes" Command="{Binding Workspace.EqualizeCommand}" views:VimHint.Keys="Ctrl+W =" />
             <Separator />
-            <MenuItem Header="Focus _Next Pane" Command="{Binding Workspace.FocusNextPaneCommand}" />
-            <MenuItem Header="Focus _Previous Pane" Command="{Binding Workspace.FocusPreviousPaneCommand}" />
+            <MenuItem Header="Focus _Next Pane" Command="{Binding Workspace.FocusNextPaneCommand}" views:VimHint.Keys="Ctrl+W w" />
+            <MenuItem Header="Focus _Previous Pane" Command="{Binding Workspace.FocusPreviousPaneCommand}" views:VimHint.Keys="Ctrl+W W" />
             <Separator />
             <MenuItem Header="Zoom _In" Command="{Binding Settings.ZoomInCommand}" InputGesture="Ctrl+OemPlus" />
             <MenuItem Header="Zoom O_ut" Command="{Binding Settings.ZoomOutCommand}" InputGesture="Ctrl+OemMinus" />
@@ -208,7 +209,7 @@
             </MenuItem>
           </MenuItem>
           <MenuItem Header="_Help">
-            <MenuItem Header="_Key Bindings" Command="{Binding HelpCommand}" InputGesture="F1" />
+            <MenuItem Header="_Key Bindings" Command="{Binding HelpCommand}" InputGesture="F1" views:VimHint.Keys=":help" />
             <Separator />
             <MenuItem Header="_About Enigma Text Editor" Command="{Binding AboutCommand}" />
           </MenuItem>

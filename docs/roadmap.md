@@ -38,4 +38,4 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-6500 | :e opens the file dialog           | DONE   | docs/plan/FEATURE-6500.md |
 | FEATURE-4A9A | Split opens a new document         | DONE   | docs/plan/FEATURE-4A9A.md |
 | FEATURE-5D83 | Editor context menu                | DONE   | docs/plan/FEATURE-5D83.md |
-| FEATURE-21A7 | Vim shortcuts in menus             | TODO   | docs/plan/FEATURE-21A7.md |
+| FEATURE-21A7 | Vim shortcuts in menus             | DONE   | docs/plan/FEATURE-21A7.md |

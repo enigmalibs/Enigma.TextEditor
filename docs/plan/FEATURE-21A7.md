@@ -1,6 +1,6 @@
 # FEATURE-21A7 — Vim shortcuts in menus
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-21A7.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-21a7-menu-vim-hints`
 **Run:** vibe/2026-10-20-menus-enew-pane-focus
