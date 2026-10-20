@@ -1,6 +1,6 @@
 # FEATURE-8F24 — Release 1.0.0
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch:** `feature/feature-8f24-<phase>-<slug>` (one per phase)
 **Run:** feature/2026-10-20-release-1-0-0
@@ -66,7 +66,7 @@ is tagged `1.0.0`, as the request asks. Nothing is pushed.
 
 ## PHASE01 — README & SECURITY.md
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-8F24-PHASE01.md`
 **Branch:** `feature/feature-8f24-phase01-readme-security`
 
 ### Steps
