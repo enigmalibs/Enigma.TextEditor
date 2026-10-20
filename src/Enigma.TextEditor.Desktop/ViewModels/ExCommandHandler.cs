@@ -97,6 +97,10 @@ public sealed class ExCommandHandler
 
                 break;
 
+            case VimExCommand.Edit:
+                await _workspace.OpenFromPromptAsync();
+                break;
+
             case VimExCommand.EditNew:
                 _workspace.NewDocument();
                 break;

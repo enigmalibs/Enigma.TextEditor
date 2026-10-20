@@ -1,6 +1,6 @@
 # FEATURE-6500 — :e opens the file dialog
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-6500.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-6500-edit-dialog`
 **Run:** vibe/2026-10-20-menus-enew-pane-focus

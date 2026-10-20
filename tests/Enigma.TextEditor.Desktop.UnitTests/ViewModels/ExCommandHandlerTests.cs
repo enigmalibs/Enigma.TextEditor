@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Core.Vim;
@@ -131,6 +132,36 @@ public sealed class ExCommandHandlerTests(HeadlessAvaloniaFixture fixture)
 
             Assert.Equal("bee", harness.Workspace.ActiveDocument?.Document.Text);
             Assert.Equal(2, harness.Workspace.ActivePane.Tabs.Count);
+        });
+
+    [Fact]
+    public void EditWithoutAFile_AsksFromTheActiveBuffersFolder_AndOpensWhatWasPicked()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            string a = harness.Folder.Write("a.txt", "a");
+            await harness.Workspace.OpenAsync(a);
+            harness.Prompts.FilesToOpen.Enqueue([harness.Folder.Write("b.txt", "bee"), harness.Folder.Write("c.txt", "sea")]);
+
+            await Run(harness, VimExCommand.Edit);
+
+            Assert.Equal(1, harness.Prompts.OpenQuestions);
+            Assert.Equal(Path.GetDirectoryName(a), harness.Prompts.LastOpenDirectory);
+            Assert.Equal(["a.txt", "b.txt", "c.txt"], harness.Workspace.ActivePane.Tabs.Select(tab => tab.Document.Title));
+            Assert.Equal("sea", harness.Workspace.ActiveDocument?.Document.Text);
+        });
+
+    [Fact]
+    public void EditWithoutAFile_Cancelled_OpensNothing()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a")))!;
+
+            await Run(harness, VimExCommand.Edit);
+
+            Assert.Equal(1, harness.Prompts.OpenQuestions);
+            Assert.Same(a, Assert.Single(harness.Workspace.ActivePane.Tabs));
         });
 
     [Fact]

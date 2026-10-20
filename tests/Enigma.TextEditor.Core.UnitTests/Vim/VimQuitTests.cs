@@ -86,10 +86,10 @@ public sealed class VimQuitTests
     }
 
     [Theory]
-    // ':wa' and ':qa' are requests now (see TheBufferAndQuitAllRequests_AreAskedFor); these two still
-    // mean something this editor does not do.
+    // ':wa' and ':qa' are requests now (see TheBufferAndQuitAllRequests_AreAskedFor), and so is a bare
+    // ':e' (EditWithoutAFile_IsAskedForWithNoArgument); these still mean something this editor does not
+    // do.
     [InlineData(":w!<CR>", "Not an editor command: w!")]
-    [InlineData(":e<CR>", "Not an editor command: e")]
     [InlineData(":e!<CR>", "Not an editor command: e!")]
     [InlineData(":wqa<CR>", "Not an editor command: wqa")]
     public void TheExCommandsStillOut_AreStillRefusedByName(string keys, string status)
@@ -115,6 +115,17 @@ public sealed class VimQuitTests
         VimRun run = VimScript.Run("|abc", keys);
 
         Assert.Equal(new VimExRequest(expected), Assert.Single(run.ExRequests));
+        Assert.Null(run.Status);
+    }
+
+    [Theory]
+    [InlineData(":e<CR>")]
+    [InlineData(":edit<CR>")]
+    public void EditWithoutAFile_IsAskedForWithNoArgument(string keys)
+    {
+        VimRun run = VimScript.Run("|abc", keys);
+
+        Assert.Equal(new VimExRequest(VimExCommand.Edit), Assert.Single(run.ExRequests));
         Assert.Null(run.Status);
     }
 
