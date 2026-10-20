@@ -143,6 +143,8 @@ public static class HelpCatalog
             Ex("", "Split side by side, with a new buffer", VimExCommand.VerticalNew),
             Window("Ctrl+W h, j, k, l, Ctrl+W ←, ↓, ↑, →", "The pane to the left, below, above, to the right",
                 VimWindowCommand.FocusLeft, VimWindowCommand.FocusDown, VimWindowCommand.FocusUp, VimWindowCommand.FocusRight),
+            Window("gh, gj, gk, gl", "The same, without Ctrl+W",
+                VimWindowCommand.FocusLeft, VimWindowCommand.FocusDown, VimWindowCommand.FocusUp, VimWindowCommand.FocusRight),
             Window("Ctrl+W w, Ctrl+W W", "Next, previous pane", VimWindowCommand.FocusNext, VimWindowCommand.FocusPrevious),
             Ex("Ctrl+W c", "Close the pane", VimExCommand.Close) with { WindowCommands = [VimWindowCommand.Close] },
             Window("Ctrl+W q", "Close the tab, as :q does", VimWindowCommand.Quit),
