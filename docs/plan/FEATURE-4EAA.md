@@ -1,6 +1,6 @@
 # FEATURE-4EAA — :enew and :enew!
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-4EAA.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-4eaa-enew`
 **Run:** vibe/2026-10-20-menus-enew-pane-focus

@@ -22,6 +22,11 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// <c>:q</c> on its last window. A file argument is relative to the active buffer's folder, or to the
 /// working directory for an untitled buffer.
 /// </para>
+/// <para>
+/// The tabs are the buffer list, so <c>:enew</c> adds an untitled tab as <em>File → New</em> does, and
+/// the buffer that was showing stays open — Vim's <c>:enew</c> with <c>hidden</c> set. <c>:enew!</c>
+/// is the one that replaces it, and the <c>!</c> is the user's answer to the unsaved-changes question.
+/// </para>
 /// </remarks>
 public sealed class ExCommandHandler
 {
@@ -90,6 +95,19 @@ public sealed class ExCommandHandler
                     await _workspace.OpenAsync(path);
                 }
 
+                break;
+
+            case VimExCommand.EditNew:
+                _workspace.NewDocument();
+                break;
+
+            case VimExCommand.EditNewDiscard when tab is not null:
+                _workspace.ReplaceWithNewDocument(pane, tab);
+                break;
+
+            // Nothing to replace in an empty pane: ':enew!' there is ':enew'.
+            case VimExCommand.EditNewDiscard:
+                _workspace.NewDocument();
                 break;
 
             case VimExCommand.BufferNext:

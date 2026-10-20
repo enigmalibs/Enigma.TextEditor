@@ -513,6 +513,36 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     public EditorTabViewModel NewDocument() => Show(_documents.CreateUntitled());
 
     /// <summary>
+    /// Puts a new untitled buffer in a tab's place, without asking about the buffer it replaces.
+    /// </summary>
+    /// <param name="pane">The pane the tab is on.</param>
+    /// <param name="tab">The tab.</param>
+    /// <returns>The tab showing the new buffer.</returns>
+    /// <remarks>
+    /// What the replaced buffer had not saved is gone, unless another tab still shows it and keeps it
+    /// open — the rule closing a tab follows.
+    /// </remarks>
+    public EditorTabViewModel ReplaceWithNewDocument(EditorPaneViewModel pane, EditorTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+        ArgumentNullException.ThrowIfNull(tab);
+
+        DocumentViewModel replaced = tab.Document;
+        DocumentViewModel untitled = _documents.CreateUntitled();
+        EditorTabViewModel replacement = pane.Replace(tab, untitled, out bool created);
+
+        if (created)
+        {
+            _registry.Retain(untitled);
+        }
+
+        _registry.Release(replaced);
+        RefreshCommands();
+
+        return replacement;
+    }
+
+    /// <summary>
     /// Shows a buffer in the active pane.
     /// </summary>
     /// <param name="document">The buffer, already in the registry.</param>
