@@ -1,6 +1,6 @@
 # BUG-52A2 — Empty pane after closing a split
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/BUG-52A2.md`
 **Type:** BUG
 **Branch:** `bugfix/bug-52a2-empty-pane-on-close`
 **Run:** vibe/2026-10-20-split-close-statusbar
