@@ -42,3 +42,5 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-8F24 | Release 1.0.0                      | DONE   | docs/plan/FEATURE-8F24.md |
 | - PHASE01    | README & SECURITY.md               | DONE   | (in FEATURE-8F24.md)      |
 | - PHASE02    | Version 1.0.0, notes & runbook     | DONE   | (in FEATURE-8F24.md)      |
+| FEATURE-7F58 | Linux installer                    | TODO   | docs/plan/FEATURE-7F58.md |
+| FEATURE-5301 | Release 1.1.0                      | TODO   | docs/plan/FEATURE-5301.md |
