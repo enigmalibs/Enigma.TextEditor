@@ -1,5 +1,86 @@
 # Release notes
 
+## 1.2.0 — 2026-10-21
+
+A minor release. A minimap now runs beside the text, and every item on the status bar can be set with `:set`, under
+Vim's names. Panes get quicker keys, and how far the resize keys move a splitter is now a setting. Dialogs take the
+keyboard when they open and give it back when they close, and the status bar buttons leave it in the pane.
+
+### Minimap
+
+- Every text tab has a **minimap** at the right of the text, in place of the vertical scrollbar. A window marks the
+  part of the document on screen, and a mark in the accent colour shows the caret's line.
+- Press or drag on it, and the document scrolls there. The wheel over it scrolls the text.
+- **Settings → Minimap** switches every pane back to a plain scrollbar, at once, and the choice is remembered.
+- A hex tab has no minimap: the hex view scrolls its own rows.
+
+### Panes and tabs
+
+- **Quicker pane keys:** `g` followed by the `Ctrl+W` key, as `gh`, `gj`, `gk` and `gl` already were.
+  - `g=` makes the panes the same size;
+  - `g+`, `g-`, `g>` and `g<` make the active pane taller, shorter, wider or narrower.
+- **`gt` and `gT`** show the pane's next and previous tab, wrapping round, as Ctrl+Tab and Ctrl+Shift+Tab do.
+- **Settings → Pane Resize Step** sets how far the resize keys move a splitter: 2, 5 or 10% of the split. Any step
+  from 1 to 50 can be set in `settings.json`. The default, 5%, is the step the keys always had.
+- **A dropped file takes the place of a new tab.** When the pane's tab is new — untitled, empty and unchanged, as
+  **File → New** or a new split leaves it — the first file dropped on it opens there, rather than beside it. Any
+  other dropped files open after it, as before.
+
+### Vim
+
+- **`:set` for the status bar.** Each of its items is now a `:set` option, under Vim's name:
+  - `expandtab` (`et`), `shiftwidth` (`sw`) and the new `tabstop` (`ts`) set the file's indentation. The status bar,
+    **Tools → Indentation**, the Tab key and every pane showing the file follow;
+  - `fileformat` (`ff`), `unix` or `dos`, sets the line endings;
+  - `fileencoding` (`fenc`) sets the encoding the next save writes: `utf-8`, `utf-16le`, `utf-16`, `latin1`,
+    `iso-8859-15`, `cp1252`, `cp1250` or `cp1251`. `bomb` and `nobomb` add or remove UTF-8's byte-order mark;
+  - `filetype` (`ft`) sets the language, by its name or an extension (`python`, `cs`).
+
+  `:set ff?`, or a bare `:set ff`, shows the value. A value the editor cannot take is refused with
+  `Invalid argument`, and the options before it in the same `:set` still apply. They are not available in the hex
+  view.
+- **`:q` on the last tab** closes the tab and keeps the application open, with the pane saying no file is open. The
+  same goes for `:q!`, `:wq`, `:x`, `ZZ`, `ZQ` and `Ctrl+W q`. `:qa`, **File → Exit** and the window's close button
+  quit, as before.
+
+### Keyboard focus
+
+- **Dialogs take the keyboard** when they open. The default button has it ("Save changes?" opens on *Save*), or the
+  dialog's own filter box or list where it has one.
+  - Tab and Shift+Tab move between the buttons, and Enter or Space answers with the one that has the focus.
+  - Esc cancels.
+  - When the dialog closes, the keyboard goes back where it was.
+- **The status bar buttons** — indentation, encoding, language and line endings — leave the keyboard in the pane, so
+  typing goes on without a click in the text.
+
+### About
+
+- **Help → About Enigma Text Editor** has Enigma.GitClient's look: the icon, the name, the version, the commit the
+  build was cut from (selectable, to copy) and the copyright. *Close*, or Esc, closes it.
+
+### Upgrading from 1.1
+
+- **Your settings carry over.** `settings.json` gains two keys, `ShowMinimap` and `PaneResizeStep`. A 1.1 file lacks
+  them, and starts with the minimap on and a 5% step.
+- **Going back to 1.1** reads the file and ignores the two keys. If 1.1 then saves the settings, it leaves them out,
+  and 1.2 starts them at their defaults again.
+- **`:q` on the last tab no longer quits.** Quit with `:qa`, **File → Exit** or the window's close button.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- No package had an update outside the Avalonia set. The set is held back at **12.1.2**, with Enigma.Avalonia.Desktop
+  1.2.0 and AvaloniaEdit 12.0.0. Avalonia 12.1.4 is out, but the set moves as a whole.
+
+### Compatibility
+
+- Unchanged from 1.1.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.2 and AvaloniaEdit 12.0.0.
+
+### Version
+
+- **1.2.0** is a minor release under Semantic Versioning. It adds features, keeps every stored format, and removes
+  nothing. One behaviour changes: `:q` on the last tab.
+
 ## 1.1.0 — 2026-10-20
 
 A minor release. The editor now installs on Linux with one command: it lands in your application launcher and in your
