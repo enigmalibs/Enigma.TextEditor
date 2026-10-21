@@ -5,6 +5,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
@@ -30,6 +31,13 @@ public partial class EditorPaneView : UserControl
     /// The gap either side of the line numbers.
     /// </summary>
     public const double LineNumberSpacing = 4;
+
+    /// <summary>
+    /// The editor's vertical scrollbar for the minimap setting: hidden while the minimap stands in for
+    /// it, shown when needed otherwise.
+    /// </summary>
+    public static readonly IValueConverter VerticalScrollBarFor =
+        new FuncValueConverter<bool, ScrollBarVisibility>(minimap => minimap ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto);
 
     private VimEditorBehavior? _vim;
 

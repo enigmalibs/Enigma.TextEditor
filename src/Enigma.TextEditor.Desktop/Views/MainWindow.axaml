@@ -192,6 +192,8 @@
                       IsChecked="{Binding Settings.IsVimEnabled, Mode=OneWay}" Command="{Binding Settings.ToggleVimCommand}" />
             <MenuItem Header="_Word Wrap" ToggleType="CheckBox"
                       IsChecked="{Binding Settings.IsWordWrap, Mode=OneWay}" Command="{Binding Settings.ToggleWordWrapCommand}" />
+            <MenuItem Header="_Minimap" ToggleType="CheckBox"
+                      IsChecked="{Binding Settings.IsMinimap, Mode=OneWay}" Command="{Binding Settings.ToggleMinimapCommand}" />
             <Separator />
             <MenuItem Header="Default _Indentation">
               <MenuItem Header="Spaces: 2" ToggleType="Radio" GroupName="defaultIndentation"

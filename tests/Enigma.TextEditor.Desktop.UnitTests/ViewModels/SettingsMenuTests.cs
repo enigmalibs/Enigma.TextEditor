@@ -31,17 +31,21 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
             await menu.UseDarkThemeCommand.ExecuteAsync(null);
             await menu.ToggleVimCommand.ExecuteAsync(null);
             await menu.ToggleWordWrapCommand.ExecuteAsync(null);
+            await menu.ToggleMinimapCommand.ExecuteAsync(null);
             await menu.DefaultTabsCommand.ExecuteAsync(null);
             await menu.DefaultCrLfCommand.ExecuteAsync(null);
 
             Assert.Equal([AppTheme.Dark], harness.Theme.Applied);
             Assert.False(harness.Vim.IsEnabled);
             Assert.True(harness.Preferences.WordWrap);
+            Assert.False(harness.Preferences.ShowMinimap);
+            Assert.False(menu.IsMinimap);
 
             AppSettings written = SettingsLoader.Load(harness.Settings.FilePath).Config.Value;
             Assert.Equal(AppTheme.Dark, written.Theme);
             Assert.False(written.VimEnabled);
             Assert.True(written.WordWrap);
+            Assert.False(written.ShowMinimap);
             Assert.True(written.IndentWithTabs);
             Assert.Equal(LineEndingStyle.CrLf, written.DefaultLineEnding);
             Assert.Empty(harness.Messages.Errors);
@@ -181,10 +185,11 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
 
             MenuItem settings = menus[4];
             Assert.Equal(
-                ["_Theme", "_Vim Mode", "_Word Wrap", "Default _Indentation", "Default _Line Endings"],
+                ["_Theme", "_Vim Mode", "_Word Wrap", "_Minimap", "Default _Indentation", "Default _Line Endings"],
                 settings.Items.OfType<MenuItem>().Select(item => (string?)item.Header));
             Assert.True(Item(settings, "_Vim Mode").IsChecked);
             Assert.False(Item(settings, "_Word Wrap").IsChecked);
+            Assert.True(Item(settings, "_Minimap").IsChecked);
             Assert.True(Item(Item(settings, "_Theme"), "_System").IsChecked);
             Assert.Equal(["Spaces: 2", "Spaces: 4", "Tabs"], Item(settings, "Default _Indentation").Items.OfType<MenuItem>().Select(item => (string?)item.Header));
             Assert.Equal(["LF", "CRLF"], Item(settings, "Default _Line Endings").Items.OfType<MenuItem>().Select(item => (string?)item.Header));

@@ -1,6 +1,6 @@
 # FEATURE-3546 — Editor minimap
 
-**Status:** IN PROGRESS
+**Status:** DONE — see `docs/done/FEATURE-3546-PHASE01.md`, `docs/done/FEATURE-3546-PHASE02.md`
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-3546-phase01-minimap`
 **Branch (PHASE02):** `feature/feature-3546-phase02-minimap-setting`
@@ -77,7 +77,7 @@ minimap is the default.
 
 ## PHASE02 — Minimap or scrollbar setting
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-3546-PHASE02.md`
 
 ### Steps
 

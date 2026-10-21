@@ -30,6 +30,7 @@ public sealed class EditorPreferences : ObservableObject
 
         FontSize = settings.Value.EditorFontSize;
         WordWrap = settings.Value.WordWrap;
+        ShowMinimap = settings.Value.ShowMinimap;
     }
 
     /// <summary>
@@ -46,4 +47,10 @@ public sealed class EditorPreferences : ObservableObject
     /// Gets or sets a value indicating whether long lines wrap.
     /// </summary>
     public bool WordWrap { get; set => SetProperty(ref field, value); }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the text has a minimap beside it, rather than a vertical
+    /// scrollbar.
+    /// </summary>
+    public bool ShowMinimap { get; set => SetProperty(ref field, value); }
 }
