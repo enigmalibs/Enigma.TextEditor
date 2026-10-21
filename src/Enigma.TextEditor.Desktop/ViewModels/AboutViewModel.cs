@@ -28,7 +28,12 @@ public sealed class AboutViewModel
     public bool HasBuild => BuildSha is not null;
 
     /// <summary>
-    /// Gets the copyright notice.
+    /// Gets the copyright notice, or an empty string when the assembly carries none.
     /// </summary>
     public string Copyright => AppInfo.Copyright;
+
+    /// <summary>
+    /// Gets a value indicating whether there is a copyright notice to show.
+    /// </summary>
+    public bool HasCopyright => Copyright.Length > 0;
 }

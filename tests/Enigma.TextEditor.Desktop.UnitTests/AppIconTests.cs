@@ -88,7 +88,10 @@ public sealed class AppIconTests(HeadlessAvaloniaFixture fixture)
 
             Assert.Equal(new PixelSize(256, 256), Assert.IsType<Bitmap>(icon.Source).PixelSize);
             Assert.Equal(new Size(96, 96), icon.Bounds.Size);
-            Assert.True(icon.Bounds.Bottom <= name.Bounds.Top, "The icon is not above the product name.");
+            // In the view's own coordinates: the name sits in a stack of its own, below the icon's.
+            double iconBottom = icon.TranslatePoint(new Point(0, icon.Bounds.Height), view)!.Value.Y;
+            double nameTop = name.TranslatePoint(default, view)!.Value.Y;
+            Assert.True(iconBottom <= nameTop, "The icon is not above the product name.");
             window.Close();
         });
 
