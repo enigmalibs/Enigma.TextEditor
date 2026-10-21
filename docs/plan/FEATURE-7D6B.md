@@ -1,6 +1,6 @@
 # FEATURE-7D6B — Status bar gives focus back
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-7D6B.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-7d6b-status-bar-focus`
 **Run:** feature/2026-10-21-minimap-keys-dialogs
