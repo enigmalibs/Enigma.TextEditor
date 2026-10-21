@@ -23,6 +23,12 @@ namespace Enigma.TextEditor.Core.Vim;
 /// <c>:set hlsearch</c> that will never do anything says so.
 /// </para>
 /// <para>
+/// The options about the file — <c>fileformat</c>, <c>fileencoding</c>, <c>bomb</c> and
+/// <c>filetype</c>, long and short — are known here but not kept: their values are encodings, line
+/// endings and languages, which are the application's. Their words are handed back as they were typed,
+/// for the engine to pass on.
+/// </para>
+/// <para>
 /// <c>tabstop</c> is <c>shiftwidth</c> under its other name: the editor has one indentation size, the
 /// width of a tab and of a shift alike, so the two cannot differ here.
 /// </para>
@@ -44,6 +50,9 @@ internal static class VimSet
         new("incsearch", "is", target => target.Shared.IncSearch, (target, value) => target.Shared.IncSearch = value),
     ];
 
+    // The file's options, long and short: known, so not refused, and handed on rather than kept.
+    private static readonly string[] FileOptionNames = ["fileformat", "ff", "fileencoding", "fenc", "bomb", "filetype", "ft"];
+
     private static readonly Number[] Numbers =
     [
         // Never zero: vim reads a shiftwidth of 0 as "use tabstop", and there is no tabstop here for
@@ -57,6 +66,8 @@ internal static class VimSet
     /// </summary>
     /// <param name="argument">What followed <c>set</c>, trimmed; the empty string shows everything.</param>
     /// <param name="options">The options to read and write.</param>
+    /// <param name="shared">The options every engine shares.</param>
+    /// <param name="forwarded">Filled with the words that set or show a file option, in order, for the application.</param>
     /// <param name="message">
     /// What to show: the values that were asked for, or why an argument was refused. <see langword="null"/>
     /// when nothing was asked for and nothing went wrong.
@@ -65,7 +76,7 @@ internal static class VimSet
     /// Whether every argument was carried out. A refusal stops at the first, with what came before it
     /// already done — vim's rule.
     /// </returns>
-    public static bool TryApply(string argument, VimOptions options, VimSharedState shared, [NotNullWhen(false)] out string? message)
+    public static bool TryApply(string argument, VimOptions options, VimSharedState shared, List<string> forwarded, [NotNullWhen(false)] out string? message)
     {
         Target target = new(options, shared);
         List<string> shown = [];
@@ -89,6 +100,13 @@ internal static class VimSet
 
         foreach (string word in argument.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
         {
+            if (IsFileOption(word))
+            {
+                forwarded.Add(word);
+
+                continue;
+            }
+
             if (!TryApplyOne(word, target, shown, out message))
             {
                 return false;
@@ -213,6 +231,15 @@ internal static class VimSet
         }
 
         return (word, null, '\0');
+    }
+
+    // 'nobomb' is the one file option a 'no' can stand in front of: the others take a value.
+    private static bool IsFileOption(string word)
+    {
+        string name = Split(word).Name;
+
+        return Array.IndexOf(FileOptionNames, name) >= 0
+            || (name == "nobomb");
     }
 
     private static Switch? Find(Switch[] switches, string name)

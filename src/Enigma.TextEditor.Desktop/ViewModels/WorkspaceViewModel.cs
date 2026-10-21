@@ -61,6 +61,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// <param name="shutdown">Ends the application, for <c>:q</c> on the last tab and <c>:qa</c>.</param>
     /// <param name="preferences">How every editor looks.</param>
     /// <param name="help">The key-binding help, for <c>:help</c>.</param>
+    /// <param name="languages">The languages <c>:set filetype</c> can name.</param>
     public WorkspaceViewModel(
         IDocumentService documents,
         DocumentRegistry registry,
@@ -71,7 +72,8 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         VimSharedState vimShared,
         IAppShutdown shutdown,
         EditorPreferences preferences,
-        IHelpDialogService help)
+        IHelpDialogService help,
+        LanguageCatalog languages)
     {
         _documents = documents ?? throw new ArgumentNullException(nameof(documents));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
@@ -84,7 +86,8 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
             this,
             shutdown ?? throw new ArgumentNullException(nameof(shutdown)),
             status,
-            help ?? throw new ArgumentNullException(nameof(help)));
+            help ?? throw new ArgumentNullException(nameof(help)),
+            languages ?? throw new ArgumentNullException(nameof(languages)));
         _window = new WindowCommandHandler(this, _ex, status);
         Preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
 

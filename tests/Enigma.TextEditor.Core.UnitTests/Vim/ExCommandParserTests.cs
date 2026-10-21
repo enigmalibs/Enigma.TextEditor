@@ -170,7 +170,9 @@ public sealed class ExCommandParserTests
     [Fact]
     public void EveryRequest_HasADefinition()
     {
-        foreach (VimExCommand command in Enum.GetValues<VimExCommand>())
+        // But SetFileOptions: ':set' is read by the engine itself (VimSet), which hands the file's options
+        // on in that request; VimSetFileOptionsTests proves each spelling.
+        foreach (VimExCommand command in Enum.GetValues<VimExCommand>().Where(command => command != VimExCommand.SetFileOptions))
         {
             Assert.Contains(
                 ExCommandParser.Definitions,

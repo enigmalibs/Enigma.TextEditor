@@ -88,6 +88,39 @@ public sealed class SetCommandTests(HeadlessAvaloniaFixture fixture)
             window.Close();
         });
 
+    [Fact]
+    public void SetTheFileOptions_ChangesWhatTheStatusBarShows()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x\n"));
+            MainWindow window = Show(harness);
+
+            Ex(window, "set ff=dos fenc=latin1 ft=python");
+
+            Assert.Equal("CRLF", harness.StatusBar.LineEndingText);
+            Assert.Equal("ISO-8859-1", harness.StatusBar.EncodingText);
+            Assert.Equal("Python", harness.StatusBar.LanguageText);
+            window.Close();
+        });
+
+    [Fact]
+    public void AskingForAFileOption_AnswersOnTheStatusLine_AndARefusalSaysWhy()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x\n"));
+            MainWindow window = Show(harness);
+
+            Ex(window, "set ff?");
+            Assert.Equal("fileformat=unix", harness.StatusLine.Current);
+
+            Ex(window, "set ff=mac");
+            Assert.Equal("Invalid argument: ff=mac", harness.StatusLine.Current);
+            Assert.Equal("LF", harness.StatusBar.LineEndingText);
+            window.Close();
+        });
+
     private static void Ex(MainWindow window, string command)
     {
         window.KeyTextInput(":" + command);

@@ -165,6 +165,11 @@ public static class HelpCatalog
             Text("", "Show the match while the pattern is typed", ":set incsearch, is"),
             Text("", "Indent with spaces (the file's indentation follows)", ":set expandtab, et"),
             Text("", "Indentation size, for Tab, > and <", ":set shiftwidth=n, sw, tabstop, ts"),
+            Text("", "Line endings: unix (LF) or dos (CRLF)", ":set fileformat=unix, ff"),
+            Text("", "Encoding the next save writes: utf-8, latin1, cp1252…", ":set fileencoding=utf-8, fenc")
+                with { ExCommands = [VimExCommand.SetFileOptions] },
+            Text("", "Byte order mark, for UTF-8", ":set bomb"),
+            Text("", "Language: its name, or an extension", ":set filetype=python, ft"),
         ]),
         Section("Application", PhosphorIcon.Keyboard, null,
         [

@@ -58,7 +58,9 @@ public sealed class HelpTests(HeadlessAvaloniaFixture fixture)
     [Fact]
     public void EveryExSpellingTheHelpShows_IsReadAsTheCommandItDocuments()
     {
-        foreach (HelpRow row in Rows().Where(row => row.ExCommands.Count > 0))
+        // ':set' is the engine's own command rather than one of the parser's: the file options it hands on
+        // are read by VimSet, and the core's VimSetTests prove each spelling raises SetFileOptions.
+        foreach (HelpRow row in Rows().Where(row => (row.ExCommands.Count > 0) && !row.ExCommands.Contains(VimExCommand.SetFileOptions)))
         {
             foreach (string spelling in row.ExCommand.Split(", "))
             {
