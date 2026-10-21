@@ -1,6 +1,6 @@
 # FEATURE-1FBE — Dialog keyboard focus
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-1FBE.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-1fbe-dialog-focus`
 **Run:** feature/2026-10-21-minimap-keys-dialogs

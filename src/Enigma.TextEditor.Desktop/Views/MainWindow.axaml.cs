@@ -22,7 +22,16 @@ public partial class MainWindow : Window
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
     /// </summary>
-    public MainWindow() => InitializeComponent();
+    public MainWindow()
+    {
+        InitializeComponent();
+        DialogKeyboard.Attach(HostDialog, FocusActivePane);
+    }
+
+    /// <summary>
+    /// Gives the keyboard to the active pane: its editor, or its hex rows.
+    /// </summary>
+    internal void FocusActivePane() => Splits.ActivePaneView?.FocusEditor();
 
     /// <inheritdoc />
     protected override void OnClosing(WindowClosingEventArgs e)

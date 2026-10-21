@@ -316,7 +316,10 @@
     </DockPanel>
 
     <!-- The three Enigma hosts, last so they overlay everything the editor draws. -->
+    <!-- Tab cycles inside the dialog rather than leaving it for the window behind; DialogKeyboard gives
+         it the keyboard as it opens and hands it back as it closes. -->
     <contentDialog:ContentDialog x:Name="HostDialog"
+                                 KeyboardNavigation.TabNavigation="Cycle"
                                  DialogMinWidth="360"
                                  DialogMaxWidth="860"
                                  DialogMaxHeight="640" />
