@@ -1,6 +1,6 @@
 # FEATURE-3546 — Editor minimap
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-3546-phase01-minimap`
 **Branch (PHASE02):** `feature/feature-3546-phase02-minimap-setting`
@@ -42,7 +42,7 @@ minimap is the default.
 
 ## PHASE01 — Minimap beside the editor
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-3546-PHASE01.md`
 
 ### Steps
 
