@@ -18,6 +18,8 @@ public sealed class SettingsLoaderTests
     [InlineData("{ \"EditorFontSize\": 9000 }", "a value outside its range")]
     [InlineData("{ \"IndentSize\": 0 }", "an indentation outside its range")]
     [InlineData("{ \"Theme\": 42 }", "an undefined enum value")]
+    [InlineData("{ \"PaneResizeStep\": 0 }", "a resize step below its range")]
+    [InlineData("{ \"PaneResizeStep\": 51 }", "a resize step above its range")]
     public void ABrokenFile_IsQuarantinedAndTheDefaultsAreUsed(string json, string reason)
     {
         using TempSettingsFolder folder = new();

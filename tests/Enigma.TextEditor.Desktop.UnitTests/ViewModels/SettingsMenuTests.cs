@@ -52,6 +52,39 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
+    public void ThePaneResizeStep_AppliesAtOnce_AndIsWritten()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            SettingsMenuViewModel menu = harness.SettingsMenu;
+            Assert.True(menu.IsResizeStep5);
+
+            await menu.ResizeStep10Command.ExecuteAsync(null);
+
+            Assert.True(menu.IsResizeStep10);
+            Assert.False(menu.IsResizeStep5);
+            Assert.Equal(10, harness.Preferences.PaneResizeStep);
+            Assert.Equal(0.1, harness.Workspace.ResizeStep, 9);
+            Assert.Equal(10, SettingsLoader.Load(harness.Settings.FilePath).Config.Value.PaneResizeStep);
+
+            await menu.ResizeStep2Command.ExecuteAsync(null);
+            Assert.True(menu.IsResizeStep2);
+            Assert.Equal(2, harness.Preferences.PaneResizeStep);
+        });
+
+    [Fact]
+    public void AStepTheMenuDoesNotOffer_ChecksNoneOfItsThree()
+        => fixture.Run(() =>
+        {
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 4);
+
+            Assert.False(harness.SettingsMenu.IsResizeStep2);
+            Assert.False(harness.SettingsMenu.IsResizeStep5);
+            Assert.False(harness.SettingsMenu.IsResizeStep10);
+            Assert.Equal(0.04, harness.Workspace.ResizeStep, 9);
+        });
+
+    [Fact]
     public void TheRadioMarks_FollowTheChoice()
         => fixture.RunAsync(async () =>
         {
@@ -185,11 +218,13 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
 
             MenuItem settings = menus[4];
             Assert.Equal(
-                ["_Theme", "_Vim Mode", "_Word Wrap", "_Minimap", "Default _Indentation", "Default _Line Endings"],
+                ["_Theme", "_Vim Mode", "_Word Wrap", "_Minimap", "Pane _Resize Step", "Default _Indentation", "Default _Line Endings"],
                 settings.Items.OfType<MenuItem>().Select(item => (string?)item.Header));
             Assert.True(Item(settings, "_Vim Mode").IsChecked);
             Assert.False(Item(settings, "_Word Wrap").IsChecked);
             Assert.True(Item(settings, "_Minimap").IsChecked);
+            Assert.Equal(["2%", "5%", "10%"], Item(settings, "Pane _Resize Step").Items.OfType<MenuItem>().Select(item => (string?)item.Header));
+            Assert.True(Item(Item(settings, "Pane _Resize Step"), "5%").IsChecked);
             Assert.True(Item(Item(settings, "_Theme"), "_System").IsChecked);
             Assert.Equal(["Spaces: 2", "Spaces: 4", "Tabs"], Item(settings, "Default _Indentation").Items.OfType<MenuItem>().Select(item => (string?)item.Header));
             Assert.Equal(["LF", "CRLF"], Item(settings, "Default _Line Endings").Items.OfType<MenuItem>().Select(item => (string?)item.Header));

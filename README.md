@@ -75,8 +75,9 @@ scroll.
 The last four are buttons that change them.
 
 **Settings** apply at once and are remembered: the theme (light, dark or following the system), Vim mode, word wrap,
-the minimap beside the text (press or drag on it to scroll; off, a plain scrollbar is back), and the indentation and
-line endings a new document starts with. **View → Zoom In / Zoom Out / Reset Zoom** (Ctrl+=,
+the minimap beside the text (press or drag on it to scroll; off, a plain scrollbar is back), how far the resize keys
+move a splitter (2, 5 or 10% of the split, or any step from 1 to 50 in `settings.json`), and the indentation and line
+endings a new document starts with. **View → Zoom In / Zoom Out / Reset Zoom** (Ctrl+=,
 Ctrl+-, Ctrl+0) sets the editor's font size, between 6 and 72. **Help → About Enigma Text Editor** shows the version
 and the commit it was built from.
 

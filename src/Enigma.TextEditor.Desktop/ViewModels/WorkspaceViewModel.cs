@@ -33,11 +33,6 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// </remarks>
 public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 {
-    /// <summary>
-    /// How far one resize command moves a splitter, as a share of the split.
-    /// </summary>
-    public const double ResizeStep = 0.05;
-
     private readonly IDocumentService _documents;
     private readonly DocumentRegistry _registry;
     private readonly IFilePrompts _prompts;
@@ -146,6 +141,12 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// Gets the arrangement of panes.
     /// </summary>
     public LayoutTree Layout { get; }
+
+    /// <summary>
+    /// Gets how far one resize command moves a splitter, as a share of the split: the preference, which
+    /// is in percent.
+    /// </summary>
+    public double ResizeStep => Preferences.PaneResizeStep / 100.0;
 
     /// <summary>
     /// Gets the panes, in reading order.
