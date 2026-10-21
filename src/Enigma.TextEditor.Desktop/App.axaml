@@ -49,6 +49,31 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://Enigma.Avalonia.Desktop/Themes/Fluent.axaml" />
       </ResourceDictionary.MergedDictionaries>
+
+      <!-- The minimap's window over the visible text: Enigma.GitClient's diff minimap colours, a wash
+           and an outline of the foreground over whatever the strip is painted in. -->
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="MinimapViewportBrush" Color="#2AFFFFFF" />
+          <SolidColorBrush x:Key="MinimapViewportBorderBrush" Color="#55FFFFFF" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="MinimapViewportBrush" Color="#22000000" />
+          <SolidColorBrush x:Key="MinimapViewportBorderBrush" Color="#55000000" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+
+      <!-- The minimap that takes the editor's vertical scrollbar's place. Thirty-six pixels, as in
+           Enigma.GitClient: a trackpad aims with a thumb rather than a cursor, and a scrollbar-thin
+           strip is a hairline to it. The caret is marked in the accent colour. -->
+      <ControlTheme x:Key="{x:Type views:EditorMinimap}" TargetType="views:EditorMinimap">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="TrackBrush" Value="{DynamicResource EnigmaSurfaceBrush}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource EnigmaAccentBrush}" />
+        <Setter Property="ViewportBrush" Value="{DynamicResource MinimapViewportBrush}" />
+        <Setter Property="ViewportBorderBrush" Value="{DynamicResource MinimapViewportBorderBrush}" />
+      </ControlTheme>
     </ResourceDictionary>
   </Application.Resources>
 
