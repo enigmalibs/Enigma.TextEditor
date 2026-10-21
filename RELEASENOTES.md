@@ -1,5 +1,39 @@
 # Release notes
 
+## 1.4.0 — 2026-10-21
+
+A minor release. `Space rj` and `Space rk` now move the bar between two stacked panes the way `j` and `k` point in
+Vim: `j` down, `k` up. In 1.3 they went the other way.
+
+### Panes
+
+- **`Space rj`** moves the bar between two stacked panes **down**: the top pane grows, typed in either of them.
+- **`Space rk`** moves it **up**: the bottom pane grows.
+- `Space rl` and `Space rh` are unchanged: they already moved the bar right and left. So are `Ctrl+W +`, `-`, `>`, `<`
+  and `g+`, `g-`, `g>`, `g<`.
+- **Help → Key Bindings** lists the keys as `Space rj, Space rk` — down, up.
+
+### Upgrading from 1.3
+
+- **`Space rj` and `Space rk` swap meanings.** If your fingers learned 1.3's way, `Space rj` now does what `Space rk`
+  did, and the other way round.
+- **Your settings carry over** unchanged. 1.4 adds no settings key, and going back to 1.3 reads the same file.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- No package had an update outside the Avalonia set. The set is held back at **12.1.2**, with Enigma.Avalonia.Desktop
+  1.2.0 and AvaloniaEdit 12.0.0. Avalonia 12.1.4 is out, but the set moves as a whole.
+
+### Compatibility
+
+- Unchanged from 1.3.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.2 and AvaloniaEdit 12.0.0.
+
+### Version
+
+- **1.4.0** is a minor release under Semantic Versioning. It keeps every stored format and removes nothing. One
+  behaviour changes: `Space rj` and `Space rk` swap directions.
+
 ## 1.3.0 — 2026-10-21
 
 A minor release. Space is now a leader key, and four leader keys move the bar between two panes. They need no `+`,
