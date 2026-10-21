@@ -51,6 +51,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
         UseDarkThemeCommand = Command(() => SetThemeAsync(AppTheme.Dark));
         ToggleVimCommand = Command(OnToggleVimAsync);
         ToggleWordWrapCommand = Command(OnToggleWordWrapAsync);
+        ToggleMinimapCommand = Command(OnToggleMinimapAsync);
         DefaultTwoSpacesCommand = Command(() => SetDefaultIndentationAsync(false, 2));
         DefaultFourSpacesCommand = Command(() => SetDefaultIndentationAsync(false, 4));
         DefaultTabsCommand = Command(() => SetDefaultIndentationAsync(true, 4));
@@ -85,6 +86,11 @@ public sealed class SettingsMenuViewModel : ObservableObject
     /// Gets <em>Settings → Word Wrap</em>.
     /// </summary>
     public AsyncRelayCommand ToggleWordWrapCommand { get; }
+
+    /// <summary>
+    /// Gets <em>Settings → Minimap</em>.
+    /// </summary>
+    public AsyncRelayCommand ToggleMinimapCommand { get; }
 
     /// <summary>
     /// Gets <em>Settings → Default Indentation → Spaces: 2</em>.
@@ -152,6 +158,11 @@ public sealed class SettingsMenuViewModel : ObservableObject
     public bool IsWordWrap => Value.WordWrap;
 
     /// <summary>
+    /// Gets a value indicating whether the text has a minimap beside it.
+    /// </summary>
+    public bool IsMinimap => Value.ShowMinimap;
+
+    /// <summary>
     /// Gets a value indicating whether new files are indented with two spaces.
     /// </summary>
     public bool IsDefaultTwoSpaces => !Value.IndentWithTabs && (Value.IndentSize == 2);
@@ -210,6 +221,15 @@ public sealed class SettingsMenuViewModel : ObservableObject
         Value.WordWrap = !Value.WordWrap;
         _preferences.WordWrap = Value.WordWrap;
         OnPropertyChanged(nameof(IsWordWrap));
+
+        await _writer.SaveAsync();
+    }
+
+    private async Task OnToggleMinimapAsync()
+    {
+        Value.ShowMinimap = !Value.ShowMinimap;
+        _preferences.ShowMinimap = Value.ShowMinimap;
+        OnPropertyChanged(nameof(IsMinimap));
 
         await _writer.SaveAsync();
     }

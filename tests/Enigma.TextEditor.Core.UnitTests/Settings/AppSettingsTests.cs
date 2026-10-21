@@ -16,6 +16,7 @@ public sealed class AppSettingsTests
         Assert.Equal(AppTheme.System, settings.Theme);
         Assert.True(settings.VimEnabled);
         Assert.False(settings.WordWrap);
+        Assert.True(settings.ShowMinimap);
         Assert.Equal(AppSettings.DefaultFontSize, settings.EditorFontSize);
         Assert.False(settings.IndentWithTabs);
         Assert.Equal(4, settings.IndentSize);
@@ -42,6 +43,7 @@ public sealed class AppSettingsTests
         written.Config.Value.Theme = AppTheme.Light;
         written.Config.Value.VimEnabled = false;
         written.Config.Value.WordWrap = true;
+        written.Config.Value.ShowMinimap = false;
         written.Config.Value.EditorFontSize = 20;
         written.Config.Value.IndentWithTabs = true;
         written.Config.Value.IndentSize = 2;
@@ -53,10 +55,22 @@ public sealed class AppSettingsTests
         Assert.Equal(AppTheme.Light, read.Theme);
         Assert.False(read.VimEnabled);
         Assert.True(read.WordWrap);
+        Assert.False(read.ShowMinimap);
         Assert.Equal(20, read.EditorFontSize);
         Assert.True(read.IndentWithTabs);
         Assert.Equal(2, read.IndentSize);
         Assert.Equal(LineEndingStyle.CrLf, read.DefaultLineEnding);
+    }
+
+    [Fact]
+    public void ASettingsFileFromBeforeTheMinimap_ShowsIt()
+    {
+        using TempSettingsFolder folder = new();
+        folder.WriteSettingsFile("{ \"WordWrap\": true }");
+
+        AppSettings read = SettingsLoader.Load(folder.SettingsFile).Config.Value;
+
+        Assert.True(read.ShowMinimap);
     }
 
     [Fact]

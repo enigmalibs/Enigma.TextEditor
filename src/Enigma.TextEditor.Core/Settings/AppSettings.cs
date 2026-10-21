@@ -44,6 +44,12 @@ public sealed class AppSettings
     public bool WordWrap { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the editor shows a minimap beside the text rather than
+    /// a vertical scrollbar.
+    /// </summary>
+    public bool ShowMinimap { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets the editor's font size, in device-independent pixels.
     /// </summary>
     [Range(MinimumFontSize, MaximumFontSize)]

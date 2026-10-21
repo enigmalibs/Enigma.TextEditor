@@ -5,6 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Enigma.TextEditor.Desktop.Views;
 using Xunit;
@@ -137,6 +138,46 @@ public sealed class EditorMinimapTests(HeadlessAvaloniaFixture fixture)
             double top = pane.EditorControl.TextArea.TextView.GetVisualTopByDocumentLine(501);
             Assert.Equal(top / pane.EditorControl.ExtentHeight, pane.MinimapControl.CaretPosition, 6);
             Assert.InRange(pane.MinimapControl.CaretPosition, 0.4, 0.5);
+            window.Close();
+        });
+
+    [Fact]
+    public void TheMinimapSetting_SwitchesEveryPaneBetweenTheMapAndTheScrollbar()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Lines(10)));
+            harness.Workspace.Split(SplitAxis.Columns);
+            MainWindow window = new() { DataContext = harness.Window };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            EditorPaneView[] panes = [.. window.GetVisualDescendants().OfType<EditorPaneView>()];
+            Assert.Equal(2, panes.Length);
+
+            await harness.SettingsMenu.ToggleMinimapCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.All(panes, pane => Assert.False(pane.MinimapControl.IsEffectivelyVisible));
+            Assert.All(panes, pane => Assert.Equal(ScrollBarVisibility.Auto, pane.EditorControl.VerticalScrollBarVisibility));
+
+            await harness.SettingsMenu.ToggleMinimapCommand.ExecuteAsync(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.All(panes, pane => Assert.True(pane.MinimapControl.IsEffectivelyVisible));
+            Assert.All(panes, pane => Assert.Equal(ScrollBarVisibility.Hidden, pane.EditorControl.VerticalScrollBarVisibility));
+            window.Close();
+        });
+
+    [Fact]
+    public void WithTheMinimapOff_ANewPaneStartsWithTheScrollbar()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new(settings => settings.ShowMinimap = false);
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Lines(10)));
+            (MainWindow window, EditorPaneView pane) = Show(harness);
+
+            Assert.False(pane.MinimapControl.IsEffectivelyVisible);
+            Assert.Equal(ScrollBarVisibility.Auto, pane.EditorControl.VerticalScrollBarVisibility);
             window.Close();
         });
 
