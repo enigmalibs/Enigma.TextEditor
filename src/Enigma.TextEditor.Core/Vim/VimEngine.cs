@@ -675,12 +675,21 @@ public sealed class VimEngine
                 ReselectVisual();
                 break;
 
-            case VimAction.FocusPane:
+            case VimAction.PaneCommand:
                 if (VimWindowKeys.Map(VimKey.Typed(command.Argument)) is { } window)
                 {
                     WindowCommandRequested?.Invoke(this, window);
                 }
 
+                break;
+
+            // The tabs are the pane's buffers: 'gt' and 'gT' are ':bn' and ':bp'.
+            case VimAction.NextTab:
+                ExCommandRequested?.Invoke(this, new VimExRequest(VimExCommand.BufferNext));
+                break;
+
+            case VimAction.PreviousTab:
+                ExCommandRequested?.Invoke(this, new VimExRequest(VimExCommand.BufferPrevious));
                 break;
 
             case VimAction.WriteQuit:
