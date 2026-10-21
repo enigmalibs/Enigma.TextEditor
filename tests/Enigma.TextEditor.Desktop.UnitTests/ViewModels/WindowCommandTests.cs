@@ -359,7 +359,7 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
-    public void TypedInTheWindow_SpaceRKAndRJ_MoveTheBarBetweenStackedPanes_FromEitherOfThem()
+    public void TypedInTheWindow_SpaceRJAndRK_MoveTheBarBetweenStackedPanes_FromEitherOfThem()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
@@ -370,27 +370,27 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             MainWindow window = new() { DataContext = harness.Window, Width = 1000, Height = 700 };
             window.Show();
 
-            // k moves the bar down, typed in the top pane and in the bottom one: the top pane grows both times.
+            // j moves the bar down, typed in the top pane and in the bottom one: the top pane grows both times.
             await FocusAsync(window, top);
-            window.KeyTextInput(" rk");
+            window.KeyTextInput(" rj");
             await Pump();
             Assert.Equal(0.55, split.Ratio, 9);
 
             await FocusAsync(window, bottom);
             string below = bottom.ActiveTab!.Document.Document.Text;
-            window.KeyTextInput(" rk");
+            window.KeyTextInput(" rj");
             await Pump();
             Assert.Equal(0.6, split.Ratio, 9);
 
-            // j moves it up, and the bottom pane grows.
-            window.KeyTextInput(" rj rj rj");
+            // k moves it up, and the bottom pane grows.
+            window.KeyTextInput(" rk rk rk");
             await Pump();
             Assert.Equal(0.45, split.Ratio, 9);
             Assert.Same(bottom, harness.Workspace.ActivePane);
             Assert.Equal(below, bottom.ActiveTab.Document.Document.Text);
 
             await FocusAsync(window, top);
-            window.KeyTextInput(" rj");
+            window.KeyTextInput(" rk");
             await Pump();
             Assert.Equal(0.4, split.Ratio, 9);
             Assert.Equal("text\n", top.ActiveTab!.Document.Document.Text);

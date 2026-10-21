@@ -516,15 +516,15 @@ public sealed class VimEngine
     /// Which way <c>&lt;Space&gt;r</c> and a letter moves the bar between two panes.
     /// </summary>
     /// <remarks>
-    /// <c>k</c> moves it down and <c>j</c> up — the request that asked for the keys spells them so, "k
-    /// moves the line to the bottom" — while <c>h</c> and <c>l</c> go the way they point.
+    /// Each letter moves the bar the way Vim's motion of that letter moves the caret: <c>h</c> left,
+    /// <c>j</c> down, <c>k</c> up, <c>l</c> right.
     /// </remarks>
     private static VimWindowCommand? SplitterCommandFor(char letter)
         => letter switch
         {
             'h' => VimWindowCommand.MoveSplitterLeft,
-            'j' => VimWindowCommand.MoveSplitterUp,
-            'k' => VimWindowCommand.MoveSplitterDown,
+            'j' => VimWindowCommand.MoveSplitterDown,
+            'k' => VimWindowCommand.MoveSplitterUp,
             'l' => VimWindowCommand.MoveSplitterRight,
             _ => null,
         };

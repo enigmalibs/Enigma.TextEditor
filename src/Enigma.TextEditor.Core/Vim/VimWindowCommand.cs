@@ -97,13 +97,13 @@ public enum VimWindowCommand
     MoveSplitterLeft,
 
     /// <summary>
-    /// <c>&lt;Space&gt;rk</c> — move the bar between the stacked panes down, whichever of them has the keyboard: the
+    /// <c>&lt;Space&gt;rj</c> — move the bar between the stacked panes down, whichever of them has the keyboard: the
     /// top pane grows.
     /// </summary>
     MoveSplitterDown,
 
     /// <summary>
-    /// <c>&lt;Space&gt;rj</c> — move the bar between the stacked panes up: the bottom pane grows.
+    /// <c>&lt;Space&gt;rk</c> — move the bar between the stacked panes up: the bottom pane grows.
     /// </summary>
     MoveSplitterUp,
 

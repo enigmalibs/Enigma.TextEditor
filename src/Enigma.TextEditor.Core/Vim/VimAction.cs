@@ -311,14 +311,14 @@ public enum VimAction
     PreviousTab,
 
     /// <summary>
-    /// <c>&lt;Space&gt;rh</c>, <c>rj</c>, <c>rk</c>, <c>rl</c> — move the bar between two panes left, up, down,
+    /// <c>&lt;Space&gt;rh</c>, <c>rj</c>, <c>rk</c>, <c>rl</c> — move the bar between two panes left, down, up,
     /// right, whichever of them has the keyboard.
     /// </summary>
     /// <remarks>
     /// The letter is the command's argument. These keys move the bar, where <c>Ctrl+W &gt;</c> grows the pane:
-    /// <c>rl</c> widens the left-hand pane typed in either of the two. <c>k</c> moves the bar down and <c>j</c> up,
-    /// as the request that asked for them spells it. Like every window command it leaves the engine as a request,
-    /// and it is not a change: <c>.</c> never repeats it.
+    /// <c>rl</c> widens the left-hand pane typed in either of the two. Each letter goes the way Vim's motion of
+    /// that letter does, so <c>j</c> moves the bar down and <c>k</c> up. Like every window command it leaves the
+    /// engine as a request, and it is not a change: <c>.</c> never repeats it.
     /// </remarks>
     MoveSplitter,
 }

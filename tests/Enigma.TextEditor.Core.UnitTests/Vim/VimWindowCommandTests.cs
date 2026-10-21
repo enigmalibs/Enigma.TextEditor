@@ -77,10 +77,10 @@ public sealed class VimWindowCommandTests
 
     [Theory]
     [InlineData("<Space>rh", VimWindowCommand.MoveSplitterLeft)]
-    [InlineData("<Space>rj", VimWindowCommand.MoveSplitterUp)]
-    [InlineData("<Space>rk", VimWindowCommand.MoveSplitterDown)]
+    [InlineData("<Space>rj", VimWindowCommand.MoveSplitterDown)]
+    [InlineData("<Space>rk", VimWindowCommand.MoveSplitterUp)]
     [InlineData("<Space>rl", VimWindowCommand.MoveSplitterRight)]
-    [InlineData("3<Space>rk", VimWindowCommand.MoveSplitterDown)]
+    [InlineData("3<Space>rk", VimWindowCommand.MoveSplitterUp)]
     public void TheLeaderThenRAndADirection_AsksToMoveTheSplitter_AndLeavesTheTextAlone(string keys, VimWindowCommand expected)
     {
         VimRun run = VimScript.Run("a|bc\ndef", keys);
@@ -100,7 +100,7 @@ public sealed class VimWindowCommandTests
 
         VimRun run = VimScript.Run("a|bc", "x<Space>rk.");
         Assert.Equal("|a", run.Text);
-        Assert.Equal(VimWindowCommand.MoveSplitterDown, Assert.Single(run.WindowCommands));
+        Assert.Equal(VimWindowCommand.MoveSplitterUp, Assert.Single(run.WindowCommands));
     }
 
     [Theory]
