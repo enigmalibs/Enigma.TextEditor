@@ -61,6 +61,6 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-5D8B | About dialog like GitClient          | DONE        | docs/plan/FEATURE-5D8B.md |
 | FEATURE-2B84 | Release 1.2.0                        | DONE        | docs/plan/FEATURE-2B84.md |
 | FEATURE-216A | Space leader: move the pane splitter | DONE        | docs/plan/FEATURE-216A.md |
-| FEATURE-3F16 | Release 1.3.0                        | TODO        | docs/plan/FEATURE-3F16.md |
+| FEATURE-3F16 | Release 1.3.0                        | DONE        | docs/plan/FEATURE-3F16.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

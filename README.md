@@ -5,10 +5,11 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.2** — a minimap beside the text; `:set` for every item on the status bar; quicker pane keys
-> (`g=`, `g+`, `gt`…) and a resize step of your choice; and dialogs that take the keyboard when they open. 1.1 brought
-> a Linux installer. 1.0, the first release, brought tabs, split panes and Vim's keys; files read and written in their
-> own encoding, line endings and indentation; syntax highlighting; and a read-only hex viewer. See
+> **What's new in 1.3** — Space is a leader key, and `Space rh`, `rj`, `rk`, `rl` move the bar between two panes,
+> from either of them. 1.2 brought a minimap beside the text; `:set` for every item on the status bar; quicker pane
+> keys (`g=`, `g+`, `gt`…) and a resize step of your choice; and dialogs that take the keyboard when they open. 1.1
+> brought a Linux installer. 1.0, the first release, brought tabs, split panes and Vim's keys; files read and written
+> in their own encoding, line endings and indentation; syntax highlighting; and a read-only hex viewer. See
 > [RELEASENOTES.md](RELEASENOTES.md).
 
 **Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its **×**,

@@ -1,6 +1,6 @@
 # FEATURE-3F16 — Release 1.3.0
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-3F16.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-3f16-release-1-3-0`
 **Run:** feature/2026-10-21-leader-resize-release
