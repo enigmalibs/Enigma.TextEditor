@@ -5,17 +5,19 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.1** — a Linux installer: one command puts the editor in your application launcher and in *Open
-> With* for text files, and another takes it out again. 1.0, the first release, brought tabs, split panes and Vim's
-> keys; files read and written in their own encoding, line endings and indentation; syntax highlighting; and a
-> read-only hex viewer. See [RELEASENOTES.md](RELEASENOTES.md).
+> **What's new in 1.2** — a minimap beside the text; `:set` for every item on the status bar; quicker pane keys
+> (`g=`, `g+`, `gt`…) and a resize step of your choice; and dialogs that take the keyboard when they open. 1.1 brought
+> a Linux installer. 1.0, the first release, brought tabs, split panes and Vim's keys; files read and written in their
+> own encoding, line endings and indentation; syntax highlighting; and a read-only hex viewer. See
+> [RELEASENOTES.md](RELEASENOTES.md).
 
-**Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its
-**×**, a middle click or Ctrl+F4. Ctrl+Tab and Ctrl+Shift+Tab move between tabs. Panes split any way you like:
-right or down from the **View** menu, `Ctrl+W v` and `Ctrl+W s`, or `:vs` and `:sp`, each opening a new untitled
+**Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its **×**,
+a middle click or Ctrl+F4. Ctrl+Tab and Ctrl+Shift+Tab, or `gt` and `gT`, move between tabs. Panes split any way you
+like: right or down from the **View** menu, `Ctrl+W v` and `Ctrl+W s`, or `:vs` and `:sp`, each opening a new untitled
 document in the new pane, or the file you name (`:sp notes.txt`). The View menu and `Ctrl+W` also close a pane, keep
-only this one, make them all the same size, and move to the next one. With several panes, the one with the keyboard
-has an accent frame, and `Ctrl+W h`, `j`, `k`, `l` (or `gh`, `gj`, `gk`, `gl`) move to the pane on that side.
+only this one, make them all the same size (`g=` too), and move to the next one. With several panes, the one with the
+keyboard has an accent frame, and `Ctrl+W h`, `j`, `k`, `l` (or `gh`, `gj`, `gk`, `gl`) move to the pane on that side.
+`Ctrl+W +`, `-`, `>`, `<` (or `g+`, `g-`, `g>`, `g<`) make the active pane taller, shorter, wider or narrower.
 
 **Vim.** The editor starts in NORMAL mode, with a broad set of Vim's commands:
 
@@ -26,7 +28,10 @@ has an accent frame, and `Ctrl+W h`, `j`, `k`, `l` (or `gh`, `gj`, `gk`, `gl`) m
 - `.` to repeat;
 - `/` and `?` searches that highlight every match as you type, and after Enter, until `:noh`;
 - `:s` substitution over a range;
-- `:set` options (`ignorecase`, `smartcase`, `wrapscan`, `hlsearch`, `incsearch`, `expandtab`, `shiftwidth`).
+- `:set` options (`ignorecase`, `smartcase`, `wrapscan`, `hlsearch`, `incsearch`, `expandtab`, `shiftwidth`,
+  `tabstop`); the last three are the file's indentation, as the status bar shows it. The bar's other items are
+  `:set` options too, under Vim's names: `fileformat` (`unix`, `dos`), `fileencoding` (`utf-8`, `latin1`, `cp1252`…)
+  with `bomb`, and `filetype` (`python`, `cs`…).
 
 The registers, the last search and the last `f`/`t` are shared by every pane. Files are driven the Vim way too:
 `:w`, `:q`, `:wq`, `:x`, `:e`, `:enew`, `:bn`, `:bp`, `:wa` and `:qa`, with `:q!`, `:enew!` and `:qa!` to throw
@@ -71,7 +76,9 @@ scroll.
 The last four are buttons that change them.
 
 **Settings** apply at once and are remembered: the theme (light, dark or following the system), Vim mode, word wrap,
-and the indentation and line endings a new document starts with. **View → Zoom In / Zoom Out / Reset Zoom** (Ctrl+=,
+the minimap beside the text (press or drag on it to scroll; off, a plain scrollbar is back), how far the resize keys
+move a splitter (2, 5 or 10% of the split, or any step from 1 to 50 in `settings.json`), and the indentation and line
+endings a new document starts with. **View → Zoom In / Zoom Out / Reset Zoom** (Ctrl+=,
 Ctrl+-, Ctrl+0) sets the editor's font size, between 6 and 72. **Help → About Enigma Text Editor** shows the version
 and the commit it was built from.
 

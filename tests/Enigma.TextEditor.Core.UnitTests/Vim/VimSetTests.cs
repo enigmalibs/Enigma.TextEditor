@@ -71,7 +71,7 @@ public sealed class VimSetTests
     [InlineData(":set sw=8<CR>:set sw<CR>", "shiftwidth=8")]
     // Several at once, and everything at once.
     [InlineData(":set ic? ws?<CR>", "noignorecase wrapscan")]
-    [InlineData(":set<CR>", "noignorecase nosmartcase wrapscan expandtab hlsearch incsearch shiftwidth=4")]
+    [InlineData(":set<CR>", "noignorecase nosmartcase wrapscan expandtab hlsearch incsearch shiftwidth=4 tabstop=4")]
     public void AQuestionMark_ShowsTheValueUnderItsLongName(string keys, string shown)
         => Assert.Equal(shown, VimScript.Run("|a", keys).Status);
 
@@ -161,6 +161,43 @@ public sealed class VimSetTests
         Assert.Equal("abc", run.Buffer.Text);
         Assert.Equal(0, run.Buffer.UndoSteps);
         Assert.Empty(run.ExCommands);
+    }
+
+    [Theory]
+    [InlineData(":set ts=2<CR>", 2)]
+    [InlineData(":set tabstop=8<CR>", 8)]
+    public void TabStop_IsTheIndentationSize(string keys, int size)
+        => Assert.Equal(size, VimScript.Run("|a", keys).Engine.Options.ShiftWidth);
+
+    [Theory]
+    [InlineData(":set ts?<CR>", "tabstop=4")]
+    [InlineData(":set sw=2<CR>:set ts?<CR>", "tabstop=2")]
+    [InlineData(":set ts=8<CR>:set sw?<CR>", "shiftwidth=8")]
+    public void TabStopAndShiftWidth_AreOneValue(string keys, string shown)
+        => Assert.Equal(shown, VimScript.Run("|a", keys).Status);
+
+    [Theory]
+    [InlineData(":set sw=2<CR>", 1)]
+    [InlineData(":set ts=8<CR>", 1)]
+    [InlineData(":set noet<CR>", 1)]
+    [InlineData(":set et sw=4<CR>", 0)]
+    [InlineData(":set noet sw=2<CR>", 1)]
+    [InlineData(":set ic<CR>", 0)]
+    [InlineData(":set sw?<CR>", 0)]
+    [InlineData(":set sw=2 foo<CR>", 1)]
+    [InlineData(":set foo sw=2<CR>", 0)]
+    public void AnIndentationChange_IsAnnounced_OncePerSet(string keys, int announced)
+    {
+        VimEngine engine = new(VimScript.NewBuffer("|a"));
+        int count = 0;
+        engine.OptionsChanged += (_, _) => count++;
+
+        foreach (VimKey key in VimKeyNotation.Parse(keys))
+        {
+            engine.HandleKey(key);
+        }
+
+        Assert.Equal(announced, count);
     }
 
     [Fact]

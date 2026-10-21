@@ -742,7 +742,7 @@ public sealed class KeySequenceParserTests
     [InlineData("gl", 'l')]
     public void GHJKL_AreThePaneCommands_InNormalAndVisualMode(string keys, char letter)
     {
-        VimCommand expected = new(VimAction.FocusPane, Argument: letter);
+        VimCommand expected = new(VimAction.PaneCommand, Argument: letter);
 
         Assert.Equal(expected, Feed(keys, out KeySequenceParser parser).Command);
         Assert.False(parser.HasPendingSequence);
@@ -751,8 +751,40 @@ public sealed class KeySequenceParserTests
     }
 
     [Theory]
+    [InlineData("g=", '=')]
+    [InlineData("g+", '+')]
+    [InlineData("g-", '-')]
+    [InlineData("g>", '>')]
+    [InlineData("g<", '<')]
+    public void GThenACtrlWSizeKey_IsAPaneCommand_InNormalAndVisualMode(string keys, char key)
+    {
+        VimCommand expected = new(VimAction.PaneCommand, Argument: key);
+
+        Assert.Equal(expected, Feed(keys, out KeySequenceParser parser).Command);
+        Assert.False(parser.HasPendingSequence);
+        Assert.Equal(expected, FeedIn(keys, VimMode.Visual, out _).Command);
+        Assert.Equal(expected, FeedIn(keys, VimMode.VisualLine, out _).Command);
+    }
+
+    [Theory]
+    [InlineData("gt", VimAction.NextTab)]
+    [InlineData("gT", VimAction.PreviousTab)]
+    public void GTAndGCapitalT_AreTheTabCommands_InNormalAndVisualMode(string keys, VimAction action)
+    {
+        VimCommand expected = new(action);
+
+        Assert.Equal(expected, Feed(keys, out KeySequenceParser parser).Command);
+        Assert.False(parser.HasPendingSequence);
+        Assert.Equal(expected, FeedIn(keys, VimMode.Visual, out _).Command);
+    }
+
+    [Theory]
     [InlineData("dgj")]
     [InlineData("ygl")]
+    [InlineData("dg=")]
+    [InlineData("yg>")]
+    [InlineData("dgt")]
+    [InlineData("cgT")]
     public void APaneCommand_BehindAnOperator_IsDead(string keys)
     {
         VimParseResult dead = Feed(keys, out KeySequenceParser parser);

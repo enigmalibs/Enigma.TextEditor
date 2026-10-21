@@ -31,20 +31,57 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
             await menu.UseDarkThemeCommand.ExecuteAsync(null);
             await menu.ToggleVimCommand.ExecuteAsync(null);
             await menu.ToggleWordWrapCommand.ExecuteAsync(null);
+            await menu.ToggleMinimapCommand.ExecuteAsync(null);
             await menu.DefaultTabsCommand.ExecuteAsync(null);
             await menu.DefaultCrLfCommand.ExecuteAsync(null);
 
             Assert.Equal([AppTheme.Dark], harness.Theme.Applied);
             Assert.False(harness.Vim.IsEnabled);
             Assert.True(harness.Preferences.WordWrap);
+            Assert.False(harness.Preferences.ShowMinimap);
+            Assert.False(menu.IsMinimap);
 
             AppSettings written = SettingsLoader.Load(harness.Settings.FilePath).Config.Value;
             Assert.Equal(AppTheme.Dark, written.Theme);
             Assert.False(written.VimEnabled);
             Assert.True(written.WordWrap);
+            Assert.False(written.ShowMinimap);
             Assert.True(written.IndentWithTabs);
             Assert.Equal(LineEndingStyle.CrLf, written.DefaultLineEnding);
             Assert.Empty(harness.Messages.Errors);
+        });
+
+    [Fact]
+    public void ThePaneResizeStep_AppliesAtOnce_AndIsWritten()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            SettingsMenuViewModel menu = harness.SettingsMenu;
+            Assert.True(menu.IsResizeStep5);
+
+            await menu.ResizeStep10Command.ExecuteAsync(null);
+
+            Assert.True(menu.IsResizeStep10);
+            Assert.False(menu.IsResizeStep5);
+            Assert.Equal(10, harness.Preferences.PaneResizeStep);
+            Assert.Equal(0.1, harness.Workspace.ResizeStep, 9);
+            Assert.Equal(10, SettingsLoader.Load(harness.Settings.FilePath).Config.Value.PaneResizeStep);
+
+            await menu.ResizeStep2Command.ExecuteAsync(null);
+            Assert.True(menu.IsResizeStep2);
+            Assert.Equal(2, harness.Preferences.PaneResizeStep);
+        });
+
+    [Fact]
+    public void AStepTheMenuDoesNotOffer_ChecksNoneOfItsThree()
+        => fixture.Run(() =>
+        {
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 4);
+
+            Assert.False(harness.SettingsMenu.IsResizeStep2);
+            Assert.False(harness.SettingsMenu.IsResizeStep5);
+            Assert.False(harness.SettingsMenu.IsResizeStep10);
+            Assert.Equal(0.04, harness.Workspace.ResizeStep, 9);
         });
 
     [Fact]
@@ -181,10 +218,13 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
 
             MenuItem settings = menus[4];
             Assert.Equal(
-                ["_Theme", "_Vim Mode", "_Word Wrap", "Default _Indentation", "Default _Line Endings"],
+                ["_Theme", "_Vim Mode", "_Word Wrap", "_Minimap", "Pane _Resize Step", "Default _Indentation", "Default _Line Endings"],
                 settings.Items.OfType<MenuItem>().Select(item => (string?)item.Header));
             Assert.True(Item(settings, "_Vim Mode").IsChecked);
             Assert.False(Item(settings, "_Word Wrap").IsChecked);
+            Assert.True(Item(settings, "_Minimap").IsChecked);
+            Assert.Equal(["2%", "5%", "10%"], Item(settings, "Pane _Resize Step").Items.OfType<MenuItem>().Select(item => (string?)item.Header));
+            Assert.True(Item(Item(settings, "Pane _Resize Step"), "5%").IsChecked);
             Assert.True(Item(Item(settings, "_Theme"), "_System").IsChecked);
             Assert.Equal(["Spaces: 2", "Spaces: 4", "Tabs"], Item(settings, "Default _Indentation").Items.OfType<MenuItem>().Select(item => (string?)item.Header));
             Assert.Equal(["LF", "CRLF"], Item(settings, "Default _Line Endings").Items.OfType<MenuItem>().Select(item => (string?)item.Header));
@@ -226,10 +266,15 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
             AboutView view = (AboutView)window.Content!;
 
             Assert.Equal(AppInfo.DisplayName, view.FindControl<TextBlock>("ProductName")?.Text);
-            Assert.Equal($"Version {AppInfo.Version}", view.FindControl<TextBlock>("VersionLine")?.Text);
+            Assert.Equal(
+                ["Version", AppInfo.Version],
+                view.FindControl<StackPanel>("VersionLine")!.Children.OfType<TextBlock>().Select(block => block.Text));
             Assert.Equal(AppInfo.Copyright, view.FindControl<TextBlock>("CopyrightLine")?.Text);
-            Assert.Equal(AppInfo.BuildSha is not null, view.FindControl<SelectableTextBlock>("BuildLine")?.IsVisible);
+            Assert.Equal(AppInfo.Copyright.Length > 0, view.FindControl<TextBlock>("CopyrightLine")?.IsVisible);
+            Assert.Equal(AppInfo.BuildSha is not null, view.FindControl<StackPanel>("BuildLine")?.IsVisible);
+            Assert.Equal(AppInfo.BuildSha, view.FindControl<SelectableTextBlock>("BuildSha")?.Text);
             Assert.Equal(AppInfo.BuildSha is not null, about.HasBuild);
+            Assert.Equal(380, view.Bounds.Width, 0.5);
             window.Close();
         });
 

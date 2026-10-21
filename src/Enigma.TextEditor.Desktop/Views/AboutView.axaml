@@ -3,40 +3,71 @@
              xmlns:vm="using:Enigma.TextEditor.Desktop.ViewModels"
              x:Class="Enigma.TextEditor.Desktop.Views.AboutView"
              x:DataType="vm:AboutViewModel"
-             Width="360">
+             Width="380">
+
+  <!-- Enigma.GitClient's About view (itself Enigma.MarkdownEditor's), at the same size and in the same
+       style, so the Enigma apps introduce themselves alike. -->
 
   <UserControl.Styles>
     <Style Selector="TextBlock.productName">
       <Setter Property="FontSize" Value="18" />
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundBrush}" />
     </Style>
-    <Style Selector="TextBlock.quiet">
+    <Style Selector="TextBlock.version">
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundSecondaryBrush}" />
+    </Style>
+    <!-- The build line is quieter than the version: it identifies the build for a bug report, and
+         nobody reads it otherwise. -->
+    <Style Selector=":is(TextBlock).build">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundTertiaryBrush}" />
+    </Style>
+    <Style Selector="TextBlock.copyright">
+      <Setter Property="FontSize" Value="11" />
       <Setter Property="HorizontalAlignment" Value="Center" />
       <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundSecondaryBrush}" />
     </Style>
-    <Style Selector="TextBlock.small">
-      <Setter Property="FontSize" Value="11" />
-    </Style>
   </UserControl.Styles>
 
-  <StackPanel Spacing="4">
+  <StackPanel Spacing="14">
+
+    <!-- The PNG rather than app.ico: which frame Skia picks out of an icon is unspecified, and the
+         256-pixel one is the only frame worth showing at this size. -->
     <Image x:Name="AppIcon"
            Source="/Assets/app-256.png"
            Width="96"
            Height="96"
-           Margin="0,0,0,8"
            HorizontalAlignment="Center"
            AutomationProperties.Name="Enigma Text Editor icon" />
-    <TextBlock x:Name="ProductName" Classes="productName" Text="{Binding DisplayName}" />
-    <TextBlock x:Name="VersionLine" Classes="quiet" Text="{Binding Version, StringFormat='Version {0}'}" />
-    <!-- Absent, not blank, when the build recorded no revision. -->
-    <SelectableTextBlock x:Name="BuildLine"
-                         Classes="small"
-                         HorizontalAlignment="Center"
-                         Foreground="{DynamicResource EnigmaForegroundTertiaryBrush}"
-                         IsVisible="{Binding HasBuild}"
-                         Text="{Binding BuildSha, StringFormat='Build {0}'}" />
-    <TextBlock x:Name="CopyrightLine" Classes="quiet small" Margin="0,8,0,0" Text="{Binding Copyright}" />
+
+    <StackPanel Spacing="3">
+      <TextBlock x:Name="ProductName" Classes="productName" Text="{Binding DisplayName}" />
+
+      <StackPanel x:Name="VersionLine" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+        <TextBlock Classes="version" Text="Version" />
+        <TextBlock x:Name="Version" Classes="version" Text="{Binding Version}" />
+      </StackPanel>
+
+      <!-- Absent, not blank, when the build recorded no revision. -->
+      <StackPanel x:Name="BuildLine"
+                  Orientation="Horizontal"
+                  Spacing="5"
+                  HorizontalAlignment="Center"
+                  IsVisible="{Binding HasBuild}">
+        <TextBlock Classes="build" Text="Build" />
+        <!-- Selectable so it can be copied straight into a bug report; the label beside it is not, so
+             what lands in the clipboard is the revision alone. -->
+        <SelectableTextBlock x:Name="BuildSha" Classes="build" Text="{Binding BuildSha}" />
+      </StackPanel>
+    </StackPanel>
+
+    <TextBlock x:Name="CopyrightLine"
+               Classes="copyright"
+               TextWrapping="Wrap"
+               IsVisible="{Binding HasCopyright}"
+               Text="{Binding Copyright}" />
+
   </StackPanel>
 </UserControl>
