@@ -34,7 +34,8 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// <para>
 /// The engine's options are seeded from the editor's own on every attach — the indentation size and
 /// whether Tab writes spaces — so that <c>&gt;&gt;</c> indents exactly as the editor's Tab key does,
-/// and the application needs no setting of its own for either.
+/// and the application needs no setting of its own for either. The other way round, a <c>:set</c> that
+/// changes either is handed on, so the buffer's indentation takes it and the editor follows.
 /// </para>
 /// <para>
 /// Insert mode touches neither event. That is what "insert mode is ordinary typing" has to mean in a
@@ -66,6 +67,7 @@ public sealed class VimEditorBehavior
     private readonly Func<IVimSession?> _session;
     private readonly Action<VimExRequest> _exCommand;
     private readonly Action<VimWindowCommand> _windowCommand;
+    private readonly Action<VimOptions> _optionsChanged;
     private readonly VimEngine _engine;
 
     private readonly VimSharedState _shared;
@@ -88,6 +90,9 @@ public sealed class VimEditorBehavior
     /// ViewModel, and this class knows only that the engine has asked for it.
     /// </param>
     /// <param name="windowCommand">What to do with a window command (<c>Ctrl+W</c> and its key).</param>
+    /// <param name="optionsChanged">
+    /// Told when a <c>:set</c> has changed the indentation options, with the options as they now are.
+    /// </param>
     /// <param name="shared">The registers and search every pane's engine shares.</param>
     /// <exception cref="ArgumentNullException">Any argument is <see langword="null"/>.</exception>
     public VimEditorBehavior(
@@ -95,12 +100,14 @@ public sealed class VimEditorBehavior
         Func<IVimSession?> session,
         Action<VimExRequest> exCommand,
         Action<VimWindowCommand> windowCommand,
+        Action<VimOptions> optionsChanged,
         VimSharedState shared)
     {
         _editor = editor ?? throw new ArgumentNullException(nameof(editor));
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _exCommand = exCommand ?? throw new ArgumentNullException(nameof(exCommand));
         _windowCommand = windowCommand ?? throw new ArgumentNullException(nameof(windowCommand));
+        _optionsChanged = optionsChanged ?? throw new ArgumentNullException(nameof(optionsChanged));
         _shared = shared ?? throw new ArgumentNullException(nameof(shared));
 
         _engine = new VimEngine(
@@ -114,6 +121,7 @@ public sealed class VimEditorBehavior
         _engine.ModeChanged += OnModeChanged;
         _engine.ExCommandRequested += OnExCommandRequested;
         _engine.WindowCommandRequested += OnWindowCommandRequested;
+        _engine.OptionsChanged += (_, _) => _optionsChanged(_engine.Options);
         _engine.IncSearchChanged += OnHighlightChanged;
 
         // The search highlight is part of what Vim shows: drawn only while the engine is attached.

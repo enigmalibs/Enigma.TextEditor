@@ -11,6 +11,8 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AvaloniaEdit.Editing;
+using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.ViewModels;
 using AvaloniaTextEditor = AvaloniaEdit.TextEditor;
@@ -159,6 +161,7 @@ public partial class EditorPaneView : UserControl
                     () => _session,
                     request => _ = _pane?.ExecuteExAsync(request),
                     command => _ = _pane?.ExecuteWindowAsync(command),
+                    OnVimOptionsChanged,
                     pane.VimShared);
 
                 // Already on screen when the pane arrived: OnLoaded has run and will not connect it.
@@ -484,6 +487,18 @@ public partial class EditorPaneView : UserControl
         else if (e.PropertyName == nameof(DocumentViewModel.Language))
         {
             ApplyLanguage();
+        }
+    }
+
+    // A ':set' changed the indentation. It is the buffer's: written there, every pane showing the buffer,
+    // the Tab key, the Tools menu and the status bar follow — and the engine is seeded back from it.
+    private void OnVimOptionsChanged(VimOptions options)
+    {
+        if (_indented is { IsHex: false } document)
+        {
+            document.Indentation = options.ExpandTab
+                ? Indentation.Spaces(options.ShiftWidth)
+                : Indentation.Tabs(options.ShiftWidth);
         }
     }
 

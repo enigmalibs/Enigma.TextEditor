@@ -49,8 +49,8 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Minimap beside the editor          | DONE        | (in FEATURE-3546.md)      |
 | - PHASE02    | Minimap or scrollbar setting       | DONE        | (in FEATURE-3546.md)      |
 | BUG-4A17     | Colours missing after a scroll     | IN PROGRESS | docs/plan/BUG-4A17.md     |
-| FEATURE-2F9C | :set for the status bar items      | TODO        | docs/plan/FEATURE-2F9C.md |
-| - PHASE01    | Indentation options                | TODO        | (in FEATURE-2F9C.md)      |
+| FEATURE-2F9C | :set for the status bar items      | IN PROGRESS | docs/plan/FEATURE-2F9C.md |
+| - PHASE01    | Indentation options                | DONE        | (in FEATURE-2F9C.md)      |
 | - PHASE02    | ff, fenc, bomb and ft              | TODO        | (in FEATURE-2F9C.md)      |
 | FEATURE-684E | :q on the last tab keeps the app   | TODO        | docs/plan/FEATURE-684E.md |
 | FEATURE-2860 | Quick pane and tab keys            | TODO        | docs/plan/FEATURE-2860.md |

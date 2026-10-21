@@ -223,6 +223,16 @@ public sealed class VimEngine
     public event EventHandler? IncSearchChanged;
 
     /// <summary>
+    /// Raised when a <c>:set</c> has changed an option the editor holds too — <c>expandtab</c>, or the
+    /// indentation size (<c>shiftwidth</c>, <c>tabstop</c>).
+    /// </summary>
+    /// <remarks>
+    /// Those two are the buffer's indentation, which the editor's Tab key and the status bar read as well:
+    /// the application writes the new values back there, so the engine and the editor never disagree.
+    /// </remarks>
+    public event EventHandler? OptionsChanged;
+
+    /// <summary>
     /// Gets what <c>incsearch</c> shows while a <c>/</c> or <c>?</c> is being typed in this engine, or
     /// <see langword="null"/> when none is being typed, the pattern so far does not compile or matches
     /// nothing.
@@ -2542,9 +2552,18 @@ public sealed class VimEngine
             return;
         }
 
-        if (!VimSet.TryApply(line.Argument, Options, _shared, out string? message))
+        (int ShiftWidth, bool ExpandTab) before = (Options.ShiftWidth, Options.ExpandTab);
+        bool applied = VimSet.TryApply(line.Argument, Options, _shared, out string? message);
+
+        // Told even when a later argument was refused: what came before it was applied, Vim's rule.
+        if ((Options.ShiftWidth, Options.ExpandTab) != before)
         {
-            Fail(message);
+            OptionsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        if (!applied)
+        {
+            Fail(message!);
 
             return;
         }
