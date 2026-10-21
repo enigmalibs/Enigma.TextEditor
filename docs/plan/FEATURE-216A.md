@@ -1,6 +1,6 @@
 # FEATURE-216A — Space leader: move the pane splitter
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-216A.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-216a-leader-resize`
 **Run:** feature/2026-10-21-leader-resize-release

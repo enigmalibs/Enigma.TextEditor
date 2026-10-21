@@ -18,6 +18,8 @@ document in the new pane, or the file you name (`:sp notes.txt`). The View menu 
 only this one, make them all the same size (`g=` too), and move to the next one. With several panes, the one with the
 keyboard has an accent frame, and `Ctrl+W h`, `j`, `k`, `l` (or `gh`, `gj`, `gk`, `gl`) move to the pane on that side.
 `Ctrl+W +`, `-`, `>`, `<` (or `g+`, `g-`, `g>`, `g<`) make the active pane taller, shorter, wider or narrower.
+Space is the leader key: `Space rl` and `Space rh` move the bar between side-by-side panes right and left, and
+`Space rk` and `Space rj` move the bar between stacked panes down and up, from whichever of the two has the keyboard.
 
 **Vim.** The editor starts in NORMAL mode, with a broad set of Vim's commands:
 

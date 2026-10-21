@@ -76,6 +76,34 @@ public sealed class VimWindowCommandTests
     }
 
     [Theory]
+    [InlineData("<Space>rh", VimWindowCommand.MoveSplitterLeft)]
+    [InlineData("<Space>rj", VimWindowCommand.MoveSplitterUp)]
+    [InlineData("<Space>rk", VimWindowCommand.MoveSplitterDown)]
+    [InlineData("<Space>rl", VimWindowCommand.MoveSplitterRight)]
+    [InlineData("3<Space>rk", VimWindowCommand.MoveSplitterDown)]
+    public void TheLeaderThenRAndADirection_AsksToMoveTheSplitter_AndLeavesTheTextAlone(string keys, VimWindowCommand expected)
+    {
+        VimRun run = VimScript.Run("a|bc\ndef", keys);
+
+        Assert.Equal(expected, Assert.Single(run.WindowCommands));
+        Assert.Equal("a|bc\ndef", run.Text);
+        Assert.False(run.Engine.HasPendingSequence);
+        Assert.Equal(VimMode.Normal, run.Engine.Mode);
+    }
+
+    [Fact]
+    public void TheSplitterKeys_WorkInVisualMode_AndAreNotWhatDotRepeats()
+    {
+        VimRun visual = VimScript.Run("a|bc", "v<Space>rl");
+        Assert.Equal(VimWindowCommand.MoveSplitterRight, Assert.Single(visual.WindowCommands));
+        Assert.Equal(VimMode.Visual, visual.Engine.Mode);
+
+        VimRun run = VimScript.Run("a|bc", "x<Space>rk.");
+        Assert.Equal("|a", run.Text);
+        Assert.Equal(VimWindowCommand.MoveSplitterDown, Assert.Single(run.WindowCommands));
+    }
+
+    [Theory]
     [InlineData("gt", VimExCommand.BufferNext)]
     [InlineData("gT", VimExCommand.BufferPrevious)]
     [InlineData("3gt", VimExCommand.BufferNext)]

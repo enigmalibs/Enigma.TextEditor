@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Enigma.TextEditor.Core.Vim;
@@ -20,14 +22,22 @@ namespace Enigma.TextEditor.Core.Vim;
 /// typed.
 /// </para>
 /// <para>
-/// Nine kinds of key hold the sequence open: the three prefixes <c>g</c>, <c>Z</c> and <c>z</c>
-/// waiting for their second key, an operator waiting for its motion, <c>r</c> waiting for the
-/// character to write, the find family — <c>f</c>, <c>F</c>, <c>t</c>, <c>T</c> — waiting for the
-/// character to look for, <c>i</c> or <c>a</c> waiting for the text object to name, <c>"</c> waiting
-/// for the register to name, and <c>q</c> or <c>@</c> waiting for the register to record into or to
-/// run. The find family, <c>r</c>, <c>"</c>, <c>q</c> and <c>@</c> take the <em>next</em> key
-/// literally, whatever it spells: <c>rd</c> writes a <c>d</c> and <c>fd</c> looks for one, rather
-/// than either starting a delete.
+/// Ten kinds of key hold the sequence open: the three prefixes <c>g</c>, <c>Z</c> and <c>z</c>
+/// waiting for their second key, the leader waiting for one of its mappings, an operator waiting for
+/// its motion, <c>r</c> waiting for the character to write, the find family — <c>f</c>, <c>F</c>,
+/// <c>t</c>, <c>T</c> — waiting for the character to look for, <c>i</c> or <c>a</c> waiting for the
+/// text object to name, <c>"</c> waiting for the register to name, and <c>q</c> or <c>@</c> waiting
+/// for the register to record into or to run. The find family, <c>r</c>, <c>"</c>, <c>q</c> and
+/// <c>@</c> take the <em>next</em> key literally, whatever it spells: <c>rd</c> writes a <c>d</c> and
+/// <c>fd</c> looks for one, rather than either starting a delete.
+/// </para>
+/// <para>
+/// The leader is Space, as a <c>mapleader</c> of <c>" "</c> makes it in Vim. It opens a table of its
+/// own, read key by key — <c>&lt;Space&gt;rk</c> is Space, then <c>r</c>, then <c>k</c> — and a key
+/// that no mapping starts with ends the sequence as a dead one, the way a wrong second key ends a
+/// <c>g</c>. Space is the leader in normal mode and over a selection, which is where Vim's leader
+/// mappings live; behind an operator it is still the motion it always was, so <c>d&lt;Space&gt;</c>
+/// deletes a character as before.
 /// </para>
 /// <para>
 /// A key held with Control is read before any of that. Six of them are vim's scroll commands —
@@ -90,6 +100,18 @@ public sealed class KeySequenceParser
     // A count is the one part of the grammar a stuck key can grow without limit.
     private const int MaxCount = 100_000;
 
+    private const char Leader = ' ';
+
+    // The leader's mappings, by the keys typed after it. The four pane keys move the bar between two
+    // panes, and carry the direction as the argument.
+    private static readonly Dictionary<string, VimCommand> LeaderMappings = new(StringComparer.Ordinal)
+    {
+        ["rh"] = new(VimAction.MoveSplitter, Argument: 'h'),
+        ["rj"] = new(VimAction.MoveSplitter, Argument: 'j'),
+        ["rk"] = new(VimAction.MoveSplitter, Argument: 'k'),
+        ["rl"] = new(VimAction.MoveSplitter, Argument: 'l'),
+    };
+
     private readonly StringBuilder _sequence = new();
 
     private int _count;
@@ -112,6 +134,10 @@ public sealed class KeySequenceParser
     // '\0' when nothing is pending, otherwise the 'i' or the 'a' that is waiting for its object. The
     // key itself rather than a bool, because which of the two was typed is half of what the object is.
     private char _awaitingObject;
+
+    // Null when no leader is pending, otherwise the keys typed after it so far — empty right after
+    // the Space.
+    private string? _leader;
 
     /// <summary>
     /// Gets a value indicating whether a sequence is half typed.
@@ -245,6 +271,12 @@ public sealed class KeySequenceParser
             return key.IsCharacter ? SecondG(key.Character, visual) : Dead();
         }
 
+        // The leader has decided that this key is read against its own table, and against nothing else.
+        if (_leader is not null)
+        {
+            return key.IsCharacter ? LeaderKey(key.Character) : Dead();
+        }
+
         if (key.IsCharacter && TryCount(key.Character))
         {
             return Pending();
@@ -253,6 +285,15 @@ public sealed class KeySequenceParser
         if (key.IsCharacter && (key.Character == 'g'))
         {
             _awaitingG = true;
+
+            return Pending();
+        }
+
+        // Space opens the leader, in either grammar — but not behind an operator, where it is still the
+        // motion: Vim's leader mappings are normal and visual mappings, and leave 'd<Space>' alone.
+        if (key.IsCharacter && (key.Character == Leader) && (_operator == VimOperator.None))
+        {
+            _leader = string.Empty;
 
             return Pending();
         }
@@ -399,6 +440,7 @@ public sealed class KeySequenceParser
         _awaitingMacro = '\0';
         _awaitingFind = VimMotion.None;
         _awaitingObject = '\0';
+        _leader = null;
         _sequence.Clear();
     }
 
@@ -426,6 +468,7 @@ public sealed class KeySequenceParser
             || (_awaitingMacro != '\0')
             || (_awaitingFind != VimMotion.None)
             || (_awaitingObject != '\0')
+            || (_leader is not null)
             || (_operator != VimOperator.None);
 
     private static VimAction? VisualFor(char character)
@@ -601,6 +644,8 @@ public sealed class KeySequenceParser
             'l' => VimMotion.Right,
             'k' => VimMotion.Up,
             'j' => VimMotion.Down,
+
+            // Reached only behind an operator: everywhere else Space is the leader.
             ' ' => VimMotion.RightWrapping,
 
             // Reached only when no count is being typed: a '0' that could continue one has already
@@ -857,6 +902,33 @@ public sealed class KeySequenceParser
             'T' => Complete(new VimCommand(VimAction.PreviousTab, VimMotion.None, TotalCount)),
             _ => Dead(),
         };
+    }
+
+    /// <summary>
+    /// Reads a key after the leader.
+    /// </summary>
+    /// <remarks>
+    /// Pending while the keys so far begin a mapping, complete when they spell one, dead otherwise. A
+    /// count typed in front of the leader rides on the command, as it does on <c>gh</c>, and the pane
+    /// keys ignore it the same way.
+    /// </remarks>
+    private VimParseResult LeaderKey(char character)
+    {
+        string typed = _leader + character;
+
+        if (LeaderMappings.TryGetValue(typed, out VimCommand command))
+        {
+            return Complete(command with { Count = TotalCount });
+        }
+
+        if (LeaderMappings.Keys.Any(keys => keys.StartsWith(typed, StringComparison.Ordinal)))
+        {
+            _leader = typed;
+
+            return Pending();
+        }
+
+        return Dead();
     }
 
     /// <summary>
