@@ -1,6 +1,6 @@
 # FEATURE-2F9C — :set for the status bar items
 
-**Status:** IN PROGRESS
+**Status:** DONE — see `docs/done/FEATURE-2F9C-PHASE01.md`, `docs/done/FEATURE-2F9C-PHASE02.md`
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-2f9c-phase01-set-indentation`
 **Branch (PHASE02):** `feature/feature-2f9c-phase02-set-file-options`
@@ -76,7 +76,7 @@ endings — can also be set with `:set`, under Vim's own option names.
 
 ## PHASE02 — ff, fenc, bomb and ft
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-2F9C-PHASE02.md`
 
 ### Steps
 

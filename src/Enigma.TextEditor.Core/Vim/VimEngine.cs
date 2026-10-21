@@ -2553,12 +2553,19 @@ public sealed class VimEngine
         }
 
         (int ShiftWidth, bool ExpandTab) before = (Options.ShiftWidth, Options.ExpandTab);
-        bool applied = VimSet.TryApply(line.Argument, Options, _shared, out string? message);
+        List<string> fileOptions = [];
+        bool applied = VimSet.TryApply(line.Argument, Options, _shared, fileOptions, out string? message);
 
         // Told even when a later argument was refused: what came before it was applied, Vim's rule.
         if ((Options.ShiftWidth, Options.ExpandTab) != before)
         {
             OptionsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        // The file's options are the application's to apply, and to answer for.
+        if (fileOptions.Count > 0)
+        {
+            ExCommandRequested?.Invoke(this, new VimExRequest(VimExCommand.SetFileOptions, string.Join(' ', fileOptions)));
         }
 
         if (!applied)

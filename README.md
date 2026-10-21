@@ -27,7 +27,9 @@ has an accent frame, and `Ctrl+W h`, `j`, `k`, `l` (or `gh`, `gj`, `gk`, `gl`) m
 - `/` and `?` searches that highlight every match as you type, and after Enter, until `:noh`;
 - `:s` substitution over a range;
 - `:set` options (`ignorecase`, `smartcase`, `wrapscan`, `hlsearch`, `incsearch`, `expandtab`, `shiftwidth`,
-  `tabstop`); the last three are the file's indentation, as the status bar shows it.
+  `tabstop`); the last three are the file's indentation, as the status bar shows it. The bar's other items are
+  `:set` options too, under Vim's names: `fileformat` (`unix`, `dos`), `fileencoding` (`utf-8`, `latin1`, `cp1252`…)
+  with `bomb`, and `filetype` (`python`, `cs`…).
 
 The registers, the last search and the last `f`/`t` are shared by every pane. Files are driven the Vim way too:
 `:w`, `:q`, `:wq`, `:x`, `:e`, `:enew`, `:bn`, `:bp`, `:wa` and `:qa`, with `:q!`, `:enew!` and `:qa!` to throw

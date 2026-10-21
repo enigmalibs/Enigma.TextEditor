@@ -34,6 +34,7 @@ public sealed class ExCommandHandler
     private readonly IAppShutdown _shutdown;
     private readonly StatusMessages _status;
     private readonly IHelpDialogService _help;
+    private readonly LanguageCatalog _languages;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ExCommandHandler"/> class.
@@ -42,12 +43,14 @@ public sealed class ExCommandHandler
     /// <param name="shutdown">Ends the application.</param>
     /// <param name="status">Where a malformed path is reported.</param>
     /// <param name="help">Shows the key-binding help, for <c>:help</c>.</param>
-    public ExCommandHandler(WorkspaceViewModel workspace, IAppShutdown shutdown, StatusMessages status, IHelpDialogService help)
+    /// <param name="languages">The languages <c>:set filetype</c> can name.</param>
+    public ExCommandHandler(WorkspaceViewModel workspace, IAppShutdown shutdown, StatusMessages status, IHelpDialogService help, LanguageCatalog languages)
     {
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         _shutdown = shutdown ?? throw new ArgumentNullException(nameof(shutdown));
         _status = status ?? throw new ArgumentNullException(nameof(status));
         _help = help ?? throw new ArgumentNullException(nameof(help));
+        _languages = languages ?? throw new ArgumentNullException(nameof(languages));
     }
 
     /// <summary>
@@ -162,6 +165,14 @@ public sealed class ExCommandHandler
             // ':help {subject}' shows the one help there is.
             case VimExCommand.Help:
                 await _help.ShowAsync();
+                break;
+
+            case VimExCommand.SetFileOptions when (tab is not null) && (request.Argument is { } words):
+                if (FileOptions.Apply(words, tab.Document, _languages) is { } message)
+                {
+                    _status.Show(message);
+                }
+
                 break;
 
             default:
