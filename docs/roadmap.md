@@ -44,3 +44,18 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE02    | Version 1.0.0, notes & runbook     | DONE   | (in FEATURE-8F24.md)      |
 | FEATURE-7F58 | Linux installer                    | DONE   | docs/plan/FEATURE-7F58.md |
 | FEATURE-5301 | Release 1.1.0                      | DONE   | docs/plan/FEATURE-5301.md |
+| FEATURE-4217 | Dropped file replaces a new tab    | TODO   | docs/plan/FEATURE-4217.md |
+| FEATURE-3546 | Editor minimap                     | TODO   | docs/plan/FEATURE-3546.md |
+| - PHASE01    | Minimap beside the editor          | TODO   | (in FEATURE-3546.md)      |
+| - PHASE02    | Minimap or scrollbar setting       | TODO   | (in FEATURE-3546.md)      |
+| BUG-4A17     | Colours missing after a scroll     | TODO   | docs/plan/BUG-4A17.md     |
+| FEATURE-2F9C | :set for the status bar items      | TODO   | docs/plan/FEATURE-2F9C.md |
+| - PHASE01    | Indentation options                | TODO   | (in FEATURE-2F9C.md)      |
+| - PHASE02    | ff, fenc, bomb and ft              | TODO   | (in FEATURE-2F9C.md)      |
+| FEATURE-684E | :q on the last tab keeps the app   | TODO   | docs/plan/FEATURE-684E.md |
+| FEATURE-2860 | Quick pane and tab keys            | TODO   | docs/plan/FEATURE-2860.md |
+| - PHASE01    | g=, g+, g-, g>, g<, gt, gT         | TODO   | (in FEATURE-2860.md)      |
+| - PHASE02    | Configurable resize step           | TODO   | (in FEATURE-2860.md)      |
+| FEATURE-1FBE | Dialog keyboard focus              | TODO   | docs/plan/FEATURE-1FBE.md |
+| FEATURE-7D6B | Status bar gives focus back        | TODO   | docs/plan/FEATURE-7D6B.md |
+| FEATURE-5D8B | About dialog like GitClient        | TODO   | docs/plan/FEATURE-5D8B.md |
