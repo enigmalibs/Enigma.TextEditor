@@ -83,7 +83,8 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
 
             await Window(harness, VimWindowCommand.Quit);
 
-            Assert.Equal(1, harness.Shutdown.ExitRequests);
+            Assert.Empty(harness.Workspace.ActivePane.Tabs);
+            Assert.Equal(0, harness.Shutdown.ExitRequests);
         });
 
     [Fact]
@@ -106,6 +107,23 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
 
             await Window(harness, VimWindowCommand.Only);
             Assert.Single(harness.Workspace.Panes);
+        });
+
+    [Fact]
+    public void TheResizeKeys_MoveTheSplitterByTheStepInTheSettings()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 4);
+            harness.Workspace.Split(SplitAxis.Columns);
+            SplitNode split = Assert.IsType<SplitNode>(harness.Workspace.Layout.Root);
+
+            // The new pane is the right-hand one: wider moves the splitter left, 50/50 to 46/54.
+            await Window(harness, VimWindowCommand.Wider);
+            Assert.Equal(0.46, split.Ratio, 9);
+
+            harness.Preferences.PaneResizeStep = 10;
+            await Window(harness, VimWindowCommand.Narrower);
+            Assert.Equal(0.56, split.Ratio, 9);
         });
 
     [Fact]
@@ -282,6 +300,61 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             await Pump();
             Assert.Same(below, harness.Workspace.ActivePane);
             Assert.Equal(text, below.ActiveTab.Document.Document.Text);
+            window.Close();
+        });
+
+    [Fact]
+    public void TypedInTheWindow_GSizeKeys_ResizeAndEqualizeThePanes()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
+            EditorPaneViewModel left = harness.Workspace.ActivePane;
+            harness.Workspace.Split(SplitAxis.Columns);
+            SplitNode split = Assert.IsType<SplitNode>(harness.Workspace.Layout.Root);
+            MainWindow window = new() { DataContext = harness.Window, Width = 1000, Height = 700 };
+            window.Show();
+            await FocusAsync(window, left);
+
+            window.KeyTextInput("g>");
+            await Pump();
+            Assert.Equal(0.55, split.Ratio, 9);
+
+            window.KeyTextInput("g<g<");
+            await Pump();
+            Assert.Equal(0.45, split.Ratio, 9);
+
+            window.KeyTextInput("g=");
+            await Pump();
+            Assert.Equal(0.5, split.Ratio, 9);
+            Assert.Equal("text\n", left.ActiveTab!.Document.Document.Text);
+            window.Close();
+        });
+
+    [Fact]
+    public void TypedInTheWindow_GTAndGCapitalT_MoveBetweenThePanesTabs()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a"));
+            await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b"));
+            await harness.Workspace.OpenAsync(harness.Folder.Write("c.txt", "c"));
+            EditorPaneViewModel pane = harness.Workspace.ActivePane;
+            MainWindow window = new() { DataContext = harness.Window, Width = 1000, Height = 700 };
+            window.Show();
+            await FocusAsync(window, pane);
+
+            window.KeyTextInput("gt");
+            await Pump();
+            Assert.Equal("a.txt", pane.ActiveTab!.Document.Title);
+
+            window.KeyTextInput("gT");
+            await Pump();
+            Assert.Equal("c.txt", pane.ActiveTab!.Document.Title);
+
+            window.KeyTextInput("gT");
+            await Pump();
+            Assert.Equal("b.txt", pane.ActiveTab!.Document.Title);
             window.Close();
         });
 

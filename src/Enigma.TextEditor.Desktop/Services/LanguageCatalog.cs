@@ -83,6 +83,25 @@ public sealed class LanguageCatalog
     /// <returns>The language, or <see langword="null"/>.</returns>
     public LanguageInfo? Find(string id) => _byId.GetValueOrDefault(id);
 
+    /// <summary>
+    /// Finds a language by any name a user would type for it: its id, its display name or one of its
+    /// extensions without the dot — <c>python</c>, <c>C#</c>, <c>cs</c> — ignoring case.
+    /// </summary>
+    /// <param name="name">The name.</param>
+    /// <returns>The language, or <see langword="null"/>.</returns>
+    /// <remarks>
+    /// Vim's <c>filetype</c> names are mostly the grammar ids (<c>python</c>, <c>json</c>) or the
+    /// extension (<c>cs</c>, <c>sh</c>), so the three together read most of them without a table.
+    /// </remarks>
+    public LanguageInfo? Lookup(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        return All.FirstOrDefault(language => string.Equals(language.Id, name, StringComparison.OrdinalIgnoreCase))
+            ?? All.FirstOrDefault(language => string.Equals(language.DisplayName, name, StringComparison.OrdinalIgnoreCase))
+            ?? _byExtension.GetValueOrDefault("." + name);
+    }
+
     // The first alias is the name the language goes by in the grammar's own package — "C#", "JSON",
     // "Python" — where the id is a key. A language with no alias shows its id.
     private static string DisplayNameOf(Language language, string id)

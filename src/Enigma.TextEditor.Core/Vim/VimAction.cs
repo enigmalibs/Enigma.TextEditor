@@ -288,13 +288,25 @@ public enum VimAction
     ScrollCaretBottomToFirstNonBlank,
 
     /// <summary>
-    /// <c>gh</c>, <c>gj</c>, <c>gk</c>, <c>gl</c> — the pane to the left, below, above, to the right:
-    /// <c>Ctrl+W</c> and the same letter.
+    /// <c>g</c> and a <c>Ctrl+W</c> key — <c>gh</c>, <c>gj</c>, <c>gk</c>, <c>gl</c> for the pane to the
+    /// left, below, above, to the right; <c>g=</c> to make the panes the same size; <c>g+</c>,
+    /// <c>g-</c>, <c>g&gt;</c>, <c>g&lt;</c> to make this one taller, shorter, wider, narrower.
     /// </summary>
     /// <remarks>
-    /// The letter is the command's argument, and the engine reads it through <see cref="VimWindowKeys"/>
+    /// The key is the command's argument, and the engine reads it through <see cref="VimWindowKeys"/>
     /// so that the two spellings cannot come to mean different things. Like every window command it
     /// leaves the engine as a request, and it is not a change: <c>.</c> never repeats it.
     /// </remarks>
-    FocusPane,
+    PaneCommand,
+
+    /// <summary>
+    /// <c>gt</c> — the next tab of the pane, wrapping round: Vim's next tab page, which is <c>:bn</c>
+    /// here, where a pane's tabs are its buffers.
+    /// </summary>
+    NextTab,
+
+    /// <summary>
+    /// <c>gT</c> — the previous tab of the pane, wrapping round, as <c>:bp</c>.
+    /// </summary>
+    PreviousTab,
 }

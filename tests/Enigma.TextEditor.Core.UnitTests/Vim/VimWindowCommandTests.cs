@@ -58,6 +58,46 @@ public sealed class VimWindowCommandTests
         Assert.Equal(VimMode.Normal, run.Engine.Mode);
     }
 
+    [Theory]
+    [InlineData("g=", VimWindowCommand.Equalize)]
+    [InlineData("g+", VimWindowCommand.Taller)]
+    [InlineData("g-", VimWindowCommand.Shorter)]
+    [InlineData("g>", VimWindowCommand.Wider)]
+    [InlineData("g<", VimWindowCommand.Narrower)]
+    [InlineData("4g>", VimWindowCommand.Wider)]
+    public void GThenASizeKey_AsksForWhatCtrlWAndThatKeyDo_AndLeavesTheTextAlone(string keys, VimWindowCommand expected)
+    {
+        VimRun run = VimScript.Run("a|bc\ndef", keys);
+
+        Assert.Equal(expected, Assert.Single(run.WindowCommands));
+        Assert.Equal("a|bc\ndef", run.Text);
+        Assert.False(run.Engine.HasPendingSequence);
+        Assert.Equal(VimMode.Normal, run.Engine.Mode);
+    }
+
+    [Theory]
+    [InlineData("gt", VimExCommand.BufferNext)]
+    [InlineData("gT", VimExCommand.BufferPrevious)]
+    [InlineData("3gt", VimExCommand.BufferNext)]
+    public void GTAndGCapitalT_AskForTheNextAndPreviousTab_AndLeaveTheTextAlone(string keys, VimExCommand expected)
+    {
+        VimRun run = VimScript.Run("a|bc\ndef", keys);
+
+        Assert.Equal(new VimExRequest(expected), Assert.Single(run.ExRequests));
+        Assert.Equal("a|bc\ndef", run.Text);
+        Assert.Empty(run.WindowCommands);
+    }
+
+    [Fact]
+    public void GT_WorksInVisualMode_AndIsNotWhatDotRepeats()
+    {
+        Assert.Equal(VimExCommand.BufferNext, Assert.Single(VimScript.Run("a|bc", "vgt").ExCommands));
+
+        VimRun run = VimScript.Run("a|bc", "xgt.");
+        Assert.Equal("|a", run.Text);
+        Assert.Equal(VimExCommand.BufferNext, Assert.Single(run.ExCommands));
+    }
+
     [Fact]
     public void GThenADirection_WorksInVisualMode()
     {

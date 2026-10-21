@@ -28,6 +28,21 @@ public sealed class AppSettings
     public const int DefaultFontSize = 14;
 
     /// <summary>
+    /// The least a resize key may move a splitter by, in percent of the split.
+    /// </summary>
+    public const int MinimumPaneResizeStep = 1;
+
+    /// <summary>
+    /// The most a resize key may move a splitter by, in percent of the split.
+    /// </summary>
+    public const int MaximumPaneResizeStep = 50;
+
+    /// <summary>
+    /// How far a resize key moves a splitter on a fresh install, in percent of the split.
+    /// </summary>
+    public const int DefaultPaneResizeStep = 5;
+
+    /// <summary>
     /// Gets or sets the theme variant the window is painted in.
     /// </summary>
     [EnumDataType(typeof(AppTheme))]
@@ -42,6 +57,19 @@ public sealed class AppSettings
     /// Gets or sets a value indicating whether long lines wrap at the edge of the editor.
     /// </summary>
     public bool WordWrap { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the editor shows a minimap beside the text rather than
+    /// a vertical scrollbar.
+    /// </summary>
+    public bool ShowMinimap { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets how far the resize keys (<c>Ctrl+W &gt;</c>, <c>g&gt;</c> and the others) move a
+    /// splitter, in percent of the split: at 4, one step takes a 50/50 split to 54/46.
+    /// </summary>
+    [Range(MinimumPaneResizeStep, MaximumPaneResizeStep)]
+    public int PaneResizeStep { get; set; } = DefaultPaneResizeStep;
 
     /// <summary>
     /// Gets or sets the editor's font size, in device-independent pixels.

@@ -97,19 +97,19 @@ public sealed class WindowCommandHandler
                 break;
 
             case VimWindowCommand.Taller:
-                _workspace.Resize(SplitAxis.Rows, WorkspaceViewModel.ResizeStep);
+                _workspace.Resize(SplitAxis.Rows, _workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.Shorter:
-                _workspace.Resize(SplitAxis.Rows, -WorkspaceViewModel.ResizeStep);
+                _workspace.Resize(SplitAxis.Rows, -_workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.Wider:
-                _workspace.Resize(SplitAxis.Columns, WorkspaceViewModel.ResizeStep);
+                _workspace.Resize(SplitAxis.Columns, _workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.Narrower:
-                _workspace.Resize(SplitAxis.Columns, -WorkspaceViewModel.ResizeStep);
+                _workspace.Resize(SplitAxis.Columns, -_workspace.ResizeStep);
                 break;
 
             default:

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Enigma.TextEditor.Desktop.ViewModels;
 using AvaloniaTextEditor = AvaloniaEdit.TextEditor;
@@ -22,7 +23,29 @@ public partial class MainWindow : Window
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
     /// </summary>
-    public MainWindow() => InitializeComponent();
+    public MainWindow()
+    {
+        InitializeComponent();
+        DialogKeyboard.Attach(HostDialog, FocusActivePane);
+    }
+
+    /// <summary>
+    /// Gives the keyboard to the active pane: its editor, or its hex rows.
+    /// </summary>
+    internal void FocusActivePane() => Splits.ActivePaneView?.FocusEditor();
+
+    // Posted, after the flyout's own focus handling. Not while a dialog is open: an item that opened one
+    // (Change File Encoding…) leaves the keyboard to it, and the dialog hands it back when it closes.
+    private void OnStatusFlyoutClosed(object? sender, EventArgs e)
+        => Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (!HostDialog.IsOpen)
+                {
+                    FocusActivePane();
+                }
+            },
+            DispatcherPriority.Background);
 
     /// <inheritdoc />
     protected override void OnClosing(WindowClosingEventArgs e)

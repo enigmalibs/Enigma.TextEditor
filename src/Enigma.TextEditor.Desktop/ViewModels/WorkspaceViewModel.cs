@@ -27,17 +27,12 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// </para>
 /// <para>
 /// A pane that loses its last tab closes, unless it is the only pane: closing tabs is how panes go
-/// away, so <c>:q</c> in a split closes the split and <c>:q</c> on the last tab of the last pane
-/// quits.
+/// away, so <c>:q</c> in a split closes the split, and <c>:q</c> on the last tab of the last pane leaves
+/// that pane empty, the application still open.
 /// </para>
 /// </remarks>
 public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 {
-    /// <summary>
-    /// How far one resize command moves a splitter, as a share of the split.
-    /// </summary>
-    public const double ResizeStep = 0.05;
-
     private readonly IDocumentService _documents;
     private readonly DocumentRegistry _registry;
     private readonly IFilePrompts _prompts;
@@ -58,9 +53,10 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// <param name="status">The status bar's message line.</param>
     /// <param name="vim">The Vim session every pane's engine reports to.</param>
     /// <param name="vimShared">What every pane's Vim engine shares.</param>
-    /// <param name="shutdown">Ends the application, for <c>:q</c> on the last tab and <c>:qa</c>.</param>
+    /// <param name="shutdown">Ends the application, for <c>:qa</c>.</param>
     /// <param name="preferences">How every editor looks.</param>
     /// <param name="help">The key-binding help, for <c>:help</c>.</param>
+    /// <param name="languages">The languages <c>:set filetype</c> can name.</param>
     public WorkspaceViewModel(
         IDocumentService documents,
         DocumentRegistry registry,
@@ -71,7 +67,8 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         VimSharedState vimShared,
         IAppShutdown shutdown,
         EditorPreferences preferences,
-        IHelpDialogService help)
+        IHelpDialogService help,
+        LanguageCatalog languages)
     {
         _documents = documents ?? throw new ArgumentNullException(nameof(documents));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
@@ -84,7 +81,8 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
             this,
             shutdown ?? throw new ArgumentNullException(nameof(shutdown)),
             status,
-            help ?? throw new ArgumentNullException(nameof(help)));
+            help ?? throw new ArgumentNullException(nameof(help)),
+            languages ?? throw new ArgumentNullException(nameof(languages)));
         _window = new WindowCommandHandler(this, _ex, status);
         Preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
 
@@ -143,6 +141,12 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// Gets the arrangement of panes.
     /// </summary>
     public LayoutTree Layout { get; }
+
+    /// <summary>
+    /// Gets how far one resize command moves a splitter, as a share of the split: the preference, which
+    /// is in percent.
+    /// </summary>
+    public double ResizeStep => Preferences.PaneResizeStep / 100.0;
 
     /// <summary>
     /// Gets the panes, in reading order.
@@ -624,9 +628,16 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 
     /// <inheritdoc />
     /// <remarks>
+    /// <para>
     /// The pane takes the keyboard first, so every file opens where it was dropped, each through the same
     /// door as <em>File → Open</em>. Folders and paths that have gone are skipped and named once on the
     /// status line, as the command line's are.
+    /// </para>
+    /// <para>
+    /// A drop on a new tab — an untitled buffer nothing has been typed into, which no other tab shows —
+    /// puts the first file that opens in its place rather than beside it: a new pane or a new window
+    /// starts with such a tab, and it is not what the user dropped a file on to keep.
+    /// </para>
     /// </remarks>
     public async Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths)
     {
@@ -636,12 +647,20 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         Activate(pane);
 
         List<string> problems = [];
+        EditorTabViewModel? fresh = pane.ActiveTab is { } target && IsFresh(target) ? target : null;
 
         foreach (string path in paths)
         {
             if (Directory.Exists(path))
             {
                 problems.Add($"{NameOf(path)} is a folder");
+            }
+            else if (File.Exists(path) && (fresh is not null))
+            {
+                if (await OpenInPlaceOfAsync(pane, fresh, path))
+                {
+                    fresh = null;
+                }
             }
             else if (File.Exists(path))
             {
@@ -770,6 +789,46 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
             RemovePane(id);
         }
 
+        RefreshCommands();
+
+        return true;
+    }
+
+    // Untitled, text, empty, never changed, and shown by this tab alone: nothing would be lost with it.
+    private bool IsFresh(EditorTabViewModel tab)
+        => tab.Document is { IsUntitled: true, IsHex: false, IsDirty: false, Document.TextLength: 0 }
+           && (_registry.ViewCount(tab.Document) <= 1);
+
+    /// <summary>
+    /// Opens a file in a new tab's place.
+    /// </summary>
+    /// <returns>Whether the file took the tab's place; it may still have opened elsewhere.</returns>
+    /// <remarks>
+    /// The tab is checked again once the file has opened, since a question (a binary file) may have come
+    /// in between. A file already on the pane is shown where it is, and the new tab is left for the next.
+    /// </remarks>
+    private async Task<bool> OpenInPlaceOfAsync(EditorPaneViewModel pane, EditorTabViewModel fresh, string path)
+    {
+        if (await _documents.OpenAsync(path) is not { } document)
+        {
+            return false;
+        }
+
+        if (!pane.Tabs.Contains(fresh) || !IsFresh(fresh) || pane.Tabs.Any(tab => ReferenceEquals(tab.Document, document)))
+        {
+            Show(document);
+
+            return false;
+        }
+
+        pane.Replace(fresh, document, out bool created);
+
+        if (created)
+        {
+            _registry.Retain(document);
+        }
+
+        _registry.Release(fresh.Document);
         RefreshCommands();
 
         return true;

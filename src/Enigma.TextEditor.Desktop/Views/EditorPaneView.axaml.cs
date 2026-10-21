@@ -4,11 +4,15 @@ using System.ComponentModel;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AvaloniaEdit.Editing;
+using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.ViewModels;
 using AvaloniaTextEditor = AvaloniaEdit.TextEditor;
@@ -30,6 +34,13 @@ public partial class EditorPaneView : UserControl
     /// </summary>
     public const double LineNumberSpacing = 4;
 
+    /// <summary>
+    /// The editor's vertical scrollbar for the minimap setting: hidden while the minimap stands in for
+    /// it, shown when needed otherwise.
+    /// </summary>
+    public static readonly IValueConverter VerticalScrollBarFor =
+        new FuncValueConverter<bool, ScrollBarVisibility>(minimap => minimap ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto);
+
     private VimEditorBehavior? _vim;
 
     private EditorPaneViewModel? _pane;
@@ -38,6 +49,10 @@ public partial class EditorPaneView : UserControl
     private EditorTabViewModel? _current;
     private DocumentViewModel? _indented;
     private EditorAppearance? _appearance;
+
+    // The editor's own scroll viewer, once its template is applied: the one place that knows which part
+    // of the text is on screen, and the one whose offset actually moves the view in AvaloniaEdit 12.
+    private ScrollViewer? _scroll;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EditorPaneView"/> class.
@@ -58,6 +73,10 @@ public partial class EditorPaneView : UserControl
         Editor.DocumentChanged += OnEditorDocumentChanged;
         Editor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;
         Editor.TextArea.TextView.ScrollOffsetChanged += OnScrollOffsetChanged;
+
+        Editor.TemplateApplied += OnEditorTemplateApplied;
+        Minimap.ScrollRequested += OnMinimapScrollRequested;
+        Minimap.PointerWheelChanged += OnMinimapPointerWheelChanged;
 
         // A file dropped anywhere on the pane opens in it. Handled events too: the text area handles drags
         // of its own, which move text, and must not hide a drag of files from the pane.
@@ -91,6 +110,11 @@ public partial class EditorPaneView : UserControl
     /// Gets the hex view, shown in the editor's place for a hex tab.
     /// </summary>
     internal HexView HexView => Hex;
+
+    /// <summary>
+    /// Gets the minimap beside the text.
+    /// </summary>
+    internal EditorMinimap MinimapControl => Minimap;
 
     /// <summary>
     /// Moves the keyboard focus into the editor — or onto the hex rows, for a hex tab.
@@ -137,6 +161,7 @@ public partial class EditorPaneView : UserControl
                     () => _session,
                     request => _ = _pane?.ExecuteExAsync(request),
                     command => _ = _pane?.ExecuteWindowAsync(command),
+                    OnVimOptionsChanged,
                     pane.VimShared);
 
                 // Already on screen when the pane arrived: OnLoaded has run and will not connect it.
@@ -303,7 +328,100 @@ public partial class EditorPaneView : UserControl
         _vim?.OnDocumentChanged();
 
         RestoreViewState();
+        ReportCaretToMinimap();
     }
+
+    private void OnEditorTemplateApplied(object? sender, TemplateAppliedEventArgs e)
+    {
+        if (_scroll is not null)
+        {
+            _scroll.ScrollChanged -= OnEditorScrollChanged;
+        }
+
+        _scroll = e.NameScope.Find<ScrollViewer>("PART_ScrollViewer");
+
+        if (_scroll is not null)
+        {
+            _scroll.ScrollChanged += OnEditorScrollChanged;
+        }
+
+        ReportViewportToMinimap();
+    }
+
+    // Offset, extent and viewport all arrive here: a scroll, a longer document, a taller pane, a wrap.
+    private void OnEditorScrollChanged(object? sender, ScrollChangedEventArgs e) => ReportViewportToMinimap();
+
+    /// <summary>
+    /// Tells the minimap which part of the text is on screen, and where the caret is.
+    /// </summary>
+    /// <remarks>
+    /// The text area is a logical scrollable that counts in pixels, so the scroll viewer's offset,
+    /// extent and viewport are the document's own.
+    /// </remarks>
+    private void ReportViewportToMinimap()
+    {
+        double extent = _scroll?.Extent.Height ?? 0;
+
+        if ((_scroll is null) || (extent <= 0))
+        {
+            // Nothing to scroll: all of it is on screen, which is what a full window says.
+            Minimap.ViewportStart = 0;
+            Minimap.ViewportEnd = 1;
+        }
+        else
+        {
+            Minimap.ViewportStart = Math.Clamp(_scroll.Offset.Y / extent, 0, 1);
+            Minimap.ViewportEnd = Math.Clamp((_scroll.Offset.Y + _scroll.Viewport.Height) / extent, 0, 1);
+        }
+
+        ReportCaretToMinimap();
+    }
+
+    // Measured where the caret's line is drawn, not by its number: with word wrap a long line takes
+    // several rows, and the mark has to agree with the window around it.
+    private void ReportCaretToMinimap()
+    {
+        double extent = _scroll?.Extent.Height ?? 0;
+
+        if ((Editor.TextArea.TextView.Document is not { } document) || (extent <= 0))
+        {
+            Minimap.CaretPosition = double.NaN;
+
+            return;
+        }
+
+        // Clamped: during a swap the caret can still stand where it was in the outgoing, longer text.
+        int line = Math.Clamp(Editor.TextArea.Caret.Line, 1, document.LineCount);
+        double top = Editor.TextArea.TextView.GetVisualTopByDocumentLine(line);
+        Minimap.CaretPosition = Math.Clamp(top / extent, 0, 1);
+    }
+
+    private void OnMinimapScrollRequested(object? sender, double start)
+    {
+        if (_scroll is null)
+        {
+            return;
+        }
+
+        _scroll.Offset = new Vector(_scroll.Offset.X, Math.Clamp(start * _scroll.Extent.Height, 0, FurthestOffset(_scroll)));
+    }
+
+    // The wheel over the map scrolls the text by what the wheel over the text does: the map stands where
+    // the scrollbar did, and the scrollbar passed the wheel on.
+    private void OnMinimapPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (_scroll is null)
+        {
+            return;
+        }
+
+        double step = ((ILogicalScrollable)Editor.TextArea.TextView).ScrollSize.Height;
+
+        _scroll.Offset = new Vector(_scroll.Offset.X, Math.Clamp(_scroll.Offset.Y - (e.Delta.Y * step), 0, FurthestOffset(_scroll)));
+        e.Handled = true;
+    }
+
+    private static double FurthestOffset(ScrollViewer scroll) => Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height);
 
     private void RestoreViewState()
     {
@@ -372,6 +490,18 @@ public partial class EditorPaneView : UserControl
         }
     }
 
+    // A ':set' changed the indentation. It is the buffer's: written there, every pane showing the buffer,
+    // the Tab key, the Tools menu and the status bar follow — and the engine is seeded back from it.
+    private void OnVimOptionsChanged(VimOptions options)
+    {
+        if (_indented is { IsHex: false } document)
+        {
+            document.Indentation = options.ExpandTab
+                ? Indentation.Spaces(options.ShiftWidth)
+                : Indentation.Tabs(options.ShiftWidth);
+        }
+    }
+
     private void ApplyIndentation(DocumentViewModel document)
     {
         Editor.Options.ConvertTabsToSpaces = !document.Indentation.UseTabs;
@@ -427,6 +557,8 @@ public partial class EditorPaneView : UserControl
         _current!.CaretOffset = Editor.CaretOffset;
         _current.CaretLine = Editor.TextArea.Caret.Line;
         _current.CaretColumn = Editor.TextArea.Caret.Column;
+
+        ReportCaretToMinimap();
     }
 
     private void OnScrollOffsetChanged(object? sender, EventArgs e)

@@ -51,6 +51,10 @@ public sealed class SettingsMenuViewModel : ObservableObject
         UseDarkThemeCommand = Command(() => SetThemeAsync(AppTheme.Dark));
         ToggleVimCommand = Command(OnToggleVimAsync);
         ToggleWordWrapCommand = Command(OnToggleWordWrapAsync);
+        ToggleMinimapCommand = Command(OnToggleMinimapAsync);
+        ResizeStep2Command = Command(() => SetPaneResizeStepAsync(2));
+        ResizeStep5Command = Command(() => SetPaneResizeStepAsync(5));
+        ResizeStep10Command = Command(() => SetPaneResizeStepAsync(10));
         DefaultTwoSpacesCommand = Command(() => SetDefaultIndentationAsync(false, 2));
         DefaultFourSpacesCommand = Command(() => SetDefaultIndentationAsync(false, 4));
         DefaultTabsCommand = Command(() => SetDefaultIndentationAsync(true, 4));
@@ -85,6 +89,26 @@ public sealed class SettingsMenuViewModel : ObservableObject
     /// Gets <em>Settings → Word Wrap</em>.
     /// </summary>
     public AsyncRelayCommand ToggleWordWrapCommand { get; }
+
+    /// <summary>
+    /// Gets <em>Settings → Minimap</em>.
+    /// </summary>
+    public AsyncRelayCommand ToggleMinimapCommand { get; }
+
+    /// <summary>
+    /// Gets <em>Settings → Pane Resize Step → 2%</em>.
+    /// </summary>
+    public AsyncRelayCommand ResizeStep2Command { get; }
+
+    /// <summary>
+    /// Gets <em>Settings → Pane Resize Step → 5%</em>.
+    /// </summary>
+    public AsyncRelayCommand ResizeStep5Command { get; }
+
+    /// <summary>
+    /// Gets <em>Settings → Pane Resize Step → 10%</em>.
+    /// </summary>
+    public AsyncRelayCommand ResizeStep10Command { get; }
 
     /// <summary>
     /// Gets <em>Settings → Default Indentation → Spaces: 2</em>.
@@ -152,6 +176,26 @@ public sealed class SettingsMenuViewModel : ObservableObject
     public bool IsWordWrap => Value.WordWrap;
 
     /// <summary>
+    /// Gets a value indicating whether the text has a minimap beside it.
+    /// </summary>
+    public bool IsMinimap => Value.ShowMinimap;
+
+    /// <summary>
+    /// Gets a value indicating whether a resize key moves a splitter by 2%.
+    /// </summary>
+    public bool IsResizeStep2 => Value.PaneResizeStep == 2;
+
+    /// <summary>
+    /// Gets a value indicating whether a resize key moves a splitter by 5%.
+    /// </summary>
+    public bool IsResizeStep5 => Value.PaneResizeStep == 5;
+
+    /// <summary>
+    /// Gets a value indicating whether a resize key moves a splitter by 10%.
+    /// </summary>
+    public bool IsResizeStep10 => Value.PaneResizeStep == 10;
+
+    /// <summary>
     /// Gets a value indicating whether new files are indented with two spaces.
     /// </summary>
     public bool IsDefaultTwoSpaces => !Value.IndentWithTabs && (Value.IndentSize == 2);
@@ -210,6 +254,27 @@ public sealed class SettingsMenuViewModel : ObservableObject
         Value.WordWrap = !Value.WordWrap;
         _preferences.WordWrap = Value.WordWrap;
         OnPropertyChanged(nameof(IsWordWrap));
+
+        await _writer.SaveAsync();
+    }
+
+    private async Task OnToggleMinimapAsync()
+    {
+        Value.ShowMinimap = !Value.ShowMinimap;
+        _preferences.ShowMinimap = Value.ShowMinimap;
+        OnPropertyChanged(nameof(IsMinimap));
+
+        await _writer.SaveAsync();
+    }
+
+    // Any other step can be written in settings.json; the menu then shows none of its three checked.
+    private async Task SetPaneResizeStepAsync(int percent)
+    {
+        Value.PaneResizeStep = percent;
+        _preferences.PaneResizeStep = percent;
+        OnPropertyChanged(nameof(IsResizeStep2));
+        OnPropertyChanged(nameof(IsResizeStep5));
+        OnPropertyChanged(nameof(IsResizeStep10));
 
         await _writer.SaveAsync();
     }

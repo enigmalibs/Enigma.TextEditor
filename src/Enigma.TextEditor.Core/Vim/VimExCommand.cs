@@ -149,4 +149,11 @@ public enum VimExCommand
     /// showing it is the useful answer to <c>:help vsplit</c>.
     /// </remarks>
     Help,
+
+    /// <summary>
+    /// <c>:set</c> of the options about the file rather than the editing — <c>fileformat</c>,
+    /// <c>fileencoding</c>, <c>bomb</c>, <c>filetype</c> — whose values are the application's. The
+    /// argument is those words, as typed and in order.
+    /// </summary>
+    SetFileOptions,
 }
