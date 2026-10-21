@@ -1,6 +1,6 @@
 # FEATURE-6622 — Release 1.4.0
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-6622.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-6622-release-1-4-0`
 **Run:** bugfix/2026-10-21-resize-jk-release

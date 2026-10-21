@@ -63,6 +63,6 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-216A | Space leader: move the pane splitter | DONE        | docs/plan/FEATURE-216A.md |
 | FEATURE-3F16 | Release 1.3.0                        | DONE        | docs/plan/FEATURE-3F16.md |
 | BUG-09C2     | Space rj/rk move the bar inverted    | DONE        | docs/plan/BUG-09C2.md     |
-| FEATURE-6622 | Release 1.4.0                        | TODO        | docs/plan/FEATURE-6622.md |
+| FEATURE-6622 | Release 1.4.0                        | DONE        | docs/plan/FEATURE-6622.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
