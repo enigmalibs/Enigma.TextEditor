@@ -10,12 +10,13 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 > keys; files read and written in their own encoding, line endings and indentation; syntax highlighting; and a
 > read-only hex viewer. See [RELEASENOTES.md](RELEASENOTES.md).
 
-**Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its
-**×**, a middle click or Ctrl+F4. Ctrl+Tab and Ctrl+Shift+Tab move between tabs. Panes split any way you like:
-right or down from the **View** menu, `Ctrl+W v` and `Ctrl+W s`, or `:vs` and `:sp`, each opening a new untitled
+**Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its **×**,
+a middle click or Ctrl+F4. Ctrl+Tab and Ctrl+Shift+Tab, or `gt` and `gT`, move between tabs. Panes split any way you
+like: right or down from the **View** menu, `Ctrl+W v` and `Ctrl+W s`, or `:vs` and `:sp`, each opening a new untitled
 document in the new pane, or the file you name (`:sp notes.txt`). The View menu and `Ctrl+W` also close a pane, keep
-only this one, make them all the same size, and move to the next one. With several panes, the one with the keyboard
-has an accent frame, and `Ctrl+W h`, `j`, `k`, `l` (or `gh`, `gj`, `gk`, `gl`) move to the pane on that side.
+only this one, make them all the same size (`g=` too), and move to the next one. With several panes, the one with the
+keyboard has an accent frame, and `Ctrl+W h`, `j`, `k`, `l` (or `gh`, `gj`, `gk`, `gl`) move to the pane on that side.
+`Ctrl+W +`, `-`, `>`, `<` (or `g+`, `g-`, `g>`, `g<`) make the active pane taller, shorter, wider or narrower.
 
 **Vim.** The editor starts in NORMAL mode, with a broad set of Vim's commands:
 
