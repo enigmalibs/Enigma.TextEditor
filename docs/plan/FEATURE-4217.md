@@ -1,6 +1,6 @@
 # FEATURE-4217 — Dropped file replaces a new tab
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-4217.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-4217-drop-replaces-new-tab`
 **Run:** feature/2026-10-21-minimap-keys-dialogs

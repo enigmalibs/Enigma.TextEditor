@@ -44,7 +44,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE02    | Version 1.0.0, notes & runbook     | DONE   | (in FEATURE-8F24.md)      |
 | FEATURE-7F58 | Linux installer                    | DONE   | docs/plan/FEATURE-7F58.md |
 | FEATURE-5301 | Release 1.1.0                      | DONE   | docs/plan/FEATURE-5301.md |
-| FEATURE-4217 | Dropped file replaces a new tab    | TODO   | docs/plan/FEATURE-4217.md |
+| FEATURE-4217 | Dropped file replaces a new tab    | DONE   | docs/plan/FEATURE-4217.md |
 | FEATURE-3546 | Editor minimap                     | TODO   | docs/plan/FEATURE-3546.md |
 | - PHASE01    | Minimap beside the editor          | TODO   | (in FEATURE-3546.md)      |
 | - PHASE02    | Minimap or scrollbar setting       | TODO   | (in FEATURE-3546.md)      |

@@ -624,9 +624,16 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 
     /// <inheritdoc />
     /// <remarks>
+    /// <para>
     /// The pane takes the keyboard first, so every file opens where it was dropped, each through the same
     /// door as <em>File → Open</em>. Folders and paths that have gone are skipped and named once on the
     /// status line, as the command line's are.
+    /// </para>
+    /// <para>
+    /// A drop on a new tab — an untitled buffer nothing has been typed into, which no other tab shows —
+    /// puts the first file that opens in its place rather than beside it: a new pane or a new window
+    /// starts with such a tab, and it is not what the user dropped a file on to keep.
+    /// </para>
     /// </remarks>
     public async Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths)
     {
@@ -636,12 +643,20 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         Activate(pane);
 
         List<string> problems = [];
+        EditorTabViewModel? fresh = pane.ActiveTab is { } target && IsFresh(target) ? target : null;
 
         foreach (string path in paths)
         {
             if (Directory.Exists(path))
             {
                 problems.Add($"{NameOf(path)} is a folder");
+            }
+            else if (File.Exists(path) && (fresh is not null))
+            {
+                if (await OpenInPlaceOfAsync(pane, fresh, path))
+                {
+                    fresh = null;
+                }
             }
             else if (File.Exists(path))
             {
@@ -770,6 +785,46 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
             RemovePane(id);
         }
 
+        RefreshCommands();
+
+        return true;
+    }
+
+    // Untitled, text, empty, never changed, and shown by this tab alone: nothing would be lost with it.
+    private bool IsFresh(EditorTabViewModel tab)
+        => tab.Document is { IsUntitled: true, IsHex: false, IsDirty: false, Document.TextLength: 0 }
+           && (_registry.ViewCount(tab.Document) <= 1);
+
+    /// <summary>
+    /// Opens a file in a new tab's place.
+    /// </summary>
+    /// <returns>Whether the file took the tab's place; it may still have opened elsewhere.</returns>
+    /// <remarks>
+    /// The tab is checked again once the file has opened, since a question (a binary file) may have come
+    /// in between. A file already on the pane is shown where it is, and the new tab is left for the next.
+    /// </remarks>
+    private async Task<bool> OpenInPlaceOfAsync(EditorPaneViewModel pane, EditorTabViewModel fresh, string path)
+    {
+        if (await _documents.OpenAsync(path) is not { } document)
+        {
+            return false;
+        }
+
+        if (!pane.Tabs.Contains(fresh) || !IsFresh(fresh) || pane.Tabs.Any(tab => ReferenceEquals(tab.Document, document)))
+        {
+            Show(document);
+
+            return false;
+        }
+
+        pane.Replace(fresh, document, out bool created);
+
+        if (created)
+        {
+            _registry.Retain(document);
+        }
+
+        _registry.Release(fresh.Document);
         RefreshCommands();
 
         return true;
