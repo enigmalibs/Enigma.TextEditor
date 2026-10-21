@@ -1,6 +1,6 @@
 # FEATURE-2860 — Quick pane and tab keys
 
-**Status:** IN PROGRESS
+**Status:** DONE — see `docs/done/FEATURE-2860-PHASE01.md`, `docs/done/FEATURE-2860-PHASE02.md`
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-2860-phase01-g-pane-keys`
 **Branch (PHASE02):** `feature/feature-2860-phase02-resize-step`
@@ -68,7 +68,7 @@ configurable resize step.
 
 ## PHASE02 — Configurable resize step
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-2860-PHASE02.md`
 
 ### Steps
 

@@ -194,6 +194,14 @@
                       IsChecked="{Binding Settings.IsWordWrap, Mode=OneWay}" Command="{Binding Settings.ToggleWordWrapCommand}" />
             <MenuItem Header="_Minimap" ToggleType="CheckBox"
                       IsChecked="{Binding Settings.IsMinimap, Mode=OneWay}" Command="{Binding Settings.ToggleMinimapCommand}" />
+            <MenuItem Header="Pane _Resize Step">
+              <MenuItem Header="2%" ToggleType="Radio" GroupName="paneResizeStep"
+                        IsChecked="{Binding Settings.IsResizeStep2, Mode=OneWay}" Command="{Binding Settings.ResizeStep2Command}" />
+              <MenuItem Header="5%" ToggleType="Radio" GroupName="paneResizeStep"
+                        IsChecked="{Binding Settings.IsResizeStep5, Mode=OneWay}" Command="{Binding Settings.ResizeStep5Command}" />
+              <MenuItem Header="10%" ToggleType="Radio" GroupName="paneResizeStep"
+                        IsChecked="{Binding Settings.IsResizeStep10, Mode=OneWay}" Command="{Binding Settings.ResizeStep10Command}" />
+            </MenuItem>
             <Separator />
             <MenuItem Header="Default _Indentation">
               <MenuItem Header="Spaces: 2" ToggleType="Radio" GroupName="defaultIndentation"

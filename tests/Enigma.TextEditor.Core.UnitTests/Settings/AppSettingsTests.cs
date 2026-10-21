@@ -17,6 +17,7 @@ public sealed class AppSettingsTests
         Assert.True(settings.VimEnabled);
         Assert.False(settings.WordWrap);
         Assert.True(settings.ShowMinimap);
+        Assert.Equal(5, settings.PaneResizeStep);
         Assert.Equal(AppSettings.DefaultFontSize, settings.EditorFontSize);
         Assert.False(settings.IndentWithTabs);
         Assert.Equal(4, settings.IndentSize);
@@ -44,6 +45,7 @@ public sealed class AppSettingsTests
         written.Config.Value.VimEnabled = false;
         written.Config.Value.WordWrap = true;
         written.Config.Value.ShowMinimap = false;
+        written.Config.Value.PaneResizeStep = 4;
         written.Config.Value.EditorFontSize = 20;
         written.Config.Value.IndentWithTabs = true;
         written.Config.Value.IndentSize = 2;
@@ -56,6 +58,7 @@ public sealed class AppSettingsTests
         Assert.False(read.VimEnabled);
         Assert.True(read.WordWrap);
         Assert.False(read.ShowMinimap);
+        Assert.Equal(4, read.PaneResizeStep);
         Assert.Equal(20, read.EditorFontSize);
         Assert.True(read.IndentWithTabs);
         Assert.Equal(2, read.IndentSize);

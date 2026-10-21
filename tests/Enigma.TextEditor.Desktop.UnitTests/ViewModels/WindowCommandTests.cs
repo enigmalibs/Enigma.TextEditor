@@ -110,6 +110,23 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
+    public void TheResizeKeys_MoveTheSplitterByTheStepInTheSettings()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 4);
+            harness.Workspace.Split(SplitAxis.Columns);
+            SplitNode split = Assert.IsType<SplitNode>(harness.Workspace.Layout.Root);
+
+            // The new pane is the right-hand one: wider moves the splitter left, 50/50 to 46/54.
+            await Window(harness, VimWindowCommand.Wider);
+            Assert.Equal(0.46, split.Ratio, 9);
+
+            harness.Preferences.PaneResizeStep = 10;
+            await Window(harness, VimWindowCommand.Narrower);
+            Assert.Equal(0.56, split.Ratio, 9);
+        });
+
+    [Fact]
     public void ColonSplitWithAFile_OpensOnlyThatFileInTheNewPane()
         => fixture.RunAsync(async () =>
         {

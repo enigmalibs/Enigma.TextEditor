@@ -232,9 +232,9 @@ public sealed class SplitPaneTests(HeadlessAvaloniaFixture fixture)
             harness.Workspace.Split(SplitAxis.Columns);
             SplitNode split = Assert.IsType<SplitNode>(harness.Workspace.Layout.Root);
 
-            Assert.True(harness.Workspace.Resize(SplitAxis.Columns, WorkspaceViewModel.ResizeStep));
+            Assert.True(harness.Workspace.Resize(SplitAxis.Columns, harness.Workspace.ResizeStep));
             Assert.Equal(0.45, split.Ratio, 9);
-            Assert.False(harness.Workspace.Resize(SplitAxis.Rows, WorkspaceViewModel.ResizeStep));
+            Assert.False(harness.Workspace.Resize(SplitAxis.Rows, harness.Workspace.ResizeStep));
 
             harness.Workspace.Equalize();
             Assert.Equal(0.5, split.Ratio, 9);
