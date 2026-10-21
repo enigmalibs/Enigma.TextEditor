@@ -195,6 +195,63 @@ public sealed class LayoutTreeTests
     }
 
     [Fact]
+    public void MoveSplitter_MovesTheBarTheSameWayFromEitherSide()
+    {
+        LayoutTree tree = new();
+        PaneId top = tree.Panes[0];
+        PaneId bottom = tree.Split(top, SplitAxis.Rows);
+
+        // Down from the top pane and from the bottom one: the top pane grows both times.
+        Assert.True(tree.MoveSplitter(top, SplitAxis.Rows, 0.1));
+        Assert.Equal(0.6, tree.Geometry()[top].Height, Precision);
+
+        Assert.True(tree.MoveSplitter(bottom, SplitAxis.Rows, 0.1));
+        Assert.Equal(0.7, tree.Geometry()[top].Height, Precision);
+
+        // Up from the bottom pane: it grows.
+        Assert.True(tree.MoveSplitter(bottom, SplitAxis.Rows, -0.3));
+        Assert.Equal(0.6, tree.Geometry()[bottom].Height, Precision);
+    }
+
+    [Fact]
+    public void MoveSplitter_UsesTheNearestSplitOnThatAxis_AndRefusesWithoutOne()
+    {
+        LayoutTree tree = new();
+        PaneId a = tree.Panes[0];
+        PaneId b = tree.Split(a, SplitAxis.Columns);
+        PaneId c = tree.Split(b, SplitAxis.Rows);
+        PaneId d = tree.Split(c, SplitAxis.Columns);
+        int changes = 0;
+        tree.Changed += (_, _) => changes++;
+
+        // From d, the nearest side-by-side split is c | d, not a | (b / (c | d)).
+        Assert.True(tree.MoveSplitter(d, SplitAxis.Columns, 0.1));
+        Assert.Equal(0.5, tree.Geometry()[a].Width, Precision);
+        Assert.Equal(0.3, tree.Geometry()[c].Width, Precision);
+
+        // From a, it is the root's.
+        Assert.True(tree.MoveSplitter(a, SplitAxis.Columns, 0.1));
+        Assert.Equal(0.6, tree.Geometry()[a].Width, Precision);
+
+        Assert.False(tree.MoveSplitter(a, SplitAxis.Rows, 0.1));
+        Assert.Equal(2, changes);
+    }
+
+    [Fact]
+    public void MoveSplitter_IsClamped()
+    {
+        LayoutTree tree = new();
+        PaneId left = tree.Panes[0];
+        PaneId right = tree.Split(left, SplitAxis.Columns);
+
+        tree.MoveSplitter(right, SplitAxis.Columns, 5);
+        Assert.Equal(SplitNode.MaximumRatio, tree.Geometry()[left].Width, Precision);
+
+        tree.MoveSplitter(left, SplitAxis.Columns, -5);
+        Assert.Equal(SplitNode.MinimumRatio, tree.Geometry()[left].Width, Precision);
+    }
+
+    [Fact]
     public void Ratios_AreClamped()
     {
         LayoutTree tree = new();

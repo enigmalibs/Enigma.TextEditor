@@ -285,8 +285,9 @@ public sealed class VimEngine
 
     /// <summary>
     /// Gets a value indicating whether a command is half typed — <c>3d</c> waiting for its motion,
-    /// <c>g</c>, <c>Z</c> or <c>z</c> for its second key, <c>r</c> for the character to write,
-    /// <c>"</c>, <c>q</c> or <c>@</c> for the register, or a command line still being written.
+    /// <c>g</c>, <c>Z</c> or <c>z</c> for its second key, the leader for its mapping, <c>r</c> for the
+    /// character to write, <c>"</c>, <c>q</c> or <c>@</c> for the register, or a command line still
+    /// being written.
     /// </summary>
     public bool HasPendingSequence => _parser.HasPendingSequence || (_commandLine is not null) || _windowPending;
 
@@ -511,6 +512,23 @@ public sealed class VimEngine
             && ((key.Character == 'r') || (key.Character == 'R'))
             && ((key.Modifiers & VimModifiers.Alt) == VimModifiers.None);
 
+    /// <summary>
+    /// Which way <c>&lt;Space&gt;r</c> and a letter moves the bar between two panes.
+    /// </summary>
+    /// <remarks>
+    /// <c>k</c> moves it down and <c>j</c> up — the request that asked for the keys spells them so, "k
+    /// moves the line to the bottom" — while <c>h</c> and <c>l</c> go the way they point.
+    /// </remarks>
+    private static VimWindowCommand? SplitterCommandFor(char letter)
+        => letter switch
+        {
+            'h' => VimWindowCommand.MoveSplitterLeft,
+            'j' => VimWindowCommand.MoveSplitterUp,
+            'k' => VimWindowCommand.MoveSplitterDown,
+            'l' => VimWindowCommand.MoveSplitterRight,
+            _ => null,
+        };
+
     private static string Repeat(string text, int count, string separator)
     {
         if (count <= 1)
@@ -679,6 +697,14 @@ public sealed class VimEngine
                 if (VimWindowKeys.Map(VimKey.Typed(command.Argument)) is { } window)
                 {
                     WindowCommandRequested?.Invoke(this, window);
+                }
+
+                break;
+
+            case VimAction.MoveSplitter:
+                if (SplitterCommandFor(command.Argument) is { } splitter)
+                {
+                    WindowCommandRequested?.Invoke(this, splitter);
                 }
 
                 break;

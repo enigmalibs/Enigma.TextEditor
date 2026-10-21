@@ -89,4 +89,26 @@ public enum VimWindowCommand
     /// <c>Ctrl+W &lt;</c> — make the pane narrower.
     /// </summary>
     Narrower,
+
+    /// <summary>
+    /// <c>&lt;Space&gt;rh</c> — move the bar between the side-by-side panes to the left, whichever of them has the
+    /// keyboard: the right-hand pane grows.
+    /// </summary>
+    MoveSplitterLeft,
+
+    /// <summary>
+    /// <c>&lt;Space&gt;rk</c> — move the bar between the stacked panes down, whichever of them has the keyboard: the
+    /// top pane grows.
+    /// </summary>
+    MoveSplitterDown,
+
+    /// <summary>
+    /// <c>&lt;Space&gt;rj</c> — move the bar between the stacked panes up: the bottom pane grows.
+    /// </summary>
+    MoveSplitterUp,
+
+    /// <summary>
+    /// <c>&lt;Space&gt;rl</c> — move the bar between the side-by-side panes to the right: the left-hand pane grows.
+    /// </summary>
+    MoveSplitterRight,
 }

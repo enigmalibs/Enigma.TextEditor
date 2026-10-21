@@ -13,6 +13,8 @@ namespace Enigma.TextEditor.Core.UnitTests.Vim;
 /// Three of these — Enter, Backspace and Space — used to mean nothing in normal mode, and the cases
 /// that said so have been rewritten here to say what they mean now. Every one of them is a motion in
 /// vim, and every one of them still does in insert mode exactly what the editor did with it before.
+/// Space has since become the leader in normal and visual mode, and is a motion behind an operator
+/// only.
 /// </para>
 /// <para>
 /// The rule the wrapping pair is really testing is vim's exclusive-linewise one: a motion that
@@ -142,17 +144,24 @@ public sealed class VimLineMotionTests
     }
 
     [Theory]
-    [InlineData("|abc", " ", "a|bc")]
-    [InlineData("|abc", "2 ", "ab|c")]
-    // Onto the next line's first character from the last one, and from an empty line.
-    [InlineData("ab|c\ndef", " ", "abc\n|def")]
-    [InlineData("abc\n|\ndef", " ", "abc\n\n|def")]
-    [InlineData("a|bc\ndef", "3 ", "abc\nd|ef")]
-    // The end of the buffer is where it stops.
-    [InlineData("ab|c", " ", "ab|c")]
-    [InlineData("ab|c", "9 ", "ab|c")]
-    [InlineData("|", " ", "|")]
-    public void Space_MovesRightAndCrossesALineBreak(string before, string keys, string after)
+    [InlineData("|abc", " ")]
+    [InlineData("|abc", "2 ")]
+    [InlineData("ab|c\ndef", " ")]
+    [InlineData("a|bc", "v ")]
+    public void Space_IsTheLeader_AndMovesNothingOnItsOwn(string before, string keys)
+    {
+        VimRun run = VimScript.Run(before, keys);
+
+        Assert.Equal(before, run.Text);
+        Assert.True(run.Engine.HasPendingSequence);
+    }
+
+    [Theory]
+    // Esc drops the leader; a key no leader mapping starts with is a dead sequence, and does nothing.
+    [InlineData("a|bc", " <Esc>l", "ab|c")]
+    [InlineData("a|bc", " xl", "ab|c")]
+    [InlineData("a|bc", " rxl", "ab|c")]
+    public void TheLeader_EndsWithEscOrAKeyNoMappingStartsWith(string before, string keys, string after)
         => Assert.Equal(after, VimScript.Run(before, keys).Text);
 
     [Theory]
@@ -241,7 +250,7 @@ public sealed class VimLineMotionTests
     }
 
     [Theory]
-    [InlineData("a|bc\ndef", "v  d", "a|ef")]
+    [InlineData("a|bc\ndef", "v<CR>d", "a|ef")]
     [InlineData("abc\n|def", "v<BS>d", "ab|ef")]
     [InlineData("  ab|cd", "v^d", "  |d")]
     [InlineData("|abcdef", "v3|d", "|def")]
