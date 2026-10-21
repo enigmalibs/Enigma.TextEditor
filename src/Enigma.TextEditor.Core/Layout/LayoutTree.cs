@@ -170,20 +170,38 @@ public sealed class LayoutTree
     /// <returns><see langword="false"/> when no split on that axis contains the pane.</returns>
     public bool Resize(PaneId pane, SplitAxis axis, double delta)
     {
-        LayoutNode node = Require(pane);
-
-        for (SplitNode? split = node.Parent; split is not null; node = split, split = split.Parent)
+        if (NearestSplit(pane, axis, out bool inFirst) is not { } split)
         {
-            if (split.Axis == axis)
-            {
-                bool inFirst = ReferenceEquals(split.First, node);
-                split.Ratio += inFirst ? delta : -delta;
-                OnChanged();
-                return true;
-            }
+            return false;
         }
 
-        return false;
+        split.Ratio += inFirst ? delta : -delta;
+        OnChanged();
+        return true;
+    }
+
+    /// <summary>
+    /// Moves the bar of the nearest split on an axis that contains a pane, the same way whichever side of it the pane
+    /// is on.
+    /// </summary>
+    /// <param name="pane">The pane.</param>
+    /// <param name="axis">Side by side (<see cref="SplitAxis.Columns"/>) or stacked (<see cref="SplitAxis.Rows"/>).</param>
+    /// <param name="delta">The move, as a fraction of the split's space: positive to the right or down.</param>
+    /// <returns><see langword="false"/> when no split on that axis contains the pane.</returns>
+    /// <remarks>
+    /// The split <see cref="Resize"/> would act on, so both kinds of key move the same bar. Only the direction differs:
+    /// <see cref="Resize"/> grows the pane, this grows the first side.
+    /// </remarks>
+    public bool MoveSplitter(PaneId pane, SplitAxis axis, double delta)
+    {
+        if (NearestSplit(pane, axis, out _) is not { } split)
+        {
+            return false;
+        }
+
+        split.Ratio += delta;
+        OnChanged();
+        return true;
     }
 
     /// <summary>
@@ -404,6 +422,26 @@ public sealed class LayoutTree
         }
 
         return panes[(((index + direction) % panes.Count) + panes.Count) % panes.Count];
+    }
+
+    /// <summary>
+    /// The nearest split on an axis above a pane, and which of its sides holds the pane.
+    /// </summary>
+    private SplitNode? NearestSplit(PaneId pane, SplitAxis axis, out bool inFirst)
+    {
+        LayoutNode node = Require(pane);
+
+        for (SplitNode? split = node.Parent; split is not null; node = split, split = split.Parent)
+        {
+            if (split.Axis == axis)
+            {
+                inFirst = ReferenceEquals(split.First, node);
+                return split;
+            }
+        }
+
+        inFirst = false;
+        return null;
     }
 
     private PaneNode? Find(PaneId pane) => Leaves(Root).FirstOrDefault(leaf => leaf.Id == pane);

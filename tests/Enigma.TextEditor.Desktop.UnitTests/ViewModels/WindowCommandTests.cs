@@ -127,6 +127,33 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
+    public void TheSplitterCommands_MoveTheBarByTheStep_TheSameWayFromEitherPane()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 4);
+            EditorPaneViewModel left = harness.Workspace.ActivePane;
+            EditorPaneViewModel right = harness.Workspace.Split(SplitAxis.Columns);
+            SplitNode split = Assert.IsType<SplitNode>(harness.Workspace.Layout.Root);
+
+            harness.Workspace.Activate(left);
+            await Window(harness, VimWindowCommand.MoveSplitterRight);
+            Assert.Equal(0.54, split.Ratio, 9);
+
+            harness.Workspace.Activate(right);
+            await Window(harness, VimWindowCommand.MoveSplitterRight);
+            Assert.Equal(0.58, split.Ratio, 9);
+
+            await Window(harness, VimWindowCommand.MoveSplitterLeft);
+            await Window(harness, VimWindowCommand.MoveSplitterLeft);
+            Assert.Equal(0.5, split.Ratio, 9);
+
+            // No bar between stacked panes: nothing moves.
+            await Window(harness, VimWindowCommand.MoveSplitterDown);
+            Assert.Equal(0.5, split.Ratio, 9);
+            Assert.Same(right, harness.Workspace.ActivePane);
+        });
+
+    [Fact]
     public void ColonSplitWithAFile_OpensOnlyThatFileInTheNewPane()
         => fixture.RunAsync(async () =>
         {
@@ -328,6 +355,86 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             await Pump();
             Assert.Equal(0.5, split.Ratio, 9);
             Assert.Equal("text\n", left.ActiveTab!.Document.Document.Text);
+            window.Close();
+        });
+
+    [Fact]
+    public void TypedInTheWindow_SpaceRKAndRJ_MoveTheBarBetweenStackedPanes_FromEitherOfThem()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
+            EditorPaneViewModel top = harness.Workspace.ActivePane;
+            EditorPaneViewModel bottom = harness.Workspace.Split(SplitAxis.Rows);
+            SplitNode split = Assert.IsType<SplitNode>(harness.Workspace.Layout.Root);
+            MainWindow window = new() { DataContext = harness.Window, Width = 1000, Height = 700 };
+            window.Show();
+
+            // k moves the bar down, typed in the top pane and in the bottom one: the top pane grows both times.
+            await FocusAsync(window, top);
+            window.KeyTextInput(" rk");
+            await Pump();
+            Assert.Equal(0.55, split.Ratio, 9);
+
+            await FocusAsync(window, bottom);
+            string below = bottom.ActiveTab!.Document.Document.Text;
+            window.KeyTextInput(" rk");
+            await Pump();
+            Assert.Equal(0.6, split.Ratio, 9);
+
+            // j moves it up, and the bottom pane grows.
+            window.KeyTextInput(" rj rj rj");
+            await Pump();
+            Assert.Equal(0.45, split.Ratio, 9);
+            Assert.Same(bottom, harness.Workspace.ActivePane);
+            Assert.Equal(below, bottom.ActiveTab.Document.Document.Text);
+
+            await FocusAsync(window, top);
+            window.KeyTextInput(" rj");
+            await Pump();
+            Assert.Equal(0.4, split.Ratio, 9);
+            Assert.Equal("text\n", top.ActiveTab!.Document.Document.Text);
+            window.Close();
+        });
+
+    [Fact]
+    public void TypedInTheWindow_SpaceRLAndRH_MoveTheBarBetweenSideBySidePanes_FromEitherOfThem()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
+            EditorPaneViewModel left = harness.Workspace.ActivePane;
+            EditorPaneViewModel right = harness.Workspace.Split(SplitAxis.Columns);
+            SplitNode split = Assert.IsType<SplitNode>(harness.Workspace.Layout.Root);
+            MainWindow window = new() { DataContext = harness.Window, Width = 1000, Height = 700 };
+            window.Show();
+
+            // l moves the bar right, typed in the left pane and in the right one: the left pane grows both times.
+            await FocusAsync(window, left);
+            window.KeyTextInput(" rl");
+            await Pump();
+            Assert.Equal(0.55, split.Ratio, 9);
+
+            await FocusAsync(window, right);
+            window.KeyTextInput(" rl");
+            await Pump();
+            Assert.Equal(0.6, split.Ratio, 9);
+
+            // h moves it left, and the right pane grows.
+            window.KeyTextInput(" rh rh rh");
+            await Pump();
+            Assert.Equal(0.45, split.Ratio, 9);
+
+            await FocusAsync(window, left);
+            window.KeyTextInput(" rh");
+            await Pump();
+            Assert.Equal(0.4, split.Ratio, 9);
+            Assert.Equal("text\n", left.ActiveTab!.Document.Document.Text);
+
+            // The old keys still grow the pane that has the keyboard: g> from the left one widens it.
+            window.KeyTextInput("g>");
+            await Pump();
+            Assert.Equal(0.45, split.Ratio, 9);
             window.Close();
         });
 

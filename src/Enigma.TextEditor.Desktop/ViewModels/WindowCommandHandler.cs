@@ -112,6 +112,22 @@ public sealed class WindowCommandHandler
                 _workspace.Resize(SplitAxis.Columns, -_workspace.ResizeStep);
                 break;
 
+            case VimWindowCommand.MoveSplitterLeft:
+                _workspace.MoveSplitter(SplitAxis.Columns, -_workspace.ResizeStep);
+                break;
+
+            case VimWindowCommand.MoveSplitterRight:
+                _workspace.MoveSplitter(SplitAxis.Columns, _workspace.ResizeStep);
+                break;
+
+            case VimWindowCommand.MoveSplitterUp:
+                _workspace.MoveSplitter(SplitAxis.Rows, -_workspace.ResizeStep);
+                break;
+
+            case VimWindowCommand.MoveSplitterDown:
+                _workspace.MoveSplitter(SplitAxis.Rows, _workspace.ResizeStep);
+                break;
+
             default:
                 break;
         }

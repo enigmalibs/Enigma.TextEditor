@@ -38,7 +38,6 @@ public sealed class KeySequenceParserTests
     [InlineData('-', VimMotion.LineUpFirstNonBlank)]
     [InlineData('_', VimMotion.CurrentLineFirstNonBlank)]
     [InlineData('|', VimMotion.Column)]
-    [InlineData(' ', VimMotion.RightWrapping)]
     [InlineData('G', VimMotion.LastLine)]
     // The four searches that are complete as typed: what they look for is the engine's memory or the
     // word under the caret, so the grammar has nothing to wait for.
@@ -637,7 +636,6 @@ public sealed class KeySequenceParserTests
     [InlineData("W", VimMotion.WordForwardBig)]
     [InlineData("}", VimMotion.ParagraphForward)]
     [InlineData("%", VimMotion.MatchingBracket)]
-    [InlineData(" ", VimMotion.RightWrapping)]
     [InlineData("gg", VimMotion.FirstLine)]
     [InlineData("G", VimMotion.LastLine)]
     // The searches too: in a visual mode a search extends the selection to what it finds.
@@ -793,6 +791,61 @@ public sealed class KeySequenceParserTests
         Assert.Equal(keys, dead.Sequence);
         Assert.False(parser.HasPendingSequence);
     }
+
+    [Theory]
+    [InlineData("<Space>rh", 'h')]
+    [InlineData("<Space>rj", 'j')]
+    [InlineData("<Space>rk", 'k')]
+    [InlineData("<Space>rl", 'l')]
+    public void TheLeaderThenRAndADirection_MovesTheSplitter_InNormalAndVisualMode(string keys, char letter)
+    {
+        VimCommand expected = new(VimAction.MoveSplitter, Argument: letter);
+
+        Assert.Equal(expected, Feed(keys, out KeySequenceParser parser).Command);
+        Assert.False(parser.HasPendingSequence);
+        Assert.Equal(expected, FeedIn(keys, VimMode.Visual, out _).Command);
+        Assert.Equal(expected, FeedIn(keys, VimMode.VisualLine, out _).Command);
+    }
+
+    [Theory]
+    [InlineData("<Space>")]
+    [InlineData("<Space>r")]
+    [InlineData("3<Space>r")]
+    public void TheLeader_WaitsForTheRestOfAMapping(string keys)
+    {
+        VimParseResult result = Feed(keys, out KeySequenceParser parser);
+
+        Assert.Equal(VimParseStatus.Pending, result.Status);
+        Assert.True(parser.HasPendingSequence);
+        Assert.Equal(VimParseStatus.Pending, FeedIn(keys, VimMode.Visual, out _).Status);
+    }
+
+    [Theory]
+    [InlineData("<Space>x")]
+    [InlineData("<Space>j")]
+    [InlineData("<Space>rx")]
+    [InlineData("<Space>rr")]
+    [InlineData("<Space>r<Esc>")]
+    // A register in front of it, as in front of 'gh': the pane keys read no register.
+    [InlineData("\"a<Space>rk")]
+    public void TheLeaderThenAKeyNoMappingStartsWith_IsDead(string keys)
+    {
+        VimParseResult dead = Feed(keys, out KeySequenceParser parser);
+
+        Assert.Equal(VimParseStatus.Invalid, dead.Status);
+        Assert.False(parser.HasPendingSequence);
+    }
+
+    [Fact]
+    public void TheLeader_TakesACount_WhichRidesOnTheCommand()
+        => Assert.Equal(new VimCommand(VimAction.MoveSplitter, Count: 3, Argument: 'k'), Feed("3<Space>rk", out _).Command);
+
+    [Theory]
+    [InlineData("d<Space>", VimOperator.Delete)]
+    [InlineData("c<Space>", VimOperator.Change)]
+    [InlineData("y<Space>", VimOperator.Yank)]
+    public void BehindAnOperator_SpaceIsStillTheMotion(string keys, VimOperator @operator)
+        => Assert.Equal(VimCommand.Operate(@operator, VimMotion.RightWrapping), Feed(keys, out _).Command);
 
     [Fact]
     public void GV_IsACommandInNormalModeAndNothingBehindAnOperator()
