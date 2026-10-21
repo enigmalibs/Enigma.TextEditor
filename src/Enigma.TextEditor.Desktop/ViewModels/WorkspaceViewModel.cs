@@ -27,8 +27,8 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// </para>
 /// <para>
 /// A pane that loses its last tab closes, unless it is the only pane: closing tabs is how panes go
-/// away, so <c>:q</c> in a split closes the split and <c>:q</c> on the last tab of the last pane
-/// quits.
+/// away, so <c>:q</c> in a split closes the split, and <c>:q</c> on the last tab of the last pane leaves
+/// that pane empty, the application still open.
 /// </para>
 /// </remarks>
 public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
@@ -58,7 +58,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// <param name="status">The status bar's message line.</param>
     /// <param name="vim">The Vim session every pane's engine reports to.</param>
     /// <param name="vimShared">What every pane's Vim engine shares.</param>
-    /// <param name="shutdown">Ends the application, for <c>:q</c> on the last tab and <c>:qa</c>.</param>
+    /// <param name="shutdown">Ends the application, for <c>:qa</c>.</param>
     /// <param name="preferences">How every editor looks.</param>
     /// <param name="help">The key-binding help, for <c>:help</c>.</param>
     /// <param name="languages">The languages <c>:set filetype</c> can name.</param>

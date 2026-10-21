@@ -1,6 +1,6 @@
 # FEATURE-684E — :q on the last tab keeps the app
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-684E.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-684e-last-tab-keeps-app`
 **Run:** feature/2026-10-21-minimap-keys-dialogs

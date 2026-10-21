@@ -132,7 +132,7 @@ public sealed class SplitPaneTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
-    public void ClosingThePanesLastTab_ClosesThePane_AndQuitOnlyQuitsWithTheLastPane()
+    public void ClosingThePanesLastTab_ClosesThePane_AndTheLastPaneStaysEmpty()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
@@ -146,7 +146,9 @@ public sealed class SplitPaneTests(HeadlessAvaloniaFixture fixture)
 
             await harness.Workspace.ActivePane.ExecuteExAsync(new VimExRequest(VimExCommand.Quit));
 
-            Assert.Equal(1, harness.Shutdown.ExitRequests);
+            Assert.Single(harness.Workspace.Panes);
+            Assert.False(harness.Workspace.HasTabs);
+            Assert.Equal(0, harness.Shutdown.ExitRequests);
         });
 
     [Theory]
