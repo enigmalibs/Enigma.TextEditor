@@ -163,8 +163,8 @@ public static class HelpCatalog
             Text("", "Searches wrap round the end of the file", ":set wrapscan, ws"),
             Text("", "Highlight every match", ":set hlsearch, hls"),
             Text("", "Show the match while the pattern is typed", ":set incsearch, is"),
-            Text("", "Indent with spaces", ":set expandtab, et"),
-            Text("", "How far > and < indent", ":set shiftwidth=n, sw"),
+            Text("", "Indent with spaces (the file's indentation follows)", ":set expandtab, et"),
+            Text("", "Indentation size, for Tab, > and <", ":set shiftwidth=n, sw, tabstop, ts"),
         ]),
         Section("Application", PhosphorIcon.Keyboard, null,
         [

@@ -22,6 +22,10 @@ namespace Enigma.TextEditor.Core.Vim;
 /// does — and an unknown name is named as unknown rather than accepted and ignored, so that a
 /// <c>:set hlsearch</c> that will never do anything says so.
 /// </para>
+/// <para>
+/// <c>tabstop</c> is <c>shiftwidth</c> under its other name: the editor has one indentation size, the
+/// width of a tab and of a shift alike, so the two cannot differ here.
+/// </para>
 /// </remarks>
 internal static class VimSet
 {
@@ -45,6 +49,7 @@ internal static class VimSet
         // Never zero: vim reads a shiftwidth of 0 as "use tabstop", and there is no tabstop here for
         // it to fall back on — a shift of nothing would be a '>>' that does nothing, without a word.
         new("shiftwidth", "sw", options => options.ShiftWidth, (options, value) => options.ShiftWidth = value, Minimum: 1),
+        new("tabstop", "ts", options => options.ShiftWidth, (options, value) => options.ShiftWidth = value, Minimum: 1),
     ];
 
     /// <summary>
