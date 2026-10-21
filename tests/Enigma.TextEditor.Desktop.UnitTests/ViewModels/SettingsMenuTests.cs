@@ -266,10 +266,15 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
             AboutView view = (AboutView)window.Content!;
 
             Assert.Equal(AppInfo.DisplayName, view.FindControl<TextBlock>("ProductName")?.Text);
-            Assert.Equal($"Version {AppInfo.Version}", view.FindControl<TextBlock>("VersionLine")?.Text);
+            Assert.Equal(
+                ["Version", AppInfo.Version],
+                view.FindControl<StackPanel>("VersionLine")!.Children.OfType<TextBlock>().Select(block => block.Text));
             Assert.Equal(AppInfo.Copyright, view.FindControl<TextBlock>("CopyrightLine")?.Text);
-            Assert.Equal(AppInfo.BuildSha is not null, view.FindControl<SelectableTextBlock>("BuildLine")?.IsVisible);
+            Assert.Equal(AppInfo.Copyright.Length > 0, view.FindControl<TextBlock>("CopyrightLine")?.IsVisible);
+            Assert.Equal(AppInfo.BuildSha is not null, view.FindControl<StackPanel>("BuildLine")?.IsVisible);
+            Assert.Equal(AppInfo.BuildSha, view.FindControl<SelectableTextBlock>("BuildSha")?.Text);
             Assert.Equal(AppInfo.BuildSha is not null, about.HasBuild);
+            Assert.Equal(380, view.Bounds.Width, 0.5);
             window.Close();
         });
 

@@ -1,6 +1,6 @@
 # FEATURE-5D8B — About dialog like GitClient
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-5D8B.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-5d8b-about-dialog`
 **Run:** feature/2026-10-21-minimap-keys-dialogs
