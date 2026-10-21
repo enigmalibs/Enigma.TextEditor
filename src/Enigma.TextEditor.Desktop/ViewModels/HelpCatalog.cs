@@ -156,7 +156,7 @@ public static class HelpCatalog
             Window("Ctrl+W >, Ctrl+W <, g>, g<", "Wider, narrower", VimWindowCommand.Wider, VimWindowCommand.Narrower),
             Window("Space rh, Space rl", "Move the bar between side-by-side panes left, right, from either pane",
                 VimWindowCommand.MoveSplitterLeft, VimWindowCommand.MoveSplitterRight),
-            Window("Space rk, Space rj", "Move the bar between stacked panes down, up, from either pane",
+            Window("Space rj, Space rk", "Move the bar between stacked panes down, up, from either pane",
                 VimWindowCommand.MoveSplitterDown, VimWindowCommand.MoveSplitterUp),
         ]),
         Section("Options", PhosphorIcon.SlidersHorizontal, ":set {name} turns one on, :set no{name} off, :set {name}={n} sets a number",

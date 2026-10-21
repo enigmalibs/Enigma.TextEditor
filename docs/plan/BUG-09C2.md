@@ -1,6 +1,6 @@
 # BUG-09C2 — Space rj/rk move the bar inverted
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/BUG-09C2.md`
 **Type:** BUG
 **Branch:** `bugfix/bug-09c2-resize-jk`
 **Run:** bugfix/2026-10-21-resize-jk-release
