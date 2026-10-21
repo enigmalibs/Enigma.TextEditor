@@ -57,7 +57,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | g=, g+, g-, g>, g<, gt, gT         | DONE        | (in FEATURE-2860.md)      |
 | - PHASE02    | Configurable resize step           | DONE        | (in FEATURE-2860.md)      |
 | FEATURE-1FBE | Dialog keyboard focus              | DONE        | docs/plan/FEATURE-1FBE.md |
-| FEATURE-7D6B | Status bar gives focus back        | TODO        | docs/plan/FEATURE-7D6B.md |
+| FEATURE-7D6B | Status bar gives focus back        | DONE        | docs/plan/FEATURE-7D6B.md |
 | FEATURE-5D8B | About dialog like GitClient        | TODO        | docs/plan/FEATURE-5D8B.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

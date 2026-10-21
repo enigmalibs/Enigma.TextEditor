@@ -248,6 +248,8 @@
                        IsVisible="{Binding StatusBar.IsCommandLineVisible}"
                        Text="{Binding StatusBar.CommandLine}" />
           </Panel>
+          <!-- The buttons take no focus, so a click leaves the keyboard in the pane; a flyout, which does
+               take it, gives it back to the pane as it closes. -->
           <StackPanel Grid.Column="2"
                       Orientation="Horizontal"
                       IsVisible="{Binding StatusBar.HasActiveTab}">
@@ -257,13 +259,14 @@
                        IsVisible="{Binding StatusBar.IsHexTab}"
                        Text="{Binding StatusBar.SizeText}" />
             <Button x:Name="IndentationStatus"
+                    Focusable="False"
                     IsVisible="{Binding StatusBar.IsTextTab}"
                     Classes="statusItem"
                     Content="{Binding StatusBar.IndentationText}"
                     ToolTip.Tip="Indentation"
                     AutomationProperties.Name="Indentation">
               <Button.Flyout>
-                <MenuFlyout>
+                <MenuFlyout Closed="OnStatusFlyoutClosed">
                   <MenuItem Header="Spaces: 2" ToggleType="Radio" GroupName="statusIndentation"
                             IsChecked="{Binding Tools.IsTwoSpaces, Mode=OneWay}" Command="{Binding Tools.IndentWithTwoSpacesCommand}" />
                   <MenuItem Header="Spaces: 4" ToggleType="Radio" GroupName="statusIndentation"
@@ -274,19 +277,21 @@
               </Button.Flyout>
             </Button>
             <Button x:Name="EncodingStatus"
+                    Focusable="False"
                     IsVisible="{Binding StatusBar.IsTextTab}"
                     Classes="statusItem"
                     Content="{Binding StatusBar.EncodingText}"
                     ToolTip.Tip="Encoding"
                     AutomationProperties.Name="Encoding">
               <Button.Flyout>
-                <MenuFlyout>
+                <MenuFlyout Closed="OnStatusFlyoutClosed">
                   <MenuItem Header="Reopen with Encoding…" Command="{Binding Tools.ReopenWithEncodingCommand}" />
                   <MenuItem Header="Change File Encoding…" Command="{Binding Tools.ChangeEncodingCommand}" />
                 </MenuFlyout>
               </Button.Flyout>
             </Button>
             <Button x:Name="LanguageStatus"
+                    Focusable="False"
                     IsVisible="{Binding StatusBar.IsTextTab}"
                     Classes="statusItem"
                     Content="{Binding StatusBar.LanguageText}"
@@ -294,13 +299,14 @@
                     ToolTip.Tip="Set language"
                     AutomationProperties.Name="Set language" />
             <Button x:Name="LineEndingStatus"
+                    Focusable="False"
                     IsVisible="{Binding StatusBar.IsTextTab}"
                     Classes="statusItem"
                     Content="{Binding StatusBar.LineEndingText}"
                     ToolTip.Tip="Line endings"
                     AutomationProperties.Name="Line endings">
               <Button.Flyout>
-                <MenuFlyout>
+                <MenuFlyout Closed="OnStatusFlyoutClosed">
                   <MenuItem Header="LF" ToggleType="Radio" GroupName="statusLineEndings"
                             IsChecked="{Binding Tools.IsLf, Mode=OneWay}" Command="{Binding Tools.UseLfCommand}" />
                   <MenuItem Header="CRLF" ToggleType="Radio" GroupName="statusLineEndings"
