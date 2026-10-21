@@ -309,4 +309,16 @@ public enum VimAction
     /// <c>gT</c> — the previous tab of the pane, wrapping round, as <c>:bp</c>.
     /// </summary>
     PreviousTab,
+
+    /// <summary>
+    /// <c>&lt;Space&gt;rh</c>, <c>rj</c>, <c>rk</c>, <c>rl</c> — move the bar between two panes left, up, down,
+    /// right, whichever of them has the keyboard.
+    /// </summary>
+    /// <remarks>
+    /// The letter is the command's argument. These keys move the bar, where <c>Ctrl+W &gt;</c> grows the pane:
+    /// <c>rl</c> widens the left-hand pane typed in either of the two. <c>k</c> moves the bar down and <c>j</c> up,
+    /// as the request that asked for them spells it. Like every window command it leaves the engine as a request,
+    /// and it is not a change: <c>.</c> never repeats it.
+    /// </remarks>
+    MoveSplitter,
 }

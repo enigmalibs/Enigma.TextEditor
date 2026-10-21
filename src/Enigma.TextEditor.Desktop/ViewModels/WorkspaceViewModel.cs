@@ -437,6 +437,14 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     public bool Resize(SplitAxis axis, double delta) => Layout.Resize(ActivePaneId, axis, delta);
 
     /// <summary>
+    /// Moves the bar of the active pane's nearest split along an axis, the same way from either side of it.
+    /// </summary>
+    /// <param name="axis">Columns to move it left or right, rows to move it up or down.</param>
+    /// <param name="delta">The share of the split to move it by, positive to the right or down.</param>
+    /// <returns>Whether the pane had a split along that axis.</returns>
+    public bool MoveSplitter(SplitAxis axis, double delta) => Layout.MoveSplitter(ActivePaneId, axis, delta);
+
+    /// <summary>
     /// Opens a file in the active pane, or shows it there when it is already open.
     /// </summary>
     /// <param name="filePath">The file.</param>

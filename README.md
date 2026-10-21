@@ -5,10 +5,11 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.2** — a minimap beside the text; `:set` for every item on the status bar; quicker pane keys
-> (`g=`, `g+`, `gt`…) and a resize step of your choice; and dialogs that take the keyboard when they open. 1.1 brought
-> a Linux installer. 1.0, the first release, brought tabs, split panes and Vim's keys; files read and written in their
-> own encoding, line endings and indentation; syntax highlighting; and a read-only hex viewer. See
+> **What's new in 1.3** — Space is a leader key, and `Space rh`, `rj`, `rk`, `rl` move the bar between two panes,
+> from either of them. 1.2 brought a minimap beside the text; `:set` for every item on the status bar; quicker pane
+> keys (`g=`, `g+`, `gt`…) and a resize step of your choice; and dialogs that take the keyboard when they open. 1.1
+> brought a Linux installer. 1.0, the first release, brought tabs, split panes and Vim's keys; files read and written
+> in their own encoding, line endings and indentation; syntax highlighting; and a read-only hex viewer. See
 > [RELEASENOTES.md](RELEASENOTES.md).
 
 **Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its **×**,
@@ -18,6 +19,8 @@ document in the new pane, or the file you name (`:sp notes.txt`). The View menu 
 only this one, make them all the same size (`g=` too), and move to the next one. With several panes, the one with the
 keyboard has an accent frame, and `Ctrl+W h`, `j`, `k`, `l` (or `gh`, `gj`, `gk`, `gl`) move to the pane on that side.
 `Ctrl+W +`, `-`, `>`, `<` (or `g+`, `g-`, `g>`, `g<`) make the active pane taller, shorter, wider or narrower.
+Space is the leader key: `Space rl` and `Space rh` move the bar between side-by-side panes right and left, and
+`Space rk` and `Space rj` move the bar between stacked panes down and up, from whichever of the two has the keyboard.
 
 **Vim.** The editor starts in NORMAL mode, with a broad set of Vim's commands:
 

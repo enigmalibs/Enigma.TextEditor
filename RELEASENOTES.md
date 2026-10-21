@@ -1,5 +1,48 @@
 # Release notes
 
+## 1.3.0 — 2026-10-21
+
+A minor release. Space is now a leader key, and four leader keys move the bar between two panes. They need no `+`,
+`-`, `<` or `>`, so they are easy to reach on any keyboard layout.
+
+### Panes
+
+- **Space is the leader key** in normal and visual mode.
+- **`Space rk` and `Space rj`** move the bar between two stacked panes down and up.
+- **`Space rl` and `Space rh`** move the bar between two side-by-side panes right and left.
+- **They move the bar, not the active pane's edge.** `Space rk` makes the top pane taller whether it is typed in the
+  top pane or in the bottom one, and `Space rl` makes the left pane wider from either side.
+- **Which bar, how far:**
+  - with panes nested, the bar that moves is the nearest one on that axis, the one `Ctrl+W +` and `Ctrl+W >` resize;
+  - it moves by **Settings → Pane Resize Step**, as the other resize keys do.
+- `Ctrl+W +`, `-`, `>`, `<` and `g+`, `g-`, `g>`, `g<` are unchanged: they still grow or shrink the pane that has the
+  keyboard.
+- **Help → Key Bindings** lists the four keys under *Panes*.
+
+### Upgrading from 1.2
+
+- **Space no longer moves the caret right** in normal and visual mode. It waits for the rest of a leader key, and Esc
+  or a key no leader key starts with cancels it.
+  - `l`, or the right arrow, moves right.
+  - Behind an operator Space is still the motion it was: `d<Space>` deletes the character under the caret, as `x`
+    does.
+- **Your settings carry over** unchanged. 1.3 adds no settings key, and going back to 1.2 reads the same file.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- No package had an update outside the Avalonia set. The set is held back at **12.1.2**, with Enigma.Avalonia.Desktop
+  1.2.0 and AvaloniaEdit 12.0.0. Avalonia 12.1.4 is out, but the set moves as a whole.
+
+### Compatibility
+
+- Unchanged from 1.2.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.2 and AvaloniaEdit 12.0.0.
+
+### Version
+
+- **1.3.0** is a minor release under Semantic Versioning. It adds features, keeps every stored format, and removes
+  nothing. One behaviour changes: Space in normal and visual mode.
+
 ## 1.2.0 — 2026-10-21
 
 A minor release. A minimap now runs beside the text, and every item on the status bar can be set with `:set`, under
