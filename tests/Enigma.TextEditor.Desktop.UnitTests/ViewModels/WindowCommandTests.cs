@@ -83,7 +83,8 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
 
             await Window(harness, VimWindowCommand.Quit);
 
-            Assert.Equal(1, harness.Shutdown.ExitRequests);
+            Assert.Empty(harness.Workspace.ActivePane.Tabs);
+            Assert.Equal(0, harness.Shutdown.ExitRequests);
         });
 
     [Fact]

@@ -123,7 +123,7 @@ public static class HelpCatalog
         [
             Ex("Ctrl+S", "Save; with a file, save under that name", VimExCommand.Write, " [file]"),
             Ex("ZZ", "Save, then close the tab", VimExCommand.WriteQuit),
-            Ex("", "Close the tab, asking about unsaved changes; quit on the last one", VimExCommand.Quit),
+            Ex("", "Close the tab, asking about unsaved changes; the app stays open", VimExCommand.Quit),
             Ex("ZQ", "Close the tab, throwing its changes away", VimExCommand.QuitDiscard, bang: true),
             Ex("", "Save every buffer with changes", VimExCommand.WriteAll),
             Ex("", "Quit, asking about unsaved changes", VimExCommand.QuitAll),

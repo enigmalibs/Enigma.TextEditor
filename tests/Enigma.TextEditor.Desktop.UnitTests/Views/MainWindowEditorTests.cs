@@ -107,6 +107,26 @@ public sealed class MainWindowEditorTests(HeadlessAvaloniaFixture fixture)
             window.Close();
         });
 
+    [Fact]
+    public void ColonQOnTheLastTab_LeavesTheWindowOpen_SayingNoFileIsOpen()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x"));
+            MainWindow window = Show(harness);
+
+            window.KeyTextInput(":q");
+            window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+            Dispatcher.UIThread.RunJobs();
+
+            TextBlock placeholder = window.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Classes.Contains("placeholder"));
+            Assert.True(placeholder.IsEffectivelyVisible);
+            Assert.Equal("No file is open. Use File → Open… or File → New.", placeholder.Text);
+            Assert.True(window.IsVisible);
+            Assert.Equal(0, harness.Shutdown.ExitRequests);
+            window.Close();
+        });
+
     [Theory]
     [InlineData("IndentationStatus")]
     [InlineData("EncodingStatus")]

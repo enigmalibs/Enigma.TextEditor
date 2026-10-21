@@ -45,7 +45,7 @@ public sealed class ExCommandHandlerTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
-    public void Quit_ClosesTheTab_AndTheAppOnlyWithTheLastOne()
+    public void Quit_ClosesTheTab_AndNeverTheApp_EvenWithTheLastOne()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
@@ -54,11 +54,11 @@ public sealed class ExCommandHandlerTests(HeadlessAvaloniaFixture fixture)
 
             await Run(harness, VimExCommand.Quit);
             Assert.Single(harness.Workspace.ActivePane.Tabs);
-            Assert.Equal(0, harness.Shutdown.ExitRequests);
 
             await Run(harness, VimExCommand.Quit);
             Assert.Empty(harness.Workspace.ActivePane.Tabs);
-            Assert.Equal(1, harness.Shutdown.ExitRequests);
+            Assert.Single(harness.Workspace.Panes);
+            Assert.Equal(0, harness.Shutdown.ExitRequests);
         });
 
     [Fact]
@@ -89,7 +89,8 @@ public sealed class ExCommandHandlerTests(HeadlessAvaloniaFixture fixture)
 
             Assert.Empty(harness.Unsaved.AskedAbout);
             Assert.Equal("a", File.ReadAllText(path));
-            Assert.Equal(1, harness.Shutdown.ExitRequests);
+            Assert.Empty(harness.Workspace.ActivePane.Tabs);
+            Assert.Equal(0, harness.Shutdown.ExitRequests);
         });
 
     [Fact]
@@ -104,6 +105,7 @@ public sealed class ExCommandHandlerTests(HeadlessAvaloniaFixture fixture)
 
             Assert.Equal("xa", File.ReadAllText(path));
             Assert.Empty(harness.Workspace.ActivePane.Tabs);
+            Assert.Equal(0, harness.Shutdown.ExitRequests);
         });
 
     [Fact]

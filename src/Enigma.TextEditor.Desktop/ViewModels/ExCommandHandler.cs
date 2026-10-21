@@ -18,9 +18,9 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// <em>Close Tab</em> does and <c>:w</c> reports a failed save as <em>Save</em> does.
 /// </para>
 /// <para>
-/// <c>:q</c> closes the tab, and quits the application when that was the last tab anywhere — Vim's
-/// <c>:q</c> on its last window. A file argument is relative to the active buffer's folder, or to the
-/// working directory for an untitled buffer.
+/// <c>:q</c> closes the tab and never quits, even on the last tab: the pane is left empty and says
+/// so, as when the tab is closed any other way. <c>:qa</c> quits. A file argument is relative to the
+/// active buffer's folder, or to the working directory for an untitled buffer.
 /// </para>
 /// <para>
 /// The tabs are the buffer list, so <c>:enew</c> adds an untitled tab as <em>File → New</em> does, and
@@ -40,7 +40,7 @@ public sealed class ExCommandHandler
     /// Initializes a new instance of the <see cref="ExCommandHandler"/> class.
     /// </summary>
     /// <param name="workspace">The editor area the commands act on.</param>
-    /// <param name="shutdown">Ends the application.</param>
+    /// <param name="shutdown">Ends the application, for <c>:qa</c>.</param>
     /// <param name="status">Where a malformed path is reported.</param>
     /// <param name="help">Shows the key-binding help, for <c>:help</c>.</param>
     /// <param name="languages">The languages <c>:set filetype</c> can name.</param>
@@ -248,13 +248,8 @@ public sealed class ExCommandHandler
         }
     }
 
-    private async Task QuitAsync(EditorPaneViewModel pane, EditorTabViewModel tab, bool discard)
-    {
-        if (await _workspace.CloseTabAsync(pane, tab, discard) && !_workspace.HasTabs)
-        {
-            _shutdown.RequestExit();
-        }
-    }
+    private Task QuitAsync(EditorPaneViewModel pane, EditorTabViewModel tab, bool discard)
+        => _workspace.CloseTabAsync(pane, tab, discard);
 
     private string? Resolve(string file, DocumentViewModel? relativeTo)
     {

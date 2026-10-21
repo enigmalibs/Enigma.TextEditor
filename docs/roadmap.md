@@ -52,7 +52,7 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-2F9C | :set for the status bar items      | DONE        | docs/plan/FEATURE-2F9C.md |
 | - PHASE01    | Indentation options                | DONE        | (in FEATURE-2F9C.md)      |
 | - PHASE02    | ff, fenc, bomb and ft              | DONE        | (in FEATURE-2F9C.md)      |
-| FEATURE-684E | :q on the last tab keeps the app   | TODO        | docs/plan/FEATURE-684E.md |
+| FEATURE-684E | :q on the last tab keeps the app   | DONE        | docs/plan/FEATURE-684E.md |
 | FEATURE-2860 | Quick pane and tab keys            | TODO        | docs/plan/FEATURE-2860.md |
 | - PHASE01    | g=, g+, g-, g>, g<, gt, gT         | TODO        | (in FEATURE-2860.md)      |
 | - PHASE02    | Configurable resize step           | TODO        | (in FEATURE-2860.md)      |
