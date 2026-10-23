@@ -111,6 +111,7 @@
     <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding Settings.ZoomOutCommand}" />
     <KeyBinding Gesture="Ctrl+D0" Command="{Binding Settings.ResetZoomCommand}" />
     <KeyBinding Gesture="F1" Command="{Binding HelpCommand}" />
+    <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding PreferencesCommand}" />
   </Window.KeyBindings>
 
   <Panel>
@@ -217,6 +218,9 @@
               <MenuItem Header="CRLF" ToggleType="Radio" GroupName="defaultLineEndings"
                         IsChecked="{Binding Settings.IsDefaultCrLf, Mode=OneWay}" Command="{Binding Settings.DefaultCrLfCommand}" />
             </MenuItem>
+            <Separator />
+            <!-- Every setting above, and the full range of each, grouped by what it acts on. -->
+            <MenuItem Header="_Preferences…" Command="{Binding PreferencesCommand}" InputGesture="Ctrl+OemComma" />
           </MenuItem>
           <MenuItem Header="_Help">
             <MenuItem Header="_Key Bindings" Command="{Binding HelpCommand}" InputGesture="F1" views:VimHint.Keys=":help" />

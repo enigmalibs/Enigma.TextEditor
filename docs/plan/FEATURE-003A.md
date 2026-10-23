@@ -1,6 +1,6 @@
 # FEATURE-003A — Preferences dialog & fonts
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-003a-phase01-preferences-dialog`
 **Branch (PHASE02):** `feature/feature-003a-phase02-editor-fonts`
@@ -53,7 +53,7 @@
 
 ## PHASE01 — Preferences dialog
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-003A-PHASE01.md`
 
 ### Steps
 

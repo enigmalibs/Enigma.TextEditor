@@ -1,0 +1,203 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Enigma.TextEditor.Desktop.ViewModels"
+             xmlns:views="using:Enigma.TextEditor.Desktop.Views"
+             xmlns:controls="using:Enigma.Avalonia.Desktop.Controls"
+             xmlns:settings="using:Enigma.TextEditor.Core.Settings"
+             xmlns:documents="using:Enigma.TextEditor.Core.Documents"
+             xmlns:ei="https://github.com/josueclement/Enigma.Icons"
+             x:Class="Enigma.TextEditor.Desktop.Views.PreferencesView"
+             x:DataType="vm:PreferencesViewModel"
+             Width="620">
+
+  <UserControl.Resources>
+    <!-- The dropdowns show what a choice does rather than its enum name. -->
+    <DataTemplate x:Key="ThemeItem" x:DataType="settings:AppTheme">
+      <TextBlock Text="{Binding Converter={x:Static views:PreferencesView.ThemeText}}" />
+    </DataTemplate>
+    <DataTemplate x:Key="LineEndingItem" x:DataType="documents:LineEndingStyle">
+      <TextBlock Text="{Binding Converter={x:Static views:PreferencesView.LineEndingText}}" />
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <!-- Enigma.GitClient's settings rows: what the setting is, a quieter line saying what it does, and the
+       control at the trailing end. -->
+  <UserControl.Styles>
+    <Style Selector="TextBlock.preferenceName">
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundBrush}" />
+    </Style>
+    <Style Selector="TextBlock.preferenceHint">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundTertiaryBrush}" />
+    </Style>
+    <Style Selector="Grid.preference > StackPanel, Grid.preference > TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Grid.preference > ComboBox, Grid.preference > NumericUpDown">
+      <Setter Property="MinWidth" Value="180" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Grid.preference > ToggleSwitch">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+
+    <!-- There is nothing to confirm: a change applies and is written at once, as in the Settings menu.
+         Reset asks first, from a flyout, because the dialog host holds one dialog at a time. -->
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,16,12">
+      <TextBlock Grid.Column="0"
+                 Classes="preferenceHint"
+                 VerticalAlignment="Center"
+                 Text="Changes apply at once and are remembered." />
+      <Button x:Name="ResetButton"
+              Grid.Column="1"
+              Content="Reset to defaults"
+              ToolTip.Tip="Put every preference back to its default"
+              AutomationProperties.Name="Reset every preference">
+        <Button.Flyout>
+          <MenuFlyout>
+            <MenuItem x:Name="ConfirmReset"
+                      Header="Put every preference back to its default"
+                      Command="{Binding ResetCommand}" />
+          </MenuFlyout>
+        </Button.Flyout>
+      </Button>
+    </Grid>
+
+    <!-- The one scroll area: the dialog card around it is kept from scrolling (see the code-behind), and
+         its bar stands beside the cards rather than over them. -->
+    <ScrollViewer x:Name="Scroller"
+                  AllowAutoHide="False"
+                  HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto"
+                  MaxHeight="440">
+      <StackPanel x:Name="Cards" Spacing="8" Margin="0,0,16,0">
+
+        <controls:SettingsCardExpander x:Name="AppearanceCard"
+                                       Header="Appearance"
+                                       Description="How the window and the editors look"
+                                       IconData="{ei:IconGeometry Palette}"
+                                       IsExpanded="True">
+          <StackPanel Spacing="14">
+            <Grid Classes="preference" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock Grid.Column="0" Classes="preferenceName" Text="Theme" />
+              <ComboBox x:Name="ThemeChoice"
+                        Grid.Column="1"
+                        ItemsSource="{Binding Themes}"
+                        SelectedItem="{Binding Theme, Mode=TwoWay}"
+                        ItemTemplate="{StaticResource ThemeItem}"
+                        AutomationProperties.Name="Theme" />
+            </Grid>
+
+            <Grid Classes="preference" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="preferenceName" Text="Minimap" />
+                <TextBlock Classes="preferenceHint"
+                           Text="A strip beside the text that shows where the view and the caret are, and scrolls to where it is pressed. Off, the vertical scrollbar is back." />
+              </StackPanel>
+              <ToggleSwitch x:Name="MinimapSwitch"
+                            Grid.Column="1"
+                            IsChecked="{Binding ShowMinimap, Mode=TwoWay}"
+                            AutomationProperties.Name="Minimap" />
+            </Grid>
+
+            <Grid Classes="preference" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="preferenceName" Text="Wrap long lines" />
+                <TextBlock Classes="preferenceHint" Text="At the edge of the editor, rather than scrolling sideways." />
+              </StackPanel>
+              <ToggleSwitch x:Name="WordWrapSwitch"
+                            Grid.Column="1"
+                            IsChecked="{Binding WordWrap, Mode=TwoWay}"
+                            AutomationProperties.Name="Wrap long lines" />
+            </Grid>
+          </StackPanel>
+        </controls:SettingsCardExpander>
+
+        <controls:SettingsCardExpander x:Name="EditingCard"
+                                       Header="Editing"
+                                       Description="How the keys drive the editors and the panes"
+                                       IconData="{ei:IconGeometry Keyboard}"
+                                       IsExpanded="True">
+          <StackPanel Spacing="14">
+            <Grid Classes="preference" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="preferenceName" Text="Vim mode" />
+                <TextBlock Classes="preferenceHint"
+                           Text="Normal, insert and visual modes, the ex commands and the Vim keys. Off, the editor types as any other." />
+              </StackPanel>
+              <ToggleSwitch x:Name="VimSwitch"
+                            Grid.Column="1"
+                            IsChecked="{Binding VimEnabled, Mode=TwoWay}"
+                            AutomationProperties.Name="Vim mode" />
+            </Grid>
+
+            <!-- The limits are AppSettings' own range for the setting. -->
+            <Grid Classes="preference" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="preferenceName" Text="Pane resize step" />
+                <TextBlock Classes="preferenceHint"
+                           Text="How far Ctrl+W &gt;, g&gt; and the other resize keys move a splitter, in percent of the split." />
+              </StackPanel>
+              <NumericUpDown x:Name="ResizeStepEditor"
+                             Grid.Column="1"
+                             Value="{Binding PaneResizeStep, Mode=TwoWay}"
+                             Minimum="1"
+                             Maximum="50"
+                             Increment="1"
+                             FormatString="0"
+                             AutomationProperties.Name="Pane resize step, in percent" />
+            </Grid>
+          </StackPanel>
+        </controls:SettingsCardExpander>
+
+        <controls:SettingsCardExpander x:Name="NewFilesCard"
+                                       Header="New files"
+                                       Description="How a new file starts, and how a file whose own indentation cannot be told is indented"
+                                       IconData="{ei:IconGeometry FilePlus}"
+                                       IsExpanded="True">
+          <StackPanel Spacing="14">
+            <Grid Classes="preference" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="preferenceName" Text="Indent with tabs" />
+                <TextBlock Classes="preferenceHint" Text="Off, with spaces." />
+              </StackPanel>
+              <ToggleSwitch x:Name="TabsSwitch"
+                            Grid.Column="1"
+                            IsChecked="{Binding IndentWithTabs, Mode=TwoWay}"
+                            AutomationProperties.Name="Indent with tabs" />
+            </Grid>
+
+            <Grid Classes="preference" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="preferenceName" Text="Indent size" />
+                <TextBlock Classes="preferenceHint" Text="How many columns one level of indentation is." />
+              </StackPanel>
+              <NumericUpDown x:Name="IndentSizeEditor"
+                             Grid.Column="1"
+                             Value="{Binding IndentSize, Mode=TwoWay}"
+                             Minimum="1"
+                             Maximum="16"
+                             Increment="1"
+                             FormatString="0"
+                             AutomationProperties.Name="Indent size, in columns" />
+            </Grid>
+
+            <Grid Classes="preference" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock Grid.Column="0" Classes="preferenceName" Text="Line endings" />
+              <ComboBox x:Name="LineEndingChoice"
+                        Grid.Column="1"
+                        ItemsSource="{Binding LineEndings}"
+                        SelectedItem="{Binding DefaultLineEnding, Mode=TwoWay}"
+                        ItemTemplate="{StaticResource LineEndingItem}"
+                        AutomationProperties.Name="Line endings" />
+            </Grid>
+          </StackPanel>
+        </controls:SettingsCardExpander>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>
