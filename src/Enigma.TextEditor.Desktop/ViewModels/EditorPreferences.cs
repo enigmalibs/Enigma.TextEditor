@@ -15,10 +15,14 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 public sealed class EditorPreferences : ObservableObject
 {
     /// <summary>
-    /// The editor's font: the first monospace family the machine has, on any of the three platforms.
+    /// The built-in monospace stack: the first of these the machine has, on any of the three platforms.
     /// </summary>
-    public static readonly FontFamily MonospaceFamily =
-        new("Cascadia Mono, Consolas, JetBrains Mono, DejaVu Sans Mono, Menlo, Courier New, monospace");
+    public const string MonospaceStack = "Cascadia Mono, Consolas, JetBrains Mono, DejaVu Sans Mono, Menlo, Courier New, monospace";
+
+    /// <summary>
+    /// The editor's font when no family is chosen.
+    /// </summary>
+    public static readonly FontFamily MonospaceFamily = new(MonospaceStack);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EditorPreferences"/> class from the settings.
@@ -28,6 +32,7 @@ public sealed class EditorPreferences : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        FontFamily = FamilyFor(settings.Value.EditorFontFamily);
         FontSize = settings.Value.EditorFontSize;
         WordWrap = settings.Value.WordWrap;
         ShowMinimap = settings.Value.ShowMinimap;
@@ -35,9 +40,9 @@ public sealed class EditorPreferences : ObservableObject
     }
 
     /// <summary>
-    /// Gets the editor's font.
+    /// Gets or sets the editor's font.
     /// </summary>
-    public FontFamily FontFamily => MonospaceFamily;
+    public FontFamily FontFamily { get; set => SetProperty(ref field, value); }
 
     /// <summary>
     /// Gets or sets the editor's font size.
@@ -59,4 +64,15 @@ public sealed class EditorPreferences : ObservableObject
     /// Gets or sets how far a resize key moves a splitter, in percent of the split.
     /// </summary>
     public int PaneResizeStep { get; set => SetProperty(ref field, value); }
+
+    /// <summary>
+    /// The font for a chosen family.
+    /// </summary>
+    /// <param name="family">The family's name, or an empty one for the built-in stack.</param>
+    /// <returns>
+    /// The family, with the built-in stack behind it: a name the machine does not have falls back to a
+    /// monospace face rather than to the interface's own.
+    /// </returns>
+    public static FontFamily FamilyFor(string? family)
+        => string.IsNullOrWhiteSpace(family) ? MonospaceFamily : new FontFamily($"{family.Trim()}, {MonospaceStack}");
 }

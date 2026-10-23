@@ -31,15 +31,20 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
             page.IndentWithTabs = true;
             page.IndentSize = 3;
             page.DefaultLineEnding = LineEndingStyle.CrLf;
+            page.EditorFont = "Some Mono";
+            page.EditorFontSize = 20;
 
-            Assert.Equal(8, writer.Saves);
+            Assert.Equal(10, writer.Saves);
             Assert.Equal([AppTheme.Dark], harness.Theme.Applied);
             Assert.False(harness.Preferences.ShowMinimap);
             Assert.True(harness.Preferences.WordWrap);
             Assert.False(harness.Vim.IsEnabled);
             Assert.Equal(7, harness.Preferences.PaneResizeStep);
+            Assert.Equal(20, harness.Preferences.FontSize);
+            Assert.Equal("Some Mono", harness.Preferences.FontFamily.FamilyNames.PrimaryFamilyName);
 
             AppSettings settings = harness.Settings.Value;
+            Assert.Equal("Some Mono", settings.EditorFontFamily);
             Assert.True(settings.IndentWithTabs);
             Assert.Equal(3, settings.IndentSize);
             Assert.Equal(LineEndingStyle.CrLf, settings.DefaultLineEnding);
@@ -149,6 +154,7 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
                 settings.ShowMinimap = false;
                 settings.PaneResizeStep = 20;
                 settings.EditorFontSize = 30;
+                settings.EditorFontFamily = "Some Mono";
                 settings.IndentWithTabs = true;
                 settings.IndentSize = 8;
                 settings.DefaultLineEnding = LineEndingStyle.CrLf;
@@ -169,6 +175,7 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
                 Assert.Equal(defaults.ShowMinimap, settings.ShowMinimap);
                 Assert.Equal(defaults.PaneResizeStep, settings.PaneResizeStep);
                 Assert.Equal(defaults.EditorFontSize, settings.EditorFontSize);
+                Assert.Equal(defaults.EditorFontFamily, settings.EditorFontFamily);
                 Assert.Equal(defaults.IndentWithTabs, settings.IndentWithTabs);
                 Assert.Equal(defaults.IndentSize, settings.IndentSize);
                 Assert.Equal(defaults.DefaultLineEnding, settings.DefaultLineEnding);
@@ -180,6 +187,7 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
             Assert.True(harness.Preferences.ShowMinimap);
             Assert.Equal(AppSettings.DefaultPaneResizeStep, harness.Preferences.PaneResizeStep);
             Assert.Equal(AppSettings.DefaultFontSize, harness.Preferences.FontSize);
+            Assert.Same(EditorPreferences.MonospaceFamily, harness.Preferences.FontFamily);
             Assert.True(harness.SettingsMenu.IsSystemTheme);
             Assert.True(harness.SettingsMenu.IsDefaultFourSpaces);
             Assert.Contains(nameof(PreferencesViewModel.Theme), announced);

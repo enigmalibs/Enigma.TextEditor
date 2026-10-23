@@ -161,9 +161,12 @@
          left, which costs a few numbers per tab instead of a whole text view. Hidden with no tab: a
          text area with no document throws the moment the pointer reaches it. -->
     <!-- The hex view of a file, read-only, in the editor's place. Its DataContext is the tab. -->
-    <!-- The panel carries the pane's bindings (visibility, font size, which the rows inherit); the
-         view inside binds to the tab. -->
-    <Panel Grid.Row="1" IsVisible="{Binding IsHexActive}" TextElement.FontSize="{Binding Preferences.FontSize}">
+    <!-- The panel carries the pane's bindings (visibility, and the editor's font and size, which the
+         rows inherit); the view inside binds to the tab. -->
+    <Panel Grid.Row="1"
+           IsVisible="{Binding IsHexActive}"
+           TextElement.FontFamily="{Binding Preferences.FontFamily}"
+           TextElement.FontSize="{Binding Preferences.FontSize}">
       <views:HexView x:Name="Hex" DataContext="{Binding ActiveTab}" />
     </Panel>
 

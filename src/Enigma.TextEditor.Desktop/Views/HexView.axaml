@@ -10,8 +10,8 @@
       <Setter Property="Padding" Value="8,0" />
       <Setter Property="MinHeight" Value="0" />
     </Style>
+    <!-- No font family here: the rows inherit the editor's, as they inherit its size, from the pane. -->
     <Style Selector="ListBox#Rows TextBlock.row">
-      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, JetBrains Mono, DejaVu Sans Mono, Menlo, Courier New, monospace" />
       <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundBrush}" />
     </Style>
   </UserControl.Styles>

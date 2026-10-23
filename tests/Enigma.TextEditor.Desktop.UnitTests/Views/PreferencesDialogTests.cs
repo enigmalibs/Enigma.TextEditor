@@ -12,6 +12,7 @@ using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Core.Settings;
 using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
+using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
 using Xunit;
 
@@ -51,7 +52,7 @@ public sealed class PreferencesDialogTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
-    public void TheDialog_ShowsAppearanceEditingAndNewFiles_Open_InOneScrollArea_AndEscClosesIt()
+    public void TheDialog_ShowsTextAppearanceEditingAndNewFiles_Open_InOneScrollArea_AndEscClosesIt()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
@@ -72,7 +73,7 @@ public sealed class PreferencesDialogTests(HeadlessAvaloniaFixture fixture)
             SettingsCardExpander[] cards = [.. view.GetVisualDescendants().OfType<SettingsCardExpander>()];
             ScrollViewer? card = view.FindAncestorOfType<ScrollViewer>();
 
-            Assert.Equal(["Appearance", "Editing", "New files"], cards.Select(expander => expander.Header));
+            Assert.Equal(["Text", "Appearance", "Editing", "New files"], cards.Select(expander => expander.Header));
             Assert.All(cards, expander => Assert.True(expander.IsExpanded));
             Assert.True((card is null) || (card.Extent.Height - card.Viewport.Height <= 0.5), "The dialog card scrolls as well as the preferences.");
 
@@ -109,11 +110,14 @@ public sealed class PreferencesDialogTests(HeadlessAvaloniaFixture fixture)
             await DrainAsync();
             PreferencesView view = (PreferencesView)window.HostDialog.Content!;
 
+            Assert.Equal(PreferencesViewModel.DefaultFontLabel, view.FindControl<ComboBox>("FontChoice")!.SelectedItem);
+            Assert.Equal(AppSettings.DefaultFontSize, view.FindControl<NumericUpDown>("FontSizeEditor")!.Value);
             Assert.Equal(AppTheme.System, view.FindControl<ComboBox>("ThemeChoice")!.SelectedItem);
             Assert.True(view.FindControl<ToggleSwitch>("MinimapSwitch")!.IsChecked);
             Assert.Equal(AppSettings.DefaultPaneResizeStep, view.FindControl<NumericUpDown>("ResizeStepEditor")!.Value);
             Assert.Equal(LineEndingStyle.Lf, view.FindControl<ComboBox>("LineEndingChoice")!.SelectedItem);
 
+            view.FindControl<NumericUpDown>("FontSizeEditor")!.Value = 18;
             view.FindControl<ComboBox>("ThemeChoice")!.SelectedItem = AppTheme.Dark;
             view.FindControl<ToggleSwitch>("MinimapSwitch")!.IsChecked = false;
             view.FindControl<ToggleSwitch>("VimSwitch")!.IsChecked = false;
@@ -125,6 +129,7 @@ public sealed class PreferencesDialogTests(HeadlessAvaloniaFixture fixture)
 
             AppSettings settings = harness.Settings.Value;
             Assert.Equal(AppTheme.Dark, settings.Theme);
+            Assert.Equal(18, harness.Preferences.FontSize);
             Assert.False(harness.Preferences.ShowMinimap);
             Assert.False(harness.Vim.IsEnabled);
             Assert.Equal(7, harness.Preferences.PaneResizeStep);
@@ -154,6 +159,9 @@ public sealed class PreferencesDialogTests(HeadlessAvaloniaFixture fixture)
 
             NumericUpDown step = view.FindControl<NumericUpDown>("ResizeStepEditor")!;
             NumericUpDown size = view.FindControl<NumericUpDown>("IndentSizeEditor")!;
+            NumericUpDown fontSize = view.FindControl<NumericUpDown>("FontSizeEditor")!;
+            Assert.Equal(AppSettings.MinimumFontSize, fontSize.Minimum);
+            Assert.Equal(AppSettings.MaximumFontSize, fontSize.Maximum);
             Assert.Equal(AppSettings.MinimumPaneResizeStep, step.Minimum);
             Assert.Equal(AppSettings.MaximumPaneResizeStep, step.Maximum);
             Assert.Equal(AppSettings.MinimumIndentSize, size.Minimum);

@@ -364,6 +364,21 @@ public sealed class SettingsMenuViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Sets the family the editors' text is drawn in and writes it.
+    /// </summary>
+    /// <param name="family">The family's name, or an empty one for the built-in monospace stack.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    public async Task SetFontFamilyAsync(string family)
+    {
+        ArgumentNullException.ThrowIfNull(family);
+
+        Value.EditorFontFamily = family.Trim();
+        _preferences.FontFamily = EditorPreferences.FamilyFor(Value.EditorFontFamily);
+
+        await AppliedAsync();
+    }
+
+    /// <summary>
     /// Puts every preference back to its default, applies them all, and writes them once.
     /// </summary>
     /// <returns>A task that completes once the settings are written.</returns>
@@ -377,6 +392,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
         Value.ShowMinimap = defaults.ShowMinimap;
         Value.PaneResizeStep = defaults.PaneResizeStep;
         Value.EditorFontSize = defaults.EditorFontSize;
+        Value.EditorFontFamily = defaults.EditorFontFamily;
         Value.IndentWithTabs = defaults.IndentWithTabs;
         Value.IndentSize = defaults.IndentSize;
         Value.DefaultLineEnding = defaults.DefaultLineEnding;
@@ -387,6 +403,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
         _preferences.ShowMinimap = Value.ShowMinimap;
         _preferences.PaneResizeStep = Value.PaneResizeStep;
         _preferences.FontSize = Value.EditorFontSize;
+        _preferences.FontFamily = EditorPreferences.FamilyFor(Value.EditorFontFamily);
 
         // Every check and radio mark of the menu at once.
         OnPropertyChanged(string.Empty);
