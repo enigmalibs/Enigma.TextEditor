@@ -64,7 +64,7 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-3F16 | Release 1.3.0                        | DONE        | docs/plan/FEATURE-3F16.md |
 | BUG-09C2     | Space rj/rk move the bar inverted    | DONE        | docs/plan/BUG-09C2.md     |
 | FEATURE-6622 | Release 1.4.0                        | DONE        | docs/plan/FEATURE-6622.md |
-| BUG-7624     | Text hidden under minimap/scrollbar  | TODO        | docs/plan/BUG-7624.md     |
+| BUG-7624     | Text hidden under minimap/scrollbar  | DONE        | docs/plan/BUG-7624.md     |
 | FEATURE-003A | Preferences dialog & fonts           | TODO        | docs/plan/FEATURE-003A.md |
 | - PHASE01    | Preferences dialog                   | TODO        | (in FEATURE-003A.md)      |
 | - PHASE02    | Editor font family & size            | TODO        | (in FEATURE-003A.md)      |
