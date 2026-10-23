@@ -68,6 +68,6 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-003A | Preferences dialog & fonts           | DONE        | docs/plan/FEATURE-003A.md |
 | - PHASE01    | Preferences dialog                   | DONE        | (in FEATURE-003A.md)      |
 | - PHASE02    | Editor font family & size            | DONE        | (in FEATURE-003A.md)      |
-| FEATURE-2A5C | Release 1.5.0                        | TODO        | docs/plan/FEATURE-2A5C.md |
+| FEATURE-2A5C | Release 1.5.0                        | DONE        | docs/plan/FEATURE-2A5C.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

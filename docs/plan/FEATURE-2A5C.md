@@ -1,6 +1,6 @@
 # FEATURE-2A5C — Release 1.5.0
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-2A5C.md`
 **Type:** FEATURE
 **Branch:** `feature/feature-2a5c-release-1-5-0`
 **Run:** feature/2026-10-23-release-1-5-0
