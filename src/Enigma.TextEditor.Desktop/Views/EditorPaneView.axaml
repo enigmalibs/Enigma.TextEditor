@@ -93,6 +93,12 @@
       <Setter Property="TextWrapping" Value="Wrap" />
       <Setter Property="Margin" Value="16" />
     </Style>
+    <!-- The editor's scrollbars stand beside the text rather than over it. Left to auto-hide, the
+         theme lays the text under both bars and widens them under the pointer, over the last
+         characters of every line and over the bottom line. -->
+    <Style Selector="edit|TextEditor#Editor /template/ ScrollViewer#PART_ScrollViewer">
+      <Setter Property="AllowAutoHide" Value="False" />
+    </Style>
   </UserControl.Styles>
 
   <!-- The frame marks the active pane once there is more than one to tell apart. -->
@@ -164,7 +170,9 @@
     <!-- The text and its minimap, which stands in for the vertical scrollbar: the editor's own is
          hidden (it still scrolls with the wheel), and the map beside it shows where the view and the
          caret are and scrolls to where it is pressed. Not over a hex tab, which scrolls its own rows.
-         Settings → Minimap off brings the scrollbar back instead. -->
+         Settings → Minimap off brings the scrollbar back instead. The editor's right padding is a gap
+         between the text, which the text area clips to itself, and whichever of the two stands beside
+         it: a line scrolled to its end then stops short of the strip rather than against it. -->
     <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
     <edit:TextEditor x:Name="Editor"
                      Grid.Column="0"
@@ -175,6 +183,7 @@
                      FontFamily="{Binding Preferences.FontFamily}"
                      FontSize="{Binding Preferences.FontSize}"
                      Background="Transparent"
+                     Padding="0,0,6,0"
                      HorizontalScrollBarVisibility="Auto"
                      VerticalScrollBarVisibility="{Binding Preferences.ShowMinimap, Converter={x:Static views:EditorPaneView.VerticalScrollBarFor}}">
       <!-- The Edit menu's commands, on this pane's text whichever pane has the keyboard. The gestures
