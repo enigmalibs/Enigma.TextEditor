@@ -16,6 +16,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly IAppShutdown _shutdown;
     private readonly IAboutDialogService _about;
     private readonly IHelpDialogService _help;
+    private readonly IPreferencesDialogService _preferences;
     private DocumentViewModel? _document;
 
     /// <summary>
@@ -27,6 +28,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <param name="settings">The Settings menu and the zoom commands.</param>
     /// <param name="about">The About dialog.</param>
     /// <param name="help">The key-binding help.</param>
+    /// <param name="preferences">The Preferences dialog.</param>
     /// <param name="shutdown">Ends the application.</param>
     public MainWindowViewModel(
         WorkspaceViewModel workspace,
@@ -35,6 +37,7 @@ public sealed class MainWindowViewModel : ObservableObject
         SettingsMenuViewModel settings,
         IAboutDialogService about,
         IHelpDialogService help,
+        IPreferencesDialogService preferences,
         IAppShutdown shutdown)
     {
         Workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
@@ -43,11 +46,13 @@ public sealed class MainWindowViewModel : ObservableObject
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _about = about ?? throw new ArgumentNullException(nameof(about));
         _help = help ?? throw new ArgumentNullException(nameof(help));
+        _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
         _shutdown = shutdown ?? throw new ArgumentNullException(nameof(shutdown));
 
         ExitCommand = new RelayCommand(OnExit);
         AboutCommand = new AsyncRelayCommand(() => _about.ShowAsync());
         HelpCommand = new AsyncRelayCommand(() => _help.ShowAsync());
+        PreferencesCommand = new AsyncRelayCommand(() => _preferences.ShowAsync());
 
         Workspace.PropertyChanged += OnWorkspacePropertyChanged;
         Follow(Workspace.ActiveDocument);
@@ -82,6 +87,11 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Gets <em>Help → Key Bindings</em> (F1), which <c>:help</c> also opens.
     /// </summary>
     public AsyncRelayCommand HelpCommand { get; }
+
+    /// <summary>
+    /// Gets <em>Settings → Preferences…</em> (Ctrl+,).
+    /// </summary>
+    public AsyncRelayCommand PreferencesCommand { get; }
 
     /// <summary>
     /// Gets the window title: the active buffer's name, a dot when it has unsaved changes, and the

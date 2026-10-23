@@ -43,6 +43,16 @@ public sealed class AppSettings
     public const int DefaultPaneResizeStep = 5;
 
     /// <summary>
+    /// The fewest columns one level of indentation may be.
+    /// </summary>
+    public const int MinimumIndentSize = 1;
+
+    /// <summary>
+    /// The most columns one level of indentation may be.
+    /// </summary>
+    public const int MaximumIndentSize = 16;
+
+    /// <summary>
     /// Gets or sets the theme variant the window is painted in.
     /// </summary>
     [EnumDataType(typeof(AppTheme))]
@@ -86,7 +96,7 @@ public sealed class AppSettings
     /// <summary>
     /// Gets or sets how many columns one level of indentation is, for those same files.
     /// </summary>
-    [Range(1, 16)]
+    [Range(MinimumIndentSize, MaximumIndentSize)]
     public int IndentSize { get; set; } = 4;
 
     /// <summary>
