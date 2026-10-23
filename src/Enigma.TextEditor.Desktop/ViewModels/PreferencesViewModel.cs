@@ -1,16 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Enigma.Configuration;
 using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Core.Settings;
+using Enigma.TextEditor.Desktop.Services;
 
 namespace Enigma.TextEditor.Desktop.ViewModels;
 
 /// <summary>
 /// The Preferences dialog: every setting, grouped by what it acts on, with the full range each one
-/// allows.
+/// allows — the editor's font among them.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -26,6 +28,11 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// </remarks>
 public sealed class PreferencesViewModel : ObservableObject
 {
+    /// <summary>
+    /// What the font list calls "no choice": the built-in monospace stack.
+    /// </summary>
+    public const string DefaultFontLabel = "Default";
+
     private readonly IConfig<AppSettings> _settings;
     private readonly SettingsMenuViewModel _menu;
 
@@ -47,6 +54,55 @@ public sealed class PreferencesViewModel : ObservableObject
 
         // Both are container singletons: the subscription lives as long as the menu does.
         _menu.Changed += OnPreferencesChanged;
+    }
+
+    /// <summary>
+    /// Gets the families the editor's text can be drawn in: <see cref="DefaultFontLabel"/>, then this
+    /// machine's monospace faces, then the saved family if the machine does not have it.
+    /// </summary>
+    /// <remarks>
+    /// Built on first read rather than in the constructor: listing the installed fonts needs a font manager,
+    /// and the container is resolved where there is no Avalonia platform behind it. A saved family stays
+    /// listed so the dropdown can show it, rather than show nothing.
+    /// </remarks>
+    public IReadOnlyList<string> Fonts => field ??= BuildFontList(Value.EditorFontFamily);
+
+    /// <summary>
+    /// Gets or sets the family the editor's text is drawn in, as the font list writes it.
+    /// </summary>
+    public string EditorFont
+    {
+        get => string.IsNullOrWhiteSpace(Value.EditorFontFamily) ? DefaultFontLabel : Value.EditorFontFamily;
+        set
+        {
+            // Null when the dropdown loses its selection, which is not a choice.
+            if (value is null)
+            {
+                return;
+            }
+
+            string family = string.Equals(value, DefaultFontLabel, StringComparison.Ordinal) ? string.Empty : value;
+
+            if (!string.Equals(family, Value.EditorFontFamily, StringComparison.Ordinal) && !_announcing)
+            {
+                _ = _menu.SetFontFamilyAsync(family);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the editor's font size: the one the zoom keys change.
+    /// </summary>
+    public int EditorFontSize
+    {
+        get => Value.EditorFontSize;
+        set
+        {
+            if ((value != Value.EditorFontSize) && !_announcing)
+            {
+                _ = _menu.SetFontSizeAsync(value);
+            }
+        }
     }
 
     /// <summary>
@@ -187,12 +243,26 @@ public sealed class PreferencesViewModel : ObservableObject
 
     private AppSettings Value => _settings.Value;
 
+    private static IReadOnlyList<string> BuildFontList(string saved)
+    {
+        List<string> fonts = [DefaultFontLabel, .. MonospaceFonts.InstalledNames()];
+
+        if (!string.IsNullOrWhiteSpace(saved) && !fonts.Contains(saved, StringComparer.Ordinal))
+        {
+            fonts.Add(saved);
+        }
+
+        return fonts;
+    }
+
     private void OnPreferencesChanged(object? sender, EventArgs e)
     {
         _announcing = true;
 
         try
         {
+            OnPropertyChanged(nameof(EditorFont));
+            OnPropertyChanged(nameof(EditorFontSize));
             OnPropertyChanged(nameof(Theme));
             OnPropertyChanged(nameof(ShowMinimap));
             OnPropertyChanged(nameof(WordWrap));

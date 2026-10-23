@@ -1,6 +1,6 @@
 # FEATURE-003A — Preferences dialog & fonts
 
-**Status:** IN PROGRESS
+**Status:** DONE — see `docs/done/FEATURE-003A-PHASE01.md`, `docs/done/FEATURE-003A-PHASE02.md`
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-003a-phase01-preferences-dialog`
 **Branch (PHASE02):** `feature/feature-003a-phase02-editor-fonts`
@@ -98,7 +98,7 @@
 
 ## PHASE02 — Editor font family & size
 
-**Status:** TODO
+**Status:** DONE — see `docs/done/FEATURE-003A-PHASE02.md`
 
 ### Steps
 

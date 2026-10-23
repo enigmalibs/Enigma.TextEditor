@@ -35,7 +35,7 @@
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="Grid.preference > ComboBox, Grid.preference > NumericUpDown">
-      <Setter Property="MinWidth" Value="180" />
+      <Setter Property="MinWidth" Value="200" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="Grid.preference > ToggleSwitch">
@@ -75,6 +75,45 @@
                   VerticalScrollBarVisibility="Auto"
                   MaxHeight="440">
       <StackPanel x:Name="Cards" Spacing="8" Margin="0,0,16,0">
+
+        <!-- The editor's text and the hex rows, not the menus or the status bar. -->
+        <controls:SettingsCardExpander x:Name="TextCard"
+                                       Header="Text"
+                                       Description="The font the editors and the hex view draw a file in"
+                                       IconData="{ei:IconGeometry TextAa}"
+                                       IsExpanded="True">
+          <StackPanel Spacing="14">
+            <Grid Classes="preference" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="preferenceName" Text="Font" />
+                <TextBlock Classes="preferenceHint"
+                           Text="The monospace faces this machine has: Vim's column motions, block selections and the hex rows need every character as wide as the next." />
+              </StackPanel>
+              <ComboBox x:Name="FontChoice"
+                        Grid.Column="1"
+                        ItemsSource="{Binding Fonts}"
+                        SelectedItem="{Binding EditorFont, Mode=TwoWay}"
+                        MaxDropDownHeight="320"
+                        AutomationProperties.Name="Editor font" />
+            </Grid>
+
+            <!-- The limits are AppSettings' own range for the setting, which the zoom keys stay within. -->
+            <Grid Classes="preference" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="preferenceName" Text="Font size" />
+                <TextBlock Classes="preferenceHint" Text="The size Ctrl+=, Ctrl+- and Ctrl+0 change too." />
+              </StackPanel>
+              <NumericUpDown x:Name="FontSizeEditor"
+                             Grid.Column="1"
+                             Value="{Binding EditorFontSize, Mode=TwoWay}"
+                             Minimum="6"
+                             Maximum="72"
+                             Increment="1"
+                             FormatString="0"
+                             AutomationProperties.Name="Editor font size" />
+            </Grid>
+          </StackPanel>
+        </controls:SettingsCardExpander>
 
         <controls:SettingsCardExpander x:Name="AppearanceCard"
                                        Header="Appearance"
