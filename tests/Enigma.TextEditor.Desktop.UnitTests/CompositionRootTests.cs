@@ -46,6 +46,8 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
     [InlineData(typeof(SettingsMenuViewModel))]
     [InlineData(typeof(IAboutDialogService))]
     [InlineData(typeof(IHelpDialogService))]
+    [InlineData(typeof(PreferencesViewModel))]
+    [InlineData(typeof(IPreferencesDialogService))]
     public void TheContainer_ResolvesEveryService(Type serviceType)
     {
         using TempFolder folder = new();
@@ -115,6 +117,7 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
                 host.Services.GetRequiredService<SettingsMenuViewModel>(),
                 host.Services.GetRequiredService<IAboutDialogService>(),
                 host.Services.GetRequiredService<IHelpDialogService>(),
+                host.Services.GetRequiredService<IPreferencesDialogService>(),
                 shutdown);
 
             viewModel.ExitCommand.Execute(null);

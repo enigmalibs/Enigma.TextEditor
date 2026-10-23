@@ -218,7 +218,7 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
 
             MenuItem settings = menus[4];
             Assert.Equal(
-                ["_Theme", "_Vim Mode", "_Word Wrap", "_Minimap", "Pane _Resize Step", "Default _Indentation", "Default _Line Endings"],
+                ["_Theme", "_Vim Mode", "_Word Wrap", "_Minimap", "Pane _Resize Step", "Default _Indentation", "Default _Line Endings", "_Preferences…"],
                 settings.Items.OfType<MenuItem>().Select(item => (string?)item.Header));
             Assert.True(Item(settings, "_Vim Mode").IsChecked);
             Assert.False(Item(settings, "_Word Wrap").IsChecked);

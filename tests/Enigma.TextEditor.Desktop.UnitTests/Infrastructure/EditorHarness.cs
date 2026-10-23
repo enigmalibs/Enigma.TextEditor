@@ -30,7 +30,8 @@ internal sealed class EditorHarness : IDisposable
         Tools = new ToolsViewModel(Workspace, LanguagePicker, EncodingPicker, Confirm, Documents);
         SettingsWriter = new SettingsWriter(Settings, Messages, NullLogger<SettingsWriter>.Instance);
         SettingsMenu = new SettingsMenuViewModel(Settings, SettingsWriter, Theme, Vim, Preferences);
-        Window = new MainWindowViewModel(Workspace, StatusBar, Tools, SettingsMenu, About, Help, Shutdown);
+        PreferencesPage = new PreferencesViewModel(Settings, SettingsMenu);
+        Window = new MainWindowViewModel(Workspace, StatusBar, Tools, SettingsMenu, About, Help, PreferencesDialog, Shutdown);
     }
 
     public TempFolder Folder { get; } = new();
@@ -53,9 +54,13 @@ internal sealed class EditorHarness : IDisposable
 
     public FakeHelpDialogService Help { get; } = new();
 
+    public FakePreferencesDialogService PreferencesDialog { get; } = new();
+
     public SettingsWriter SettingsWriter { get; }
 
     public SettingsMenuViewModel SettingsMenu { get; }
+
+    public PreferencesViewModel PreferencesPage { get; }
 
     public StatusMessages StatusLine { get; } = new();
 

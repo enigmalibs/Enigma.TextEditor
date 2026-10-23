@@ -14,8 +14,10 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// short choice, applied at once and written at once.
 /// </summary>
 /// <remarks>
-/// No preferences dialog: each item says what it is and shows its current value as a check or a
-/// radio mark. The defaults only reach new buffers and files whose own indentation does not say.
+/// Each item says what it is and shows its current value as a check or a radio mark. The Preferences
+/// dialog shows the same settings with their full ranges and changes them through the
+/// <c>Set…Async</c> methods here, so the menu and the dialog apply and write a change the same way.
+/// The defaults only reach new buffers and files whose own indentation does not say.
 /// </remarks>
 public sealed class SettingsMenuViewModel : ObservableObject
 {
@@ -49,9 +51,9 @@ public sealed class SettingsMenuViewModel : ObservableObject
         UseSystemThemeCommand = Command(() => SetThemeAsync(AppTheme.System));
         UseLightThemeCommand = Command(() => SetThemeAsync(AppTheme.Light));
         UseDarkThemeCommand = Command(() => SetThemeAsync(AppTheme.Dark));
-        ToggleVimCommand = Command(OnToggleVimAsync);
-        ToggleWordWrapCommand = Command(OnToggleWordWrapAsync);
-        ToggleMinimapCommand = Command(OnToggleMinimapAsync);
+        ToggleVimCommand = Command(() => SetVimEnabledAsync(!Value.VimEnabled));
+        ToggleWordWrapCommand = Command(() => SetWordWrapAsync(!Value.WordWrap));
+        ToggleMinimapCommand = Command(() => SetMinimapAsync(!Value.ShowMinimap));
         ResizeStep2Command = Command(() => SetPaneResizeStepAsync(2));
         ResizeStep5Command = Command(() => SetPaneResizeStepAsync(5));
         ResizeStep10Command = Command(() => SetPaneResizeStepAsync(10));
@@ -64,6 +66,12 @@ public sealed class SettingsMenuViewModel : ObservableObject
         ZoomOutCommand = Command(() => SetFontSizeAsync(Value.EditorFontSize - 1));
         ResetZoomCommand = Command(() => SetFontSizeAsync(AppSettings.DefaultFontSize));
     }
+
+    /// <summary>
+    /// Raised once a preference has been applied, before it is written, whoever changed it: this menu,
+    /// the zoom keys or the Preferences dialog.
+    /// </summary>
+    public event EventHandler? Changed;
 
     /// <summary>
     /// Gets <em>Settings → Theme → System</em>.
@@ -222,12 +230,12 @@ public sealed class SettingsMenuViewModel : ObservableObject
 
     private AppSettings Value => _settings.Value;
 
-    // A held Ctrl+= must not be dropped, nor the menu item grey out, while the previous step is
-    // still being written: the writer serializes the writes instead.
-    private static AsyncRelayCommand Command(Func<Task> execute)
-        => new(execute, AsyncRelayCommandOptions.AllowConcurrentExecutions);
-
-    private async Task SetThemeAsync(AppTheme theme)
+    /// <summary>
+    /// Applies a theme and writes it.
+    /// </summary>
+    /// <param name="theme">The theme.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    public async Task SetThemeAsync(AppTheme theme)
     {
         Value.Theme = theme;
         _theme.Apply(theme);
@@ -235,71 +243,112 @@ public sealed class SettingsMenuViewModel : ObservableObject
         OnPropertyChanged(nameof(IsLightTheme));
         OnPropertyChanged(nameof(IsDarkTheme));
 
-        await _writer.SaveAsync();
+        await AppliedAsync();
     }
 
-    private async Task OnToggleVimAsync()
+    /// <summary>
+    /// Turns Vim on or off in every pane and writes it.
+    /// </summary>
+    /// <param name="enabled">Whether Vim drives the editors.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    public async Task SetVimEnabledAsync(bool enabled)
     {
-        Value.VimEnabled = !Value.VimEnabled;
+        Value.VimEnabled = enabled;
 
         // The session re-reads the setting and announces it; every pane attaches or detaches its engine.
         _vim.OnSettingsChanged();
         OnPropertyChanged(nameof(IsVimEnabled));
 
-        await _writer.SaveAsync();
+        await AppliedAsync();
     }
 
-    private async Task OnToggleWordWrapAsync()
+    /// <summary>
+    /// Turns word wrap on or off in every pane and writes it.
+    /// </summary>
+    /// <param name="wrap">Whether long lines wrap.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    public async Task SetWordWrapAsync(bool wrap)
     {
-        Value.WordWrap = !Value.WordWrap;
-        _preferences.WordWrap = Value.WordWrap;
+        Value.WordWrap = wrap;
+        _preferences.WordWrap = wrap;
         OnPropertyChanged(nameof(IsWordWrap));
 
-        await _writer.SaveAsync();
+        await AppliedAsync();
     }
 
-    private async Task OnToggleMinimapAsync()
+    /// <summary>
+    /// Shows the minimap, or the vertical scrollbar instead, in every pane and writes it.
+    /// </summary>
+    /// <param name="show">Whether the text has a minimap beside it.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    public async Task SetMinimapAsync(bool show)
     {
-        Value.ShowMinimap = !Value.ShowMinimap;
-        _preferences.ShowMinimap = Value.ShowMinimap;
+        Value.ShowMinimap = show;
+        _preferences.ShowMinimap = show;
         OnPropertyChanged(nameof(IsMinimap));
 
-        await _writer.SaveAsync();
+        await AppliedAsync();
     }
 
-    // Any other step can be written in settings.json; the menu then shows none of its three checked.
-    private async Task SetPaneResizeStepAsync(int percent)
+    /// <summary>
+    /// Sets how far a resize key moves a splitter and writes it.
+    /// </summary>
+    /// <param name="percent">The step, in percent of the split; kept within the setting's range.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    /// <remarks>
+    /// Any step but the menu's three can be set from the Preferences dialog or written in settings.json;
+    /// the menu then shows none of its three checked.
+    /// </remarks>
+    public async Task SetPaneResizeStepAsync(int percent)
     {
-        Value.PaneResizeStep = percent;
-        _preferences.PaneResizeStep = percent;
+        int clamped = Math.Clamp(percent, AppSettings.MinimumPaneResizeStep, AppSettings.MaximumPaneResizeStep);
+
+        Value.PaneResizeStep = clamped;
+        _preferences.PaneResizeStep = clamped;
         OnPropertyChanged(nameof(IsResizeStep2));
         OnPropertyChanged(nameof(IsResizeStep5));
         OnPropertyChanged(nameof(IsResizeStep10));
 
-        await _writer.SaveAsync();
+        await AppliedAsync();
     }
 
-    private async Task SetDefaultIndentationAsync(bool tabs, int size)
+    /// <summary>
+    /// Sets the indentation new files start with and writes it.
+    /// </summary>
+    /// <param name="tabs">Whether a level is a tab rather than spaces.</param>
+    /// <param name="size">How many columns a level is; kept within the setting's range.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    public async Task SetDefaultIndentationAsync(bool tabs, int size)
     {
         Value.IndentWithTabs = tabs;
-        Value.IndentSize = size;
+        Value.IndentSize = Math.Clamp(size, AppSettings.MinimumIndentSize, AppSettings.MaximumIndentSize);
         OnPropertyChanged(nameof(IsDefaultTwoSpaces));
         OnPropertyChanged(nameof(IsDefaultFourSpaces));
         OnPropertyChanged(nameof(IsDefaultTabs));
 
-        await _writer.SaveAsync();
+        await AppliedAsync();
     }
 
-    private async Task SetDefaultLineEndingAsync(LineEndingStyle lineEnding)
+    /// <summary>
+    /// Sets the line terminator new files are written with and writes it.
+    /// </summary>
+    /// <param name="lineEnding">The line terminator.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    public async Task SetDefaultLineEndingAsync(LineEndingStyle lineEnding)
     {
         Value.DefaultLineEnding = lineEnding;
         OnPropertyChanged(nameof(IsDefaultLf));
         OnPropertyChanged(nameof(IsDefaultCrLf));
 
-        await _writer.SaveAsync();
+        await AppliedAsync();
     }
 
-    private async Task SetFontSizeAsync(int size)
+    /// <summary>
+    /// Sets the editors' font size and writes it.
+    /// </summary>
+    /// <param name="size">The size; kept within the zoom's limits.</param>
+    /// <returns>A task that completes once the settings are written, or at once if nothing changed.</returns>
+    public async Task SetFontSizeAsync(int size)
     {
         int clamped = Math.Clamp(size, AppSettings.MinimumFontSize, AppSettings.MaximumFontSize);
 
@@ -310,6 +359,68 @@ public sealed class SettingsMenuViewModel : ObservableObject
 
         Value.EditorFontSize = clamped;
         _preferences.FontSize = clamped;
+
+        await AppliedAsync();
+    }
+
+    /// <summary>
+    /// Sets the family the editors' text is drawn in and writes it.
+    /// </summary>
+    /// <param name="family">The family's name, or an empty one for the built-in monospace stack.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    public async Task SetFontFamilyAsync(string family)
+    {
+        ArgumentNullException.ThrowIfNull(family);
+
+        Value.EditorFontFamily = family.Trim();
+        _preferences.FontFamily = EditorPreferences.FamilyFor(Value.EditorFontFamily);
+
+        await AppliedAsync();
+    }
+
+    /// <summary>
+    /// Puts every preference back to its default, applies them all, and writes them once.
+    /// </summary>
+    /// <returns>A task that completes once the settings are written.</returns>
+    public async Task ResetAsync()
+    {
+        AppSettings defaults = new();
+
+        Value.Theme = defaults.Theme;
+        Value.VimEnabled = defaults.VimEnabled;
+        Value.WordWrap = defaults.WordWrap;
+        Value.ShowMinimap = defaults.ShowMinimap;
+        Value.PaneResizeStep = defaults.PaneResizeStep;
+        Value.EditorFontSize = defaults.EditorFontSize;
+        Value.EditorFontFamily = defaults.EditorFontFamily;
+        Value.IndentWithTabs = defaults.IndentWithTabs;
+        Value.IndentSize = defaults.IndentSize;
+        Value.DefaultLineEnding = defaults.DefaultLineEnding;
+
+        _theme.Apply(Value.Theme);
+        _vim.OnSettingsChanged();
+        _preferences.WordWrap = Value.WordWrap;
+        _preferences.ShowMinimap = Value.ShowMinimap;
+        _preferences.PaneResizeStep = Value.PaneResizeStep;
+        _preferences.FontSize = Value.EditorFontSize;
+        _preferences.FontFamily = EditorPreferences.FamilyFor(Value.EditorFontFamily);
+
+        // Every check and radio mark of the menu at once.
+        OnPropertyChanged(string.Empty);
+
+        await AppliedAsync();
+    }
+
+    // A held Ctrl+= must not be dropped, nor the menu item grey out, while the previous step is
+    // still being written: the writer serializes the writes instead.
+    private static AsyncRelayCommand Command(Func<Task> execute)
+        => new(execute, AsyncRelayCommandOptions.AllowConcurrentExecutions);
+
+    // Every change ends here once it is applied: whoever shows the preferences is told, then they are
+    // written.
+    private async Task AppliedAsync()
+    {
+        Changed?.Invoke(this, EventArgs.Empty);
 
         await _writer.SaveAsync();
     }

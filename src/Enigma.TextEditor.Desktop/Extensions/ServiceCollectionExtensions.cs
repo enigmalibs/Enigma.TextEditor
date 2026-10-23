@@ -127,6 +127,11 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<SettingsMenuViewModel>();
             services.AddSingleton<IAboutDialogService, AboutDialogService>();
             services.AddSingleton<IHelpDialogService, HelpDialogService>();
+
+            // One for the session: it follows every change the menu makes, and the dialog shows it again
+            // each time it opens.
+            services.AddSingleton<PreferencesViewModel>();
+            services.AddSingleton<IPreferencesDialogService, PreferencesDialogService>();
         }
     }
 }

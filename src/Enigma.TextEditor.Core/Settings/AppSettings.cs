@@ -43,6 +43,16 @@ public sealed class AppSettings
     public const int DefaultPaneResizeStep = 5;
 
     /// <summary>
+    /// The fewest columns one level of indentation may be.
+    /// </summary>
+    public const int MinimumIndentSize = 1;
+
+    /// <summary>
+    /// The most columns one level of indentation may be.
+    /// </summary>
+    public const int MaximumIndentSize = 16;
+
+    /// <summary>
     /// Gets or sets the theme variant the window is painted in.
     /// </summary>
     [EnumDataType(typeof(AppTheme))]
@@ -78,6 +88,16 @@ public sealed class AppSettings
     public int EditorFontSize { get; set; } = DefaultFontSize;
 
     /// <summary>
+    /// Gets or sets the family the editor's text is drawn in, or an empty string for the built-in
+    /// monospace stack.
+    /// </summary>
+    /// <remarks>
+    /// A family name, as the font list shows it. One the machine does not have falls back through the
+    /// built-in stack, so a settings file carried to another machine still draws in a monospace face.
+    /// </remarks>
+    public string EditorFontFamily { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets a value indicating whether a new file — and a file whose own indentation cannot be
     /// told — is indented with tabs rather than spaces.
     /// </summary>
@@ -86,7 +106,7 @@ public sealed class AppSettings
     /// <summary>
     /// Gets or sets how many columns one level of indentation is, for those same files.
     /// </summary>
-    [Range(1, 16)]
+    [Range(MinimumIndentSize, MaximumIndentSize)]
     public int IndentSize { get; set; } = 4;
 
     /// <summary>

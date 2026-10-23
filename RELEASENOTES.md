@@ -1,5 +1,71 @@
 # Release notes
 
+## 1.5.0 — 2026-10-23
+
+A minor release. **Settings → Preferences…** (Ctrl+,) opens a dialog with every preference in one place, each with its
+full range, and a new one: the font the editors draw a file in. The editor's text no longer runs under its scrollbars or
+against the minimap.
+
+### Preferences
+
+- **Settings → Preferences…**, or **Ctrl+,**, opens the *Preferences* dialog. Its groups:
+  - **Text**: the font and the font size;
+  - **Appearance**: the theme, the minimap, and wrapping long lines;
+  - **Editing**: Vim mode, and the pane resize step, any value from 1 to 50%;
+  - **New files**: indenting with tabs or spaces, the indent size from 1 to 16, and LF or CRLF line endings.
+- **Changes apply at once** and are remembered, as from the menu. The only button is *Close*; Esc closes it too, and
+  the keyboard goes back to the editor.
+- **The menu, the zoom keys and the dialog show the same settings.** A change made in one shows in the others while
+  the dialog is open. A resize step the menu does not offer (anything but 2, 5 or 10%) leaves none of its items
+  checked.
+- **Reset to defaults** asks first, from a flyout: *Put every preference back to its default*.
+- **Help → Key Bindings** lists Ctrl+, under *Application*.
+
+### Fonts
+
+- **The font** is chosen from the monospace faces the machine has. *Default* comes first: the faces the editor has
+  always used, the first of Cascadia Mono, Consolas, JetBrains Mono, DejaVu Sans Mono, Menlo and Courier New that is
+  installed. The font draws the text in every pane's editor and the hex view's rows.
+- **A face that is not installed** — a settings file brought from another machine — still shows in the list, and the
+  editors fall back to the default faces, so the text stays monospace.
+- **The font size**, from 6 to 72, is the size Ctrl+=, Ctrl+- and Ctrl+0 change: the field and the keys move the same
+  setting.
+- The help dialog and the ex and search line keep the default font: they are part of the interface, not the file.
+
+### Editor
+
+- **The text is no longer drawn under the scrollbars.** The last line on screen used to sit half under the horizontal
+  bar, and with the minimap off, the end of a long line or a wrapped row ran under the vertical bar.
+- **The text stops short of the minimap**, and of the vertical scrollbar, with a small gap. Scrolled fully right, the
+  end of the longest line shows whole, wrapped or not.
+- **The scrollbars are drawn at full width.** With the minimap off, the vertical bar no longer shows as a thin line
+  that widens under the pointer, and the horizontal bar, when a line is wider than the pane, takes its own row below
+  the text.
+
+### Upgrading from 1.4
+
+- **Your settings carry over.** `settings.json` gains one key, `EditorFontFamily`. A 1.4 file lacks it, and starts
+  with the default font.
+- **Going back to 1.4** reads the file and ignores the key. If 1.4 then saves the settings, it leaves the key out, and
+  1.5 starts with the default font again.
+- **The scrollbars no longer auto-hide** in the editor (see *Editor*). The text area is a scrollbar's width narrower
+  with the minimap off, and a scrollbar's height shorter when a line is wider than the pane.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- No package had an update outside the Avalonia set. The set is held back at **12.1.2**, with Enigma.Avalonia.Desktop
+  1.2.0 and AvaloniaEdit 12.0.0. Avalonia 12.1.4 is out, but the set moves as a whole.
+
+### Compatibility
+
+- Unchanged from 1.4.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.2 and AvaloniaEdit 12.0.0.
+
+### Version
+
+- **1.5.0** is a minor release under Semantic Versioning. It adds features, keeps every stored format, and removes
+  nothing. One behaviour changes: the editor's scrollbars no longer auto-hide.
+
 ## 1.4.0 — 2026-10-21
 
 A minor release. `Space rj` and `Space rk` now move the bar between two stacked panes the way `j` and `k` point in
