@@ -101,6 +101,22 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
+    public void EveryHint_IsInThePalettesDescriptionTone()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            MainWindow window = await ShowAsync(harness);
+
+            harness.Shell.ShowSettings();
+            await DrainAsync();
+            TextBlock[] hints = [.. window.SettingsPage!.GetVisualDescendants().OfType<TextBlock>().Where(text => text.Classes.Contains("preferenceHint"))];
+
+            Assert.True(window.TryFindResource("EnigmaForegroundSecondaryBrush", out object? secondary));
+            Assert.All(hints, hint => Assert.Same(secondary, hint.Foreground), throwIfEmpty: true);
+            window.Close();
+        });
+
+    [Fact]
     public void ThePage_IsBuiltTheFirstTimeItIsShown_AndKept()
         => fixture.RunAsync(async () =>
         {

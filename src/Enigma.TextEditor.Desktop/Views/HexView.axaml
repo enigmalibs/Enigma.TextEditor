@@ -10,6 +10,12 @@
       <Setter Property="Padding" Value="8,0" />
       <Setter Property="MinHeight" Value="0" />
     </Style>
+    <!-- The row the keys are on is marked as the editor marks a selection, rather than in Fluent's band of
+         the operating system's accent, which is a saturated stripe in the dark theme. One style covers
+         the selected row hovered too: these styles outrank the control theme's. -->
+    <Style Selector="ListBox#Rows ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource EnigmaSelectionBrush}" />
+    </Style>
     <!-- No font family here: the rows inherit the editor's, as they inherit its size, from the pane. -->
     <Style Selector="ListBox#Rows TextBlock.row">
       <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundBrush}" />

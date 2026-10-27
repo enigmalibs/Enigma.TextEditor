@@ -1,5 +1,46 @@
 # Release notes
 
+## 1.7.0 — 2026-10-27
+
+A minor release about colours. Links in the text — URLs and e-mail addresses — were drawn in pure blue, which is
+barely legible on the dark theme's background; they now have a blue of each theme's own. The settings page's
+descriptions are a step brighter, and the hex view marks its current row in the editor's selection colour.
+
+### Colours
+
+- **Links.** The editor still underlines URLs and e-mail addresses. Their colour changes:
+  - **Dark: `#7AABFF`**, a lighter blue on the window accent's hue. It was `#0000FF`, at 1.9:1 against the
+    background; it is now 7.1:1.
+  - **Light: `#1F5FCC`**, 5.5:1. It was the same `#0000FF` that the light syntax colours give to keywords, so a link
+    in a comment looked like a keyword.
+  - Both follow a theme switch at once.
+- **The settings page's descriptions** use the descriptions' grey of the rest of the window rather than the
+  placeholders' fainter one. That is the line under each setting and the header's "Changes apply at once…". On a dark
+  card they go from 1.7:1 to 2.9:1.
+- **The hex view's current row** is filled with the editor's selection colour, in both themes. It was the operating
+  system's accent colour, a saturated stripe in the dark theme.
+- Nothing else changes colour: syntax highlighting, the search highlight, the selection, the minimap and the line
+  numbers are as they were.
+
+### Upgrading from 1.6
+
+- **Your settings carry over** unchanged. 1.7 adds no settings key, and going back to 1.6 reads the same file.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- No change. The Avalonia set is held back at **12.1.2**, with Enigma.Avalonia.Desktop 1.2.0 and AvaloniaEdit 12.0.0.
+  Avalonia 12.1.4 is out, but the set moves as a whole. Nothing else has an update.
+
+### Compatibility
+
+- Unchanged from 1.6.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.2 and AvaloniaEdit 12.0.0.
+
+### Version
+
+- **1.7.0** is a minor release under Semantic Versioning. It changes colours only, and keeps every stored format and
+  every default.
+
 ## 1.6.0 — 2026-10-27
 
 A minor release. A narrow rail on the left of the window holds two icons: the files, which is the split editor, and
