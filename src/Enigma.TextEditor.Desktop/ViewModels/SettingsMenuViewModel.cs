@@ -411,6 +411,36 @@ public sealed class SettingsMenuViewModel : ObservableObject
         await AppliedAsync();
     }
 
+    /// <summary>
+    /// Applies what the welcome dialog of a first start chose, and writes the settings once.
+    /// </summary>
+    /// <param name="theme">The theme.</param>
+    /// <param name="vimEnabled">Whether Vim drives the editors.</param>
+    /// <param name="showMinimap">Whether the text has a minimap beside it.</param>
+    /// <param name="wordWrap">Whether long lines wrap.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    /// <remarks>
+    /// Written even when nothing differs from the defaults: on a first run, the file's absence is what
+    /// would bring the dialog back.
+    /// </remarks>
+    public async Task ApplyFirstRunAsync(AppTheme theme, bool vimEnabled, bool showMinimap, bool wordWrap)
+    {
+        Value.Theme = theme;
+        Value.VimEnabled = vimEnabled;
+        Value.ShowMinimap = showMinimap;
+        Value.WordWrap = wordWrap;
+
+        _theme.Apply(theme);
+        _vim.OnSettingsChanged();
+        _preferences.ShowMinimap = showMinimap;
+        _preferences.WordWrap = wordWrap;
+
+        // Every check and radio mark of the menu at once.
+        OnPropertyChanged(string.Empty);
+
+        await AppliedAsync();
+    }
+
     // A held Ctrl+= must not be dropped, nor the menu item grey out, while the previous step is
     // still being written: the writer serializes the writes instead.
     private static AsyncRelayCommand Command(Func<Task> execute)

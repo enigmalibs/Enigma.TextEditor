@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Enigma.TextEditor.Core;
+using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Desktop.Services;
 
 namespace Enigma.TextEditor.Desktop.ViewModels;
@@ -17,6 +18,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly IAppShutdown _shutdown;
     private readonly IAboutDialogService _about;
     private readonly IHelpDialogService _help;
+    private readonly FirstRunState _firstRun;
+    private readonly IFirstRunDialogService _firstRunDialog;
     private DocumentViewModel? _document;
 
     /// <summary>
@@ -30,6 +33,8 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <param name="settingsPage">What the settings page shows and changes.</param>
     /// <param name="about">The About dialog.</param>
     /// <param name="help">The key-binding help.</param>
+    /// <param name="firstRun">Whether this is the very first start, decided before the settings were read.</param>
+    /// <param name="firstRunDialog">The welcome dialog, shown on a first start only.</param>
     /// <param name="shutdown">Ends the application.</param>
     public MainWindowViewModel(
         WorkspaceViewModel workspace,
@@ -40,6 +45,8 @@ public sealed class MainWindowViewModel : ObservableObject
         PreferencesViewModel settingsPage,
         IAboutDialogService about,
         IHelpDialogService help,
+        FirstRunState firstRun,
+        IFirstRunDialogService firstRunDialog,
         IAppShutdown shutdown)
     {
         Workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
@@ -50,6 +57,8 @@ public sealed class MainWindowViewModel : ObservableObject
         SettingsPage = settingsPage ?? throw new ArgumentNullException(nameof(settingsPage));
         _about = about ?? throw new ArgumentNullException(nameof(about));
         _help = help ?? throw new ArgumentNullException(nameof(help));
+        _firstRun = firstRun ?? throw new ArgumentNullException(nameof(firstRun));
+        _firstRunDialog = firstRunDialog ?? throw new ArgumentNullException(nameof(firstRunDialog));
         _shutdown = shutdown ?? throw new ArgumentNullException(nameof(shutdown));
 
         ExitCommand = new RelayCommand(OnExit);
@@ -116,6 +125,28 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Gets the command behind <em>File → Exit</em>.
     /// </summary>
     public RelayCommand ExitCommand { get; }
+
+    /// <summary>
+    /// Runs what needs the window on screen: the welcome dialog of a first start, then the files named on
+    /// the command line.
+    /// </summary>
+    /// <param name="startup">The files and folders named on the command line.</param>
+    /// <returns>A task that completes once the files are open.</returns>
+    /// <remarks>
+    /// In that order: the window has one dialog host, so a file that fails to open must not ask its
+    /// question while the welcome dialog is up — and the files then open with the editor set up as chosen.
+    /// </remarks>
+    public async Task StartAsync(StartupFiles startup)
+    {
+        ArgumentNullException.ThrowIfNull(startup);
+
+        if (_firstRun.IsFirstRun)
+        {
+            await _firstRunDialog.ShowAsync();
+        }
+
+        await Workspace.OpenStartupFilesAsync(startup);
+    }
 
     /// <summary>
     /// Asks about unsaved changes before the window closes.

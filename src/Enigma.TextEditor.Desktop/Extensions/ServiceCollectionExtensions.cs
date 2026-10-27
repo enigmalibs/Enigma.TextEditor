@@ -9,6 +9,7 @@ using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using NLog.Targets;
 
@@ -50,6 +51,20 @@ public static class ServiceCollectionExtensions
             ArgumentNullException.ThrowIfNull(settings);
 
             services.AddSingleton(settings.Config);
+        }
+
+        /// <summary>
+        /// Registers whether this start is the very first one.
+        /// </summary>
+        /// <param name="firstRun">What <see cref="FirstRunState.Detect(string)"/> answered before the settings were read.</param>
+        /// <remarks>
+        /// Before <see cref="AddShell"/>, whose fallback — not a first run — only applies when this was not called.
+        /// </remarks>
+        public void AddFirstRun(FirstRunState firstRun)
+        {
+            ArgumentNullException.ThrowIfNull(firstRun);
+
+            services.AddSingleton(firstRun);
         }
 
         /// <summary>
@@ -132,6 +147,12 @@ public static class ServiceCollectionExtensions
             // whenever the rail goes back to it.
             services.AddSingleton<PreferencesViewModel>();
             services.AddSingleton<ShellViewModel>();
+
+            // Shown once at most, so one view-model for the session; not a first run unless the composition
+            // root said so.
+            services.TryAddSingleton(FirstRunState.Returning);
+            services.AddSingleton<FirstRunViewModel>();
+            services.AddSingleton<IFirstRunDialogService, FirstRunDialogService>();
         }
     }
 }

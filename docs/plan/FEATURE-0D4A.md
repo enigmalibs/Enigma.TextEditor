@@ -1,6 +1,6 @@
 # FEATURE-0D4A — First-run setup dialog
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-0d4a-first-run-setup`
 **Run:** feature/2026-10-27-rail-defaults-setup-release

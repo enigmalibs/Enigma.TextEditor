@@ -16,7 +16,7 @@ namespace Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 /// </remarks>
 internal sealed class EditorHarness : IDisposable
 {
-    public EditorHarness(Action<AppSettings>? configure = null)
+    public EditorHarness(Action<AppSettings>? configure = null, FirstRunState? firstRun = null)
     {
         Settings = SettingsLoader.Load(Folder.PathOf(AppPaths.SettingsFileName)).Config;
         configure?.Invoke(Settings.Value);
@@ -32,7 +32,7 @@ internal sealed class EditorHarness : IDisposable
         SettingsMenu = new SettingsMenuViewModel(Settings, SettingsWriter, Theme, Vim, Preferences);
         PreferencesPage = new PreferencesViewModel(Settings, SettingsMenu);
         Window = new MainWindowViewModel(
-            Workspace, StatusBar, Tools, SettingsMenu, Shell, PreferencesPage, About, Help, Shutdown);
+            Workspace, StatusBar, Tools, SettingsMenu, Shell, PreferencesPage, About, Help, firstRun ?? FirstRunState.Returning, FirstRunDialog, Shutdown);
     }
 
     public TempFolder Folder { get; } = new();
@@ -56,6 +56,8 @@ internal sealed class EditorHarness : IDisposable
     public FakeHelpDialogService Help { get; } = new();
 
     public ShellViewModel Shell { get; } = new();
+
+    public FakeFirstRunDialogService FirstRunDialog { get; } = new();
 
     public SettingsWriter SettingsWriter { get; }
 

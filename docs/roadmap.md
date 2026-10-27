@@ -73,7 +73,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Icon rail and settings page          | DONE        | (in FEATURE-856D.md)      |
 | - PHASE02    | Files page follows the editor        | DONE        | (in FEATURE-856D.md)      |
 | FEATURE-0242 | New settings defaults                | DONE        | docs/plan/FEATURE-0242.md |
-| FEATURE-0D4A | First-run setup dialog               | TODO        | docs/plan/FEATURE-0D4A.md |
+| FEATURE-0D4A | First-run setup dialog               | DONE        | docs/plan/FEATURE-0D4A.md |
 | FEATURE-4362 | Release 1.6.0                        | TODO        | docs/plan/FEATURE-4362.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
