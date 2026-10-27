@@ -91,7 +91,8 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
     public void CtrlWO_CtrlWEquals_AndTheResizeKeys()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // The steps below are counted from a 5% step.
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 5);
             harness.Workspace.Split(SplitAxis.Columns);
             SplitNode split = Assert.IsType<SplitNode>(harness.Workspace.Layout.Root);
 
@@ -334,7 +335,8 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
     public void TypedInTheWindow_GSizeKeys_ResizeAndEqualizeThePanes()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // The steps below are counted from a 5% step.
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 5);
             await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
             EditorPaneViewModel left = harness.Workspace.ActivePane;
             harness.Workspace.Split(SplitAxis.Columns);
@@ -362,7 +364,8 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
     public void TypedInTheWindow_SpaceRJAndRK_MoveTheBarBetweenStackedPanes_FromEitherOfThem()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // The steps below are counted from a 5% step.
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 5);
             await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
             EditorPaneViewModel top = harness.Workspace.ActivePane;
             EditorPaneViewModel bottom = harness.Workspace.Split(SplitAxis.Rows);
@@ -401,7 +404,8 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
     public void TypedInTheWindow_SpaceRLAndRH_MoveTheBarBetweenSideBySidePanes_FromEitherOfThem()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // The steps below are counted from a 5% step.
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 5);
             await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
             EditorPaneViewModel left = harness.Workspace.ActivePane;
             EditorPaneViewModel right = harness.Workspace.Split(SplitAxis.Columns);

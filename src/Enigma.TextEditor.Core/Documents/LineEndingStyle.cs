@@ -11,12 +11,13 @@ namespace Enigma.TextEditor.Core.Documents;
 public enum LineEndingStyle
 {
     /// <summary>
-    /// A single line feed, <c>\n</c>. The editor's own default, and what a new file gets.
+    /// A single line feed, <c>\n</c>. What Linux and macOS write, and what a new file gets there.
     /// </summary>
     Lf,
 
     /// <summary>
-    /// A carriage return followed by a line feed, <c>\r\n</c>.
+    /// A carriage return followed by a line feed, <c>\r\n</c>. What Windows writes, and what a new file
+    /// gets there.
     /// </summary>
     CrLf,
 }

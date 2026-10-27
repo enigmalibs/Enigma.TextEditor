@@ -1,6 +1,6 @@
 # FEATURE-0242 — New settings defaults
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-0242-settings-defaults`
 **Run:** feature/2026-10-27-rail-defaults-setup-release

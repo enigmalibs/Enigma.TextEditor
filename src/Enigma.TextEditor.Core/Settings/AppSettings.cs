@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using Enigma.TextEditor.Core.Documents;
 
@@ -8,7 +9,9 @@ namespace Enigma.TextEditor.Core.Settings;
 /// </summary>
 /// <remarks>
 /// Every property has a default, so a missing file and a file written by an older version both load:
-/// a key that is absent keeps the value set here. Enums are persisted by name.
+/// a key that is absent keeps the value set here. Every key is written, so a default only ever reaches a
+/// fresh install, a key added since the file was written, and <em>Reset to defaults</em> — a value the
+/// user saved is never replaced by a later version's default. Enums are persisted by name.
 /// </remarks>
 public sealed class AppSettings
 {
@@ -40,7 +43,7 @@ public sealed class AppSettings
     /// <summary>
     /// How far a resize key moves a splitter on a fresh install, in percent of the split.
     /// </summary>
-    public const int DefaultPaneResizeStep = 5;
+    public const int DefaultPaneResizeStep = 10;
 
     /// <summary>
     /// The fewest columns one level of indentation may be.
@@ -64,9 +67,9 @@ public sealed class AppSettings
     public bool VimEnabled { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets a value indicating whether long lines wrap at the edge of the editor.
+    /// Gets or sets a value indicating whether long lines wrap at the edge of the editor. On by default.
     /// </summary>
-    public bool WordWrap { get; set; }
+    public bool WordWrap { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a value indicating whether the editor shows a minimap beside the text rather than
@@ -110,8 +113,9 @@ public sealed class AppSettings
     public int IndentSize { get; set; } = 4;
 
     /// <summary>
-    /// Gets or sets the line terminator a new file is written with.
+    /// Gets or sets the line terminator a new file is written with: by default, the platform's own —
+    /// CRLF on Windows, LF everywhere else.
     /// </summary>
     [EnumDataType(typeof(LineEndingStyle))]
-    public LineEndingStyle DefaultLineEnding { get; set; } = LineEndingStyle.Lf;
+    public LineEndingStyle DefaultLineEnding { get; set; } = LineEndings.ForPlatform(OperatingSystem.IsWindows());
 }
