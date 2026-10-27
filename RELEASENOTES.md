@@ -1,5 +1,73 @@
 # Release notes
 
+## 1.6.0 — 2026-10-27
+
+A minor release. A narrow rail on the left of the window holds two icons: the files, which is the split editor, and
+the settings, a page that replaces the Preferences dialog. The first start asks four questions in a welcome dialog,
+and a fresh install now wraps long lines, moves a splitter by 10% and writes new files with the platform's line
+endings.
+
+### Navigation rail and settings page
+
+- **The rail** sits on the left, between the menu bar and the status bar: 44 pixels wide, icons only, each naming
+  itself in a tooltip.
+  - **Files**, at the top, is the split editor as before.
+  - **Settings**, at the bottom, is the settings page.
+- **The settings page** holds every setting, grouped into Text, Appearance, Editing and New files, each with its full
+  range — what the Preferences dialog held, on a page that fills the window. It has a *Settings* header with
+  *Reset to defaults*, which still asks first, and a centred column that scrolls.
+- **The editor stays as it was** while the settings are shown: every tab, split, caret and scroll position is there
+  when you come back.
+- **Keys:** **Settings → All Settings** or **Ctrl+,** shows the page, and Esc goes back to the files. The keyboard
+  follows the page: the settings page takes it, and the editor gets it back.
+- **The files come back by themselves** when something opens, creates or rearranges a document while the settings are
+  shown: File → New or Open, Ctrl+N, `:e`, a split, another tab. The Edit menu does nothing while the editor is hidden.
+- **Help → Key Bindings** lists Ctrl+, as *Settings*, and Esc to go back to the files.
+
+### First start
+
+- **A welcome dialog** opens the first time the editor starts, with four choices: the theme (follow the system, light
+  or dark), Vim mode, the minimap, and wrapping long lines. Each is set to its default.
+- **The theme repaints the window as it is chosen.** The rest applies when the dialog closes.
+- **Get started, Skip or Esc** all keep what the dialog shows, and write the settings file, so the dialog does not come
+  back. Every choice can be changed later on the settings page.
+- **Files named on the command line** open once the dialog has closed.
+- A first start is a start with no settings file. A settings file that cannot be read is not one: it is moved aside as
+  before, and no welcome is shown.
+
+### Defaults
+
+- A fresh install, and *Reset to defaults*, now start with:
+  - **wrap long lines: on** (was off);
+  - **pane resize step: 10%** (was 5%);
+  - **new files' line endings: CRLF on Windows, LF on Linux and macOS** (was LF everywhere).
+- The theme (follow the system), the minimap (on) and Vim mode (on) are unchanged.
+
+### Upgrading from 1.5
+
+- **Your settings carry over** unchanged. `settings.json` holds every setting, so the new defaults reach only a fresh
+  install and *Reset to defaults*. 1.6 adds no settings key, and going back to 1.5 reads the same file.
+- **The Preferences dialog is gone.** Its settings are on the settings page; **Settings → Preferences…** is now
+  **Settings → All Settings**, still on Ctrl+,.
+- **The editor area is 44 pixels narrower**, the width of the rail.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- Microsoft.Extensions.Hosting **10.0.13 → 10.0.14**.
+- The Avalonia set is held back at **12.1.2**, with Enigma.Avalonia.Desktop 1.2.0 and AvaloniaEdit 12.0.0. Avalonia
+  12.1.4 is out, but the set moves as a whole.
+
+### Compatibility
+
+- Unchanged from 1.5.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.2 and AvaloniaEdit 12.0.0.
+
+### Version
+
+- **1.6.0** is a minor release under Semantic Versioning. It adds features and keeps every stored format. One dialog
+  becomes a page — the Preferences dialog is now the settings page, and its menu item is renamed — and three defaults
+  change for a fresh install.
+
 ## 1.5.0 — 2026-10-23
 
 A minor release. **Settings → Preferences…** (Ctrl+,) opens a dialog with every preference in one place, each with its
