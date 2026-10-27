@@ -85,4 +85,10 @@ public sealed class LineEndingsTests
 
         Assert.Equal(original, LineEndings.Apply(normalized, style));
     }
+
+    [Theory]
+    [InlineData(true, LineEndingStyle.CrLf)]
+    [InlineData(false, LineEndingStyle.Lf)]
+    public void ForPlatform_IsCrLfOnWindows_AndLfElsewhere(bool isWindows, LineEndingStyle expected)
+        => Assert.Equal(expected, LineEndings.ForPlatform(isWindows));
 }
