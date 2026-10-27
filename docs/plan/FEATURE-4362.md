@@ -1,6 +1,6 @@
 # FEATURE-4362 — Release 1.6.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-4362-release-1-6-0`
 **Run:** feature/2026-10-27-rail-defaults-setup-release

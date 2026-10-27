@@ -9,7 +9,7 @@
     <RootNamespace>Enigma.TextEditor.Core</RootNamespace>
     <!-- The product version, shared with the Desktop app: this library ships only inside it, so the
          two move together. Distinct from the dependency pins in Directory.Packages.props. -->
-    <Version>1.5.0</Version>
+    <Version>1.6.0</Version>
     <!-- GenerateDocumentationFile is deliberately absent: an app-internal library ships no XML doc
          file, and enabling it under TreatWarningsAsErrors would demand an XML comment on every public
          member (CS1591). -->
