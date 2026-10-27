@@ -9,14 +9,14 @@ using Enigma.TextEditor.Desktop.Services;
 namespace Enigma.TextEditor.Desktop.ViewModels;
 
 /// <summary>
-/// The main window: its title, its editor area, its status bar and the commands of its menu bar.
+/// The main window: its title, its rail and its two pages, its status bar and the commands of its menu
+/// bar.
 /// </summary>
 public sealed class MainWindowViewModel : ObservableObject
 {
     private readonly IAppShutdown _shutdown;
     private readonly IAboutDialogService _about;
     private readonly IHelpDialogService _help;
-    private readonly IPreferencesDialogService _preferences;
     private DocumentViewModel? _document;
 
     /// <summary>
@@ -26,33 +26,35 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <param name="statusBar">The status bar.</param>
     /// <param name="tools">The Tools menu.</param>
     /// <param name="settings">The Settings menu and the zoom commands.</param>
+    /// <param name="shell">The rail, and which page is shown.</param>
+    /// <param name="settingsPage">What the settings page shows and changes.</param>
     /// <param name="about">The About dialog.</param>
     /// <param name="help">The key-binding help.</param>
-    /// <param name="preferences">The Preferences dialog.</param>
     /// <param name="shutdown">Ends the application.</param>
     public MainWindowViewModel(
         WorkspaceViewModel workspace,
         StatusBarViewModel statusBar,
         ToolsViewModel tools,
         SettingsMenuViewModel settings,
+        ShellViewModel shell,
+        PreferencesViewModel settingsPage,
         IAboutDialogService about,
         IHelpDialogService help,
-        IPreferencesDialogService preferences,
         IAppShutdown shutdown)
     {
         Workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         StatusBar = statusBar ?? throw new ArgumentNullException(nameof(statusBar));
         Tools = tools ?? throw new ArgumentNullException(nameof(tools));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        Shell = shell ?? throw new ArgumentNullException(nameof(shell));
+        SettingsPage = settingsPage ?? throw new ArgumentNullException(nameof(settingsPage));
         _about = about ?? throw new ArgumentNullException(nameof(about));
         _help = help ?? throw new ArgumentNullException(nameof(help));
-        _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
         _shutdown = shutdown ?? throw new ArgumentNullException(nameof(shutdown));
 
         ExitCommand = new RelayCommand(OnExit);
         AboutCommand = new AsyncRelayCommand(() => _about.ShowAsync());
         HelpCommand = new AsyncRelayCommand(() => _help.ShowAsync());
-        PreferencesCommand = new AsyncRelayCommand(() => _preferences.ShowAsync());
 
         Workspace.PropertyChanged += OnWorkspacePropertyChanged;
         Follow(Workspace.ActiveDocument);
@@ -79,6 +81,16 @@ public sealed class MainWindowViewModel : ObservableObject
     public SettingsMenuViewModel Settings { get; }
 
     /// <summary>
+    /// Gets the rail, and which of the files and the settings is shown.
+    /// </summary>
+    public ShellViewModel Shell { get; }
+
+    /// <summary>
+    /// Gets what the settings page shows and changes.
+    /// </summary>
+    public PreferencesViewModel SettingsPage { get; }
+
+    /// <summary>
     /// Gets <em>Help → About</em>.
     /// </summary>
     public AsyncRelayCommand AboutCommand { get; }
@@ -87,11 +99,6 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Gets <em>Help → Key Bindings</em> (F1), which <c>:help</c> also opens.
     /// </summary>
     public AsyncRelayCommand HelpCommand { get; }
-
-    /// <summary>
-    /// Gets <em>Settings → Preferences…</em> (Ctrl+,).
-    /// </summary>
-    public AsyncRelayCommand PreferencesCommand { get; }
 
     /// <summary>
     /// Gets the window title: the active buffer's name, a dot when it has unsaved changes, and the

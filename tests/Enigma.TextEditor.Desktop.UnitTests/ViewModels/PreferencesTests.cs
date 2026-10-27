@@ -8,8 +8,8 @@ using Xunit;
 namespace Enigma.TextEditor.Desktop.UnitTests.ViewModels;
 
 /// <summary>
-/// The Preferences dialog's view-model: every value goes through the Settings menu, which applies and
-/// writes it, and the dialog follows whatever changes the preferences.
+/// The settings page's view-model: every value goes through the Settings menu, which applies and writes
+/// it, and the page follows whatever changes the preferences.
 /// </summary>
 [Collection(HeadlessCollection.Name)]
 public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
