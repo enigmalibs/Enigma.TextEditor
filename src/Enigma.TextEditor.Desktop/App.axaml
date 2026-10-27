@@ -51,15 +51,21 @@
       </ResourceDictionary.MergedDictionaries>
 
       <!-- The minimap's window over the visible text: Enigma.GitClient's diff minimap colours, a wash
-           and an outline of the foreground over whatever the strip is painted in. -->
+           and an outline of the foreground over whatever the strip is painted in.
+           EditorLinkBrush paints the URLs and e-mail addresses AvaloniaEdit turns into links, which it
+           would otherwise draw in pure blue: 1.9:1 on the dark background. Both are the accent's hue,
+           lighter in Dark (7.1:1) and darker in Light (5.5:1), and neither is a keyword colour of
+           Dark+ or Light+. -->
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Dark">
           <SolidColorBrush x:Key="MinimapViewportBrush" Color="#2AFFFFFF" />
           <SolidColorBrush x:Key="MinimapViewportBorderBrush" Color="#55FFFFFF" />
+          <SolidColorBrush x:Key="EditorLinkBrush" Color="#7AABFF" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="MinimapViewportBrush" Color="#22000000" />
           <SolidColorBrush x:Key="MinimapViewportBorderBrush" Color="#55000000" />
+          <SolidColorBrush x:Key="EditorLinkBrush" Color="#1F5FCC" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
 
