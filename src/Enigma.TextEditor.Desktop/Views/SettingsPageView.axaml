@@ -22,7 +22,8 @@
   </UserControl.Resources>
 
   <!-- Enigma.GitClient's settings rows: what the setting is, a quieter line saying what it does, and the
-       control at the trailing end. -->
+       control at the trailing end. The quieter line is the palette's description tone, as on the cards'
+       own description: the tertiary tone, meant for placeholders, is under 2:1 on a dark card. -->
   <UserControl.Styles>
     <Style Selector="TextBlock.preferenceName">
       <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundBrush}" />
@@ -30,7 +31,7 @@
     <Style Selector="TextBlock.preferenceHint">
       <Setter Property="FontSize" Value="11" />
       <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundTertiaryBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundSecondaryBrush}" />
     </Style>
     <Style Selector="Grid.preference > StackPanel, Grid.preference > TextBlock">
       <Setter Property="VerticalAlignment" Value="Center" />

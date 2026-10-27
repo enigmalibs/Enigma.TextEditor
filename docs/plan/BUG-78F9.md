@@ -1,6 +1,6 @@
 # BUG-78F9 — Readable colours in the dark theme
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** BUG
 **Branch (PHASE01):** `bugfix/bug-78f9-phase01-link-colours`
 **Branch (PHASE02):** `bugfix/bug-78f9-phase02-hints-hex-row`
@@ -88,7 +88,7 @@
 
 ## PHASE02 — Settings hints and hex row
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
