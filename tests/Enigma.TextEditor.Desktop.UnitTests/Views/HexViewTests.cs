@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -163,6 +164,29 @@ public sealed class HexViewTests(HeadlessAvaloniaFixture fixture)
             Assert.Null(window.ActiveEditor);
             window.Close();
         });
+
+    [Fact]
+    public void TheSelectedRow_IsMarkedInTheSelectionColour_NotTheSystemAccent()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenHexAsync(harness.Folder.Write("data.bin", new byte[256]));
+            MainWindow window = Show(harness);
+            ListBox rows = window.GetVisualDescendants().OfType<EditorPaneView>().Single().HexView.RowList;
+
+            window.KeyTextInput("j");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(window.TryFindResource("EnigmaSelectionBrush", out object? selection));
+            ListBoxItem selected = Assert.IsType<ListBoxItem>(rows.ContainerFromIndex(1));
+            ListBoxItem other = Assert.IsType<ListBoxItem>(rows.ContainerFromIndex(0));
+            Assert.True(selected.IsSelected);
+            Assert.Same(selection, Presenter(selected).Background);
+            Assert.NotSame(selection, Presenter(other).Background);
+            window.Close();
+        });
+
+    private static ContentPresenter Presenter(ListBoxItem item) => item.GetVisualChildren().OfType<ContentPresenter>().Single();
 
     private static MainWindow Show(EditorHarness harness)
     {
