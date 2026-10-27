@@ -78,6 +78,6 @@ completion records live in `docs/done/<ID>.md`.
 | BUG-78F9     | Readable colours in the dark theme   | DONE        | docs/plan/BUG-78F9.md     |
 | - PHASE01    | Link colours                         | DONE        | (in BUG-78F9.md)          |
 | - PHASE02    | Settings hints and hex row           | DONE        | (in BUG-78F9.md)          |
-| FEATURE-AEBF | Release 1.7.0                        | TODO        | docs/plan/FEATURE-AEBF.md |
+| FEATURE-AEBF | Release 1.7.0                        | DONE        | docs/plan/FEATURE-AEBF.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
