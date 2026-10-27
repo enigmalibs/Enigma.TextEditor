@@ -1,6 +1,6 @@
 # FEATURE-AEBF — Release 1.7.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-aebf-release-1-7-0`
 **Run:** bugfix/2026-10-27-link-colours-release
