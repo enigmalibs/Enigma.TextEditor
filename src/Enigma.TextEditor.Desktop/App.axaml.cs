@@ -33,12 +33,16 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Before the load, and it has to be: the loader moves an unreadable file aside, which leaves the
+            // path absent — asked one line later, a broken file would look like a first run.
+            FirstRunState firstRun = FirstRunState.Detect(AppPaths.SettingsFile);
+
             // Read before the container is built, not from it: the theme has to be right before the
             // window is shown. An unreadable file is moved aside and the defaults are used.
             ConfigLoadResult<AppSettings> settings = SettingsLoader.Load(AppPaths.SettingsFile);
             RequestedThemeVariant = ThemeService.ToVariant(settings.Config.Value.Theme);
 
-            IHost host = BuildHost(this, settings, AppPaths.LogFile);
+            IHost host = BuildHost(this, settings, AppPaths.LogFile, firstRun);
 
             // Started, never run: the Avalonia lifetime owns the message loop; the host only supplies
             // configuration, logging and services.
@@ -63,10 +67,10 @@ public partial class App : Application
 
             desktop.MainWindow = window;
 
-            // Posted, so the window is on screen before the first file is read, and any dialog a
-            // failed open raises has a window to appear in.
+            // Posted, so the window is on screen before the welcome dialog of a first start and the first
+            // file read, and any dialog either raises has a window to appear in.
             StartupFiles startup = StartupFiles.Parse(desktop.Args ?? [], Environment.CurrentDirectory, File.Exists, Directory.Exists);
-            Dispatcher.UIThread.Post(() => _ = viewModel.Workspace.OpenStartupFilesAsync(startup));
+            Dispatcher.UIThread.Post(() => _ = viewModel.StartAsync(startup));
             logger.LogInformation("{DisplayName} {Version} started.", AppInfo.DisplayName, AppInfo.Version);
 
             desktop.Exit += (_, _) => OnExit(host, logger);
@@ -81,8 +85,13 @@ public partial class App : Application
     /// <param name="application">The running application, which the theme service drives.</param>
     /// <param name="settings">The settings, loaded before the container.</param>
     /// <param name="logFilePath">Where the log is written.</param>
+    /// <param name="firstRun">Whether this is the very first start; not one when omitted.</param>
     /// <returns>The host, not started.</returns>
-    internal static IHost BuildHost(Application application, ConfigLoadResult<AppSettings> settings, string logFilePath)
+    internal static IHost BuildHost(
+        Application application,
+        ConfigLoadResult<AppSettings> settings,
+        string logFilePath,
+        FirstRunState? firstRun = null)
     {
         ArgumentNullException.ThrowIfNull(application);
 
@@ -95,6 +104,12 @@ public partial class App : Application
 
         builder.Services.AddSingleton(application);
         builder.Services.AddAppSettings(settings);
+
+        if (firstRun is not null)
+        {
+            builder.Services.AddFirstRun(firstRun);
+        }
+
         builder.Services.AddAppLogging(logFilePath);
         builder.Services.AddEnigmaServices();
         builder.Services.AddShell();

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Core.Settings;
@@ -8,8 +9,8 @@ using Xunit;
 namespace Enigma.TextEditor.Desktop.UnitTests.ViewModels;
 
 /// <summary>
-/// The Preferences dialog's view-model: every value goes through the Settings menu, which applies and
-/// writes it, and the dialog follows whatever changes the preferences.
+/// The settings page's view-model: every value goes through the Settings menu, which applies and writes
+/// it, and the page follows whatever changes the preferences.
 /// </summary>
 [Collection(HeadlessCollection.Name)]
 public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
@@ -18,7 +19,12 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
     public void EveryPreference_AppliesAtOnce_AndIsWritten()
         => fixture.Run(() =>
         {
-            using EditorHarness harness = new();
+            // Wrap off and LF, so that turning them on and to CRLF are changes.
+            using EditorHarness harness = new(settings =>
+            {
+                settings.WordWrap = false;
+                settings.DefaultLineEnding = LineEndingStyle.Lf;
+            });
             FakeSettingsWriter writer = new();
             SettingsMenuViewModel menu = new(harness.Settings, writer, harness.Theme, harness.Vim, harness.Preferences);
             PreferencesViewModel page = new(harness.Settings, menu);
@@ -106,7 +112,12 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
     public void AChangeFromTheMenu_IsAnnouncedToTheDialog()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // Wrap off and LF, so that the menu turns them on and to CRLF.
+            using EditorHarness harness = new(settings =>
+            {
+                settings.WordWrap = false;
+                settings.DefaultLineEnding = LineEndingStyle.Lf;
+            });
             PreferencesViewModel page = harness.PreferencesPage;
             List<string?> announced = [];
             page.PropertyChanged += (_, e) => announced.Add(e.PropertyName);
@@ -150,14 +161,14 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
             {
                 settings.Theme = AppTheme.Dark;
                 settings.VimEnabled = false;
-                settings.WordWrap = true;
+                settings.WordWrap = false;
                 settings.ShowMinimap = false;
                 settings.PaneResizeStep = 20;
                 settings.EditorFontSize = 30;
                 settings.EditorFontFamily = "Some Mono";
                 settings.IndentWithTabs = true;
                 settings.IndentSize = 8;
-                settings.DefaultLineEnding = LineEndingStyle.CrLf;
+                settings.DefaultLineEnding = LineEndings.ForPlatform(!OperatingSystem.IsWindows());
             });
             harness.Vim.OnSettingsChanged();
             List<string?> announced = [];
@@ -183,7 +194,7 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
 
             Assert.Equal([AppTheme.System], harness.Theme.Applied);
             Assert.True(harness.Vim.IsEnabled);
-            Assert.False(harness.Preferences.WordWrap);
+            Assert.True(harness.Preferences.WordWrap);
             Assert.True(harness.Preferences.ShowMinimap);
             Assert.Equal(AppSettings.DefaultPaneResizeStep, harness.Preferences.PaneResizeStep);
             Assert.Equal(AppSettings.DefaultFontSize, harness.Preferences.FontSize);

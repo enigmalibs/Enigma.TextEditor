@@ -228,7 +228,8 @@ public sealed class SplitPaneTests(HeadlessAvaloniaFixture fixture)
     public void ResizeAndEqualize_MoveTheSplit()
         => fixture.Run(() =>
         {
-            using EditorHarness harness = new();
+            // The steps below are counted from a 5% step.
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 5);
             harness.Workspace.Split(SplitAxis.Columns);
             SplitNode split = Assert.IsType<SplitNode>(harness.Workspace.Layout.Root);
 

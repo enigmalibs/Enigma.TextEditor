@@ -5,14 +5,17 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.5** — **Settings → Preferences…** (Ctrl+,) shows every preference in one dialog, with a new one:
-> the editor's font, from the monospace faces the machine has. The text no longer runs under the scrollbars or against
-> the minimap. 1.4 made `Space rj` move the bar between stacked panes down and `Space rk` up. 1.3 made Space a leader
-> key, with `Space rh`, `rj`, `rk`, `rl` to move the bar between two panes from either of them. 1.2 brought a minimap
-> beside the text; `:set` for every item on the status bar; quicker pane keys (`g=`, `g+`, `gt`…) and a resize step of
-> your choice; and dialogs that take the keyboard when they open. 1.1 brought a Linux installer. 1.0, the first
-> release, brought tabs, split panes and Vim's keys; files read and written in their own encoding, line endings and
-> indentation; syntax highlighting; and a read-only hex viewer. See [RELEASENOTES.md](RELEASENOTES.md).
+> **What's new in 1.6** — a narrow rail on the left of the window: the files at the top, and the settings at the bottom,
+> a page that replaces the Preferences dialog (Ctrl+, too, Esc to go back). The first start asks for the theme, Vim
+> mode, the minimap and word wrap, and a fresh install now wraps long lines, moves a splitter by 10% and writes new
+> files with the platform's line endings. 1.5 brought the editor's font, from the monospace faces the machine has, and
+> kept the text clear of the scrollbars and the minimap. 1.4 made `Space rj` move the bar between stacked panes down and
+> `Space rk` up. 1.3 made Space a leader key, with `Space rh`, `rj`, `rk`, `rl` to move the bar between two panes from
+> either of them. 1.2 brought a minimap beside the text; `:set` for every item on the status bar; quicker pane keys
+> (`g=`, `g+`, `gt`…) and a resize step of your choice; and dialogs that take the keyboard when they open. 1.1 brought a
+> Linux installer. 1.0, the first release, brought tabs, split panes and Vim's keys; files read and written in their own
+> encoding, line endings and indentation; syntax highlighting; and a read-only hex viewer. See
+> [RELEASENOTES.md](RELEASENOTES.md).
 
 **Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its **×**,
 a middle click or Ctrl+F4. Ctrl+Tab and Ctrl+Shift+Tab, or `gt` and `gT`, move between tabs. Panes split any way you
@@ -82,11 +85,13 @@ The last four are buttons that change them.
 
 **Settings** apply at once and are remembered: the theme (light, dark or following the system), Vim mode, word wrap,
 the minimap beside the text (press or drag on it to scroll; off, a plain scrollbar is back), how far the resize keys
-move a splitter (2, 5 or 10% of the split from the menu, any step from 1 to 50 in the preferences), and the indentation
-and line endings a new document starts with. **Settings → Preferences…** (Ctrl+,) shows all of them in one dialog,
-grouped into Text, Appearance, Editing and New files, each with its full range; *Text* also sets the font the editors
-and the hex view draw a file in, from the monospace faces the machine has. **View → Zoom In / Zoom Out / Reset Zoom**
-(Ctrl+=, Ctrl+-, Ctrl+0) sets the editor's font size, between 6 and 72, as the preferences' font size does. **Help → About Enigma Text Editor** shows the version
+move a splitter (2, 5 or 10% of the split from the menu, any step from 1 to 50 on the settings page), and the
+indentation and line endings a new document starts with. The rail on the left of the window has two icons: the files
+at the top, the split editor itself, and the settings at the bottom, a page that shows all of them grouped into Text,
+Appearance, Editing and New files, each with its full range; *Text* also sets the font the editors and the hex view
+draw a file in, from the monospace faces the machine has. **Settings → All Settings** (Ctrl+,) opens that page too,
+and Esc goes back to the files. **View → Zoom In / Zoom Out / Reset Zoom** (Ctrl+=, Ctrl+-, Ctrl+0) sets the editor's
+font size, between 6 and 72, as the settings page's font size does. **Help → About Enigma Text Editor** shows the version
 and the commit it was built from.
 
 ## Your data

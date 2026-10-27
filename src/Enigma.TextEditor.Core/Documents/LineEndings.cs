@@ -21,9 +21,23 @@ namespace Enigma.TextEditor.Core.Documents;
 public static class LineEndings
 {
     /// <summary>
-    /// The style a file with no line break at all — and every new file — is written with.
+    /// The style a file read with no line break at all is written back with.
     /// </summary>
+    /// <remarks>
+    /// Not what a new file gets: that is the <c>DefaultLineEnding</c> setting, which follows the platform
+    /// (<see cref="ForPlatform(bool)"/>).
+    /// </remarks>
     public const LineEndingStyle Default = LineEndingStyle.Lf;
+
+    /// <summary>
+    /// The style a platform's own tools write.
+    /// </summary>
+    /// <param name="isWindows">Whether the platform is Windows.</param>
+    /// <returns><see cref="LineEndingStyle.CrLf"/> on Windows; <see cref="LineEndingStyle.Lf"/> everywhere else.</returns>
+    /// <remarks>
+    /// Takes the platform rather than asking for it, so that both answers can be checked on either.
+    /// </remarks>
+    public static LineEndingStyle ForPlatform(bool isWindows) => isWindows ? LineEndingStyle.CrLf : LineEndingStyle.Lf;
 
     /// <summary>
     /// Works out which style a text uses.

@@ -181,7 +181,8 @@ public static class HelpCatalog
             Keys("Ctrl+Shift+S", "Save as"),
             Keys("Ctrl+F4", "Close the tab"),
             Keys("Ctrl+=, Ctrl+-, Ctrl+0", "Zoom in, out, back to the default"),
-            Keys("Ctrl+,", "Preferences"),
+            Keys("Ctrl+,", "Settings"),
+            Keys("Esc", "Back to the files, from the settings"),
         ]),
     ];
 

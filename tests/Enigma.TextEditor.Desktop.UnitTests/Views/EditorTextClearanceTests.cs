@@ -33,7 +33,12 @@ public sealed class EditorTextClearanceTests(HeadlessAvaloniaFixture fixture)
     public void WithTheMinimap_TheTextStopsShortOfIt_AndAboveTheHorizontalBar(int fontSize)
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new(settings => settings.EditorFontSize = fontSize);
+            // Unwrapped, so that a long line brings the horizontal bar.
+            using EditorHarness harness = new(settings =>
+            {
+                settings.EditorFontSize = fontSize;
+                settings.WordWrap = false;
+            });
             (MainWindow window, EditorPaneView pane) = await ShowAsync(harness);
             ScrollToTheRight(pane);
 
@@ -54,8 +59,10 @@ public sealed class EditorTextClearanceTests(HeadlessAvaloniaFixture fixture)
     public void WithTheScrollbar_TheTextStopsShortOfBothBars(int fontSize)
         => fixture.RunAsync(async () =>
         {
+            // Unwrapped, so that a long line brings the horizontal bar.
             using EditorHarness harness = new(settings =>
             {
+                settings.WordWrap = false;
                 settings.ShowMinimap = false;
                 settings.EditorFontSize = fontSize;
             });

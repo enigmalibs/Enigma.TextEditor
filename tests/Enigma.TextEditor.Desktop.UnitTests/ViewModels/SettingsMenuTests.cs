@@ -25,7 +25,12 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
     public void EveryToggle_AppliesAtOnce_AndIsWrittenToTheSettingsFile()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // Wrap off and LF, so that every toggle below is a change.
+            using EditorHarness harness = new(settings =>
+            {
+                settings.WordWrap = false;
+                settings.DefaultLineEnding = LineEndingStyle.Lf;
+            });
             SettingsMenuViewModel menu = harness.SettingsMenu;
 
             await menu.UseDarkThemeCommand.ExecuteAsync(null);
@@ -55,7 +60,8 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
     public void ThePaneResizeStep_AppliesAtOnce_AndIsWritten()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // The steps below are counted from a 5% step.
+            using EditorHarness harness = new(settings => settings.PaneResizeStep = 5);
             SettingsMenuViewModel menu = harness.SettingsMenu;
             Assert.True(menu.IsResizeStep5);
 
@@ -88,7 +94,8 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
     public void TheRadioMarks_FollowTheChoice()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // LF, so that CRLF moves the mark.
+            using EditorHarness harness = new(settings => settings.DefaultLineEnding = LineEndingStyle.Lf);
             SettingsMenuViewModel menu = harness.SettingsMenu;
             Assert.True(menu.IsSystemTheme);
             Assert.True(menu.IsDefaultFourSpaces);
@@ -156,7 +163,8 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
     public void AFailedWrite_IsReportedOnce_AndTheChangeStillApplies()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // Wrap off, so that the toggle turns it on.
+            using EditorHarness harness = new(settings => settings.WordWrap = false);
 
             // A folder where the file should go cannot be replaced by the file.
             Directory.CreateDirectory(harness.Settings.FilePath);
@@ -192,7 +200,8 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
     public void WrapAndZoom_ReachTheOpenEditor()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // Wrap off, so that the toggle turns it on.
+            using EditorHarness harness = new(settings => settings.WordWrap = false);
             await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
             MainWindow window = Show(harness);
 
@@ -209,7 +218,12 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
     public void TheMenuBar_RunsFileEditViewToolsSettingsHelp()
         => fixture.RunAsync(async () =>
         {
-            using EditorHarness harness = new();
+            // Wrap off and a 5% step, which the marks below are checked against.
+            using EditorHarness harness = new(settings =>
+            {
+                settings.WordWrap = false;
+                settings.PaneResizeStep = 5;
+            });
             await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x"));
             MainWindow window = Show(harness);
             MenuItem[] menus = [.. window.FindControl<Menu>("MainMenu")!.Items.OfType<MenuItem>()];
@@ -218,7 +232,7 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
 
             MenuItem settings = menus[4];
             Assert.Equal(
-                ["_Theme", "_Vim Mode", "_Word Wrap", "_Minimap", "Pane _Resize Step", "Default _Indentation", "Default _Line Endings", "_Preferences…"],
+                ["_Theme", "_Vim Mode", "_Word Wrap", "_Minimap", "Pane _Resize Step", "Default _Indentation", "Default _Line Endings", "_All Settings"],
                 settings.Items.OfType<MenuItem>().Select(item => (string?)item.Header));
             Assert.True(Item(settings, "_Vim Mode").IsChecked);
             Assert.False(Item(settings, "_Word Wrap").IsChecked);

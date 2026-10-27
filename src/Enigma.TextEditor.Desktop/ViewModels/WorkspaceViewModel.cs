@@ -127,6 +127,12 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     public event EventHandler? LayoutChanged;
 
     /// <summary>
+    /// Raised when a buffer has been shown in the active pane — opened, created, or brought forward
+    /// again — whether or not the active tab changed.
+    /// </summary>
+    public event EventHandler? DocumentShown;
+
+    /// <summary>
     /// Gets how every editor looks.
     /// </summary>
     public EditorPreferences Preferences { get; }
@@ -578,6 +584,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         }
 
         RefreshCommands();
+        DocumentShown?.Invoke(this, EventArgs.Empty);
 
         return tab;
     }

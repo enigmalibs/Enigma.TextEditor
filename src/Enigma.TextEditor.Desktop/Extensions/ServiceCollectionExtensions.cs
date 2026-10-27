@@ -9,6 +9,7 @@ using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using NLog.Targets;
 
@@ -50,6 +51,20 @@ public static class ServiceCollectionExtensions
             ArgumentNullException.ThrowIfNull(settings);
 
             services.AddSingleton(settings.Config);
+        }
+
+        /// <summary>
+        /// Registers whether this start is the very first one.
+        /// </summary>
+        /// <param name="firstRun">What <see cref="FirstRunState.Detect(string)"/> answered before the settings were read.</param>
+        /// <remarks>
+        /// Before <see cref="AddShell"/>, whose fallback — not a first run — only applies when this was not called.
+        /// </remarks>
+        public void AddFirstRun(FirstRunState firstRun)
+        {
+            ArgumentNullException.ThrowIfNull(firstRun);
+
+            services.AddSingleton(firstRun);
         }
 
         /// <summary>
@@ -128,10 +143,16 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<IAboutDialogService, AboutDialogService>();
             services.AddSingleton<IHelpDialogService, HelpDialogService>();
 
-            // One for the session: it follows every change the menu makes, and the dialog shows it again
-            // each time it opens.
+            // One for the session: it follows every change the menu makes, and the settings page shows it
+            // whenever the rail goes back to it.
             services.AddSingleton<PreferencesViewModel>();
-            services.AddSingleton<IPreferencesDialogService, PreferencesDialogService>();
+            services.AddSingleton<ShellViewModel>();
+
+            // Shown once at most, so one view-model for the session; not a first run unless the composition
+            // root said so.
+            services.TryAddSingleton(FirstRunState.Returning);
+            services.AddSingleton<FirstRunViewModel>();
+            services.AddSingleton<IFirstRunDialogService, FirstRunDialogService>();
         }
     }
 }
