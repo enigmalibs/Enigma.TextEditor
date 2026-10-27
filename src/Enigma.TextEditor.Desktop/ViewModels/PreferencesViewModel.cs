@@ -11,18 +11,18 @@ using Enigma.TextEditor.Desktop.Services;
 namespace Enigma.TextEditor.Desktop.ViewModels;
 
 /// <summary>
-/// The Preferences dialog: every setting, grouped by what it acts on, with the full range each one
-/// allows — the editor's font among them.
+/// The settings page: every setting, grouped by what it acts on, with the full range each one allows —
+/// the editor's font among them.
 /// </summary>
 /// <remarks>
 /// <para>
 /// It changes nothing itself. Every change goes through <see cref="SettingsMenuViewModel"/>, which
-/// applies it and writes it, so the menu and the dialog are two views of the same preferences.
+/// applies it and writes it, so the menu and the page are two views of the same preferences.
 /// </para>
 /// <para>
 /// The values are read from the settings each time, and all of them are announced again whenever any
-/// preference changes — from the menu, the zoom keys or the dialog itself — so an open dialog never
-/// shows a stale value. The setters do not await the write: a binding has nowhere to return it to,
+/// preference changes — from the menu, the zoom keys or the page itself — so the page never shows a
+/// stale value. The setters do not await the write: a binding has nowhere to return it to,
 /// the change is applied before the write begins, and the writer reports its own failures.
 /// </para>
 /// </remarks>

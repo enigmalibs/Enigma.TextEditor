@@ -6,17 +6,18 @@
              xmlns:settings="using:Enigma.TextEditor.Core.Settings"
              xmlns:documents="using:Enigma.TextEditor.Core.Documents"
              xmlns:ei="https://github.com/josueclement/Enigma.Icons"
-             x:Class="Enigma.TextEditor.Desktop.Views.PreferencesView"
+             x:Class="Enigma.TextEditor.Desktop.Views.SettingsPageView"
              x:DataType="vm:PreferencesViewModel"
-             Width="620">
+             Focusable="True"
+             Background="{DynamicResource EnigmaBackgroundBrush}">
 
   <UserControl.Resources>
     <!-- The dropdowns show what a choice does rather than its enum name. -->
     <DataTemplate x:Key="ThemeItem" x:DataType="settings:AppTheme">
-      <TextBlock Text="{Binding Converter={x:Static views:PreferencesView.ThemeText}}" />
+      <TextBlock Text="{Binding Converter={x:Static views:SettingsPageView.ThemeText}}" />
     </DataTemplate>
     <DataTemplate x:Key="LineEndingItem" x:DataType="documents:LineEndingStyle">
-      <TextBlock Text="{Binding Converter={x:Static views:PreferencesView.LineEndingText}}" />
+      <TextBlock Text="{Binding Converter={x:Static views:SettingsPageView.LineEndingText}}" />
     </DataTemplate>
   </UserControl.Resources>
 
@@ -45,36 +46,53 @@
 
   <DockPanel>
 
-    <!-- There is nothing to confirm: a change applies and is written at once, as in the Settings menu.
-         Reset asks first, from a flyout, because the dialog host holds one dialog at a time. -->
-    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,16,12">
-      <TextBlock Grid.Column="0"
-                 Classes="preferenceHint"
-                 VerticalAlignment="Center"
-                 Text="Changes apply at once and are remembered." />
-      <Button x:Name="ResetButton"
-              Grid.Column="1"
-              Content="Reset to defaults"
-              ToolTip.Tip="Put every preference back to its default"
-              AutomationProperties.Name="Reset every preference">
-        <Button.Flyout>
-          <MenuFlyout>
-            <MenuItem x:Name="ConfirmReset"
-                      Header="Put every preference back to its default"
-                      Command="{Binding ResetCommand}" />
-          </MenuFlyout>
-        </Button.Flyout>
-      </Button>
-    </Grid>
+    <!-- Enigma.GitClient's settings page: a header strip with what the page is and its one page-wide
+         command. There is nothing to confirm: a change applies and is written at once, as in the Settings
+         menu. Reset asks first, from a flyout. -->
+    <Border DockPanel.Dock="Top"
+            Background="{DynamicResource EnigmaSurfaceBrush}"
+            BorderBrush="{DynamicResource EnigmaBorderSubtleBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="16,12">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+          <ei:Icon Kind="Gear"
+                   Size="20"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource EnigmaForegroundSecondaryBrush}" />
+          <TextBlock x:Name="PageTitle"
+                     Text="Settings"
+                     VerticalAlignment="Center"
+                     FontSize="15"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource EnigmaForegroundBrush}" />
+        </StackPanel>
+        <TextBlock Grid.Column="1"
+                   Classes="preferenceHint"
+                   VerticalAlignment="Center"
+                   Text="Changes apply at once and are remembered." />
+        <Button x:Name="ResetButton"
+                Grid.Column="2"
+                Content="Reset to defaults"
+                ToolTip.Tip="Put every preference back to its default"
+                AutomationProperties.Name="Reset every preference">
+          <Button.Flyout>
+            <MenuFlyout>
+              <MenuItem x:Name="ConfirmReset"
+                        Header="Put every preference back to its default"
+                        Command="{Binding ResetCommand}" />
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+      </Grid>
+    </Border>
 
-    <!-- The one scroll area: the dialog card around it is kept from scrolling (see the code-behind), and
-         its bar stands beside the cards rather than over them. -->
+    <!-- A centred column with a ceiling on it, as in Enigma.GitClient: settings rows read badly at the
+         window's full width. The scroll area fills the page; its bar stands at the page's edge. -->
     <ScrollViewer x:Name="Scroller"
-                  AllowAutoHide="False"
                   HorizontalScrollBarVisibility="Disabled"
-                  VerticalScrollBarVisibility="Auto"
-                  MaxHeight="440">
-      <StackPanel x:Name="Cards" Spacing="8" Margin="0,0,16,0">
+                  VerticalScrollBarVisibility="Auto">
+      <StackPanel x:Name="Cards" Spacing="8" Margin="24" MaxWidth="900">
 
         <!-- The editor's text and the hex rows, not the menus or the status bar. -->
         <controls:SettingsCardExpander x:Name="TextCard"

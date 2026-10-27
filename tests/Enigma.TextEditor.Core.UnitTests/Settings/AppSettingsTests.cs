@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Enigma.TextEditor.Core.Configuration;
 using Enigma.TextEditor.Core.Documents;
@@ -15,14 +16,29 @@ public sealed class AppSettingsTests
 
         Assert.Equal(AppTheme.System, settings.Theme);
         Assert.True(settings.VimEnabled);
-        Assert.False(settings.WordWrap);
+        Assert.True(settings.WordWrap);
         Assert.True(settings.ShowMinimap);
-        Assert.Equal(5, settings.PaneResizeStep);
+        Assert.Equal(10, settings.PaneResizeStep);
+        Assert.Equal(AppSettings.DefaultPaneResizeStep, settings.PaneResizeStep);
         Assert.Equal(AppSettings.DefaultFontSize, settings.EditorFontSize);
         Assert.Equal(string.Empty, settings.EditorFontFamily);
         Assert.False(settings.IndentWithTabs);
         Assert.Equal(4, settings.IndentSize);
-        Assert.Equal(LineEndingStyle.Lf, settings.DefaultLineEnding);
+        Assert.Equal(OperatingSystem.IsWindows() ? LineEndingStyle.CrLf : LineEndingStyle.Lf, settings.DefaultLineEnding);
+    }
+
+    [Fact]
+    public void ASettingsFileWithTheOldDefaults_KeepsThem()
+    {
+        using TempSettingsFolder folder = new();
+        LineEndingStyle notThisPlatforms = OperatingSystem.IsWindows() ? LineEndingStyle.Lf : LineEndingStyle.CrLf;
+        folder.WriteSettingsFile($"{{ \"WordWrap\": false, \"PaneResizeStep\": 5, \"DefaultLineEnding\": \"{notThisPlatforms}\" }}");
+
+        AppSettings read = SettingsLoader.Load(folder.SettingsFile).Config.Value;
+
+        Assert.False(read.WordWrap);
+        Assert.Equal(5, read.PaneResizeStep);
+        Assert.Equal(notThisPlatforms, read.DefaultLineEnding);
     }
 
     [Fact]

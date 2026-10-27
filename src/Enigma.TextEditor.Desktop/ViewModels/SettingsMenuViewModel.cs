@@ -14,8 +14,8 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// short choice, applied at once and written at once.
 /// </summary>
 /// <remarks>
-/// Each item says what it is and shows its current value as a check or a radio mark. The Preferences
-/// dialog shows the same settings with their full ranges and changes them through the
+/// Each item says what it is and shows its current value as a check or a radio mark. The settings
+/// page shows the same settings with their full ranges and changes them through the
 /// <c>Set…Async</c> methods here, so the menu and the dialog apply and write a change the same way.
 /// The defaults only reach new buffers and files whose own indentation does not say.
 /// </remarks>
@@ -69,7 +69,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
 
     /// <summary>
     /// Raised once a preference has been applied, before it is written, whoever changed it: this menu,
-    /// the zoom keys or the Preferences dialog.
+    /// the zoom keys or the settings page.
     /// </summary>
     public event EventHandler? Changed;
 
@@ -296,7 +296,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
     /// <param name="percent">The step, in percent of the split; kept within the setting's range.</param>
     /// <returns>A task that completes once the settings are written.</returns>
     /// <remarks>
-    /// Any step but the menu's three can be set from the Preferences dialog or written in settings.json;
+    /// Any step but the menu's three can be set from the settings page or written in settings.json;
     /// the menu then shows none of its three checked.
     /// </remarks>
     public async Task SetPaneResizeStepAsync(int percent)
@@ -404,6 +404,36 @@ public sealed class SettingsMenuViewModel : ObservableObject
         _preferences.PaneResizeStep = Value.PaneResizeStep;
         _preferences.FontSize = Value.EditorFontSize;
         _preferences.FontFamily = EditorPreferences.FamilyFor(Value.EditorFontFamily);
+
+        // Every check and radio mark of the menu at once.
+        OnPropertyChanged(string.Empty);
+
+        await AppliedAsync();
+    }
+
+    /// <summary>
+    /// Applies what the welcome dialog of a first start chose, and writes the settings once.
+    /// </summary>
+    /// <param name="theme">The theme.</param>
+    /// <param name="vimEnabled">Whether Vim drives the editors.</param>
+    /// <param name="showMinimap">Whether the text has a minimap beside it.</param>
+    /// <param name="wordWrap">Whether long lines wrap.</param>
+    /// <returns>A task that completes once the settings are written.</returns>
+    /// <remarks>
+    /// Written even when nothing differs from the defaults: on a first run, the file's absence is what
+    /// would bring the dialog back.
+    /// </remarks>
+    public async Task ApplyFirstRunAsync(AppTheme theme, bool vimEnabled, bool showMinimap, bool wordWrap)
+    {
+        Value.Theme = theme;
+        Value.VimEnabled = vimEnabled;
+        Value.ShowMinimap = showMinimap;
+        Value.WordWrap = wordWrap;
+
+        _theme.Apply(theme);
+        _vim.OnSettingsChanged();
+        _preferences.ShowMinimap = showMinimap;
+        _preferences.WordWrap = wordWrap;
 
         // Every check and radio mark of the menu at once.
         OnPropertyChanged(string.Empty);

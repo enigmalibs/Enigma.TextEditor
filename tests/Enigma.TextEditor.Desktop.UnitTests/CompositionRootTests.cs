@@ -47,7 +47,9 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
     [InlineData(typeof(IAboutDialogService))]
     [InlineData(typeof(IHelpDialogService))]
     [InlineData(typeof(PreferencesViewModel))]
-    [InlineData(typeof(IPreferencesDialogService))]
+    [InlineData(typeof(ShellViewModel))]
+    [InlineData(typeof(FirstRunViewModel))]
+    [InlineData(typeof(IFirstRunDialogService))]
     public void TheContainer_ResolvesEveryService(Type serviceType)
     {
         using TempFolder folder = new();
@@ -115,9 +117,12 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
                 host.Services.GetRequiredService<StatusBarViewModel>(),
                 host.Services.GetRequiredService<ToolsViewModel>(),
                 host.Services.GetRequiredService<SettingsMenuViewModel>(),
+                host.Services.GetRequiredService<ShellViewModel>(),
+                host.Services.GetRequiredService<PreferencesViewModel>(),
                 host.Services.GetRequiredService<IAboutDialogService>(),
                 host.Services.GetRequiredService<IHelpDialogService>(),
-                host.Services.GetRequiredService<IPreferencesDialogService>(),
+                host.Services.GetRequiredService<FirstRunState>(),
+                host.Services.GetRequiredService<IFirstRunDialogService>(),
                 shutdown);
 
             viewModel.ExitCommand.Execute(null);
@@ -126,11 +131,37 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
         });
     }
 
-    private static IHost BuildHost(TempFolder folder)
+    [Fact]
+    public void WithoutAFirstRunState_TheContainerSaysItIsNotAFirstRun()
+    {
+        using TempFolder folder = new();
+
+        fixture.Run(() =>
+        {
+            using IHost host = BuildHost(folder);
+
+            Assert.Same(FirstRunState.Returning, host.Services.GetRequiredService<FirstRunState>());
+        });
+    }
+
+    [Fact]
+    public void AFirstRunState_FromTheCompositionRoot_IsTheOneRegistered()
+    {
+        using TempFolder folder = new();
+
+        fixture.Run(() =>
+        {
+            using IHost host = BuildHost(folder, FirstRunState.First);
+
+            Assert.Same(FirstRunState.First, host.Services.GetRequiredService<FirstRunState>());
+        });
+    }
+
+    private static IHost BuildHost(TempFolder folder, FirstRunState? firstRun = null)
     {
         // Never the user's own settings file, and never their log.
         ConfigLoadResult<AppSettings> settings = SettingsLoader.Load(folder.PathOf(AppPaths.SettingsFileName));
 
-        return App.BuildHost(Application.Current!, settings, folder.PathOf("app.log"));
+        return App.BuildHost(Application.Current!, settings, folder.PathOf("app.log"), firstRun);
     }
 }
