@@ -12,8 +12,8 @@ using TextMateInstallation = AvaloniaEdit.TextMate.TextMate.Installation;
 namespace Enigma.TextEditor.Desktop.Views;
 
 /// <summary>
-/// Paints an editor: its chrome — text, line numbers, caret, selection and current line — from the
-/// Enigma palette, and its text from the TextMate grammar of the buffer's language.
+/// Paints an editor: its chrome — text, line numbers, caret, selection, current line and links — from
+/// the Enigma palette, and its text from the TextMate grammar of the buffer's language.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -33,6 +33,9 @@ public sealed class EditorAppearance : IDisposable
     private const string LineNumbersKey = "EnigmaForegroundTertiaryBrush";
     private const string SelectionKey = "EnigmaSelectionBrush";
     private const string CurrentLineKey = "EnigmaHoverBrush";
+
+    // The app's own, not the palette's: App.axaml defines it per variant.
+    private const string LinkKey = "EditorLinkBrush";
 
     // Fill only: the line the caret is on is a hint, not a box drawn round the text.
     private static readonly Pen NoBorder = new(Brushes.Transparent, 0);
@@ -164,6 +167,7 @@ public sealed class EditorAppearance : IDisposable
         Use(LineNumbersKey, variant, brush => _editor.LineNumbersForeground = brush);
         Use(ForegroundKey, variant, brush => _editor.TextArea.CaretBrush = brush);
         Use(SelectionKey, variant, brush => _editor.TextArea.SelectionBrush = brush);
+        Use(LinkKey, variant, brush => _editor.TextArea.TextView.LinkTextForegroundBrush = brush);
 
         Use(
             CurrentLineKey,
