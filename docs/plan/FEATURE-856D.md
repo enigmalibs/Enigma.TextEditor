@@ -1,6 +1,6 @@
 # FEATURE-856D — Icon rail & settings page
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-856d-phase01-icon-rail-settings-page`
 **Branch (PHASE02):** `feature/feature-856d-phase02-files-page-follows-editor`
@@ -99,7 +99,7 @@
 
 ## PHASE02 — Files page follows the editor
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

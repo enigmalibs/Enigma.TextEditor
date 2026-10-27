@@ -89,7 +89,17 @@ public partial class MainWindow : Window
         ShowPage(_viewModel);
 
         // Posted: the page that is coming has to be visible and laid out before it can take the keyboard.
-        Dispatcher.UIThread.Post(FocusCurrentPage, DispatcherPriority.Background);
+        // Not while a dialog is open — a file opened behind a question brings the files back — as the
+        // dialog gives the keyboard to the page shown when it closes.
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (!HostDialog.IsOpen)
+                {
+                    FocusCurrentPage();
+                }
+            },
+            DispatcherPriority.Background);
     }
 
     private void ShowPage(MainWindowViewModel viewModel)
@@ -166,13 +176,14 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Gets the editor of the active pane — what the Edit menu acts on.
+    /// Gets the editor of the active pane — what the Edit menu acts on — or <see langword="null"/> while
+    /// the settings page hides it.
     /// </summary>
     internal AvaloniaTextEditor? ActiveEditor
     {
         get
         {
-            if (DataContext is not MainWindowViewModel { Workspace.ActivePane: { } pane })
+            if (DataContext is not MainWindowViewModel { Shell.IsFilesPage: true, Workspace.ActivePane: { } pane })
             {
                 return null;
             }

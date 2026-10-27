@@ -6,6 +6,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Enigma.Avalonia.Desktop.Controls;
@@ -254,6 +255,52 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             double left = cards.TranslatePoint(default, scroller)!.Value.X;
             double right = scroller.Viewport.Width - left - cards.Bounds.Width;
             Assert.True(Math.Abs(left - right) <= 1, "The column is centred in the page.");
+            window.Close();
+        });
+
+    [Fact]
+    public void CtrlN_OnTheSettingsPage_ShowsTheFilesWithTheNewTab_AndTheKeyboardInIt()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
+            MainWindow window = await ShowAsync(harness);
+            harness.Shell.ShowSettings();
+            await DrainAsync();
+            Assert.True(window.SettingsPage!.IsKeyboardFocusWithin);
+
+            window.KeyPress(Key.N, RawInputModifiers.Control, PhysicalKey.N, null);
+            await DrainAsync();
+
+            Assert.True(harness.Shell.IsFilesPage);
+            Assert.True(window.FindControl<Panel>("FilesPage")!.IsVisible);
+            Assert.Null(harness.Workspace.ActiveDocument?.FilePath);
+            Assert.True(Editor(window).TextArea.IsKeyboardFocusWithin, "The new tab has the keyboard.");
+            window.Close();
+        });
+
+    [Fact]
+    public void TheEditMenu_OnTheSettingsPage_EditsNothing()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
+            MainWindow window = await ShowAsync(harness);
+            harness.Shell.ShowSettings();
+            await DrainAsync();
+
+            Assert.Null(window.ActiveEditor);
+            MenuItem edit = window.FindControl<Menu>("MainMenu")!.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "_Edit");
+            MenuItem selectAll = edit.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Select _All");
+            selectAll.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            await DrainAsync();
+
+            Assert.Equal(0, Editor(window).SelectionLength);
+            Assert.True(harness.Shell.IsSettingsPage);
+
+            harness.Shell.ShowFiles();
+            await DrainAsync();
+            Assert.Same(Editor(window), window.ActiveEditor);
             window.Close();
         });
 

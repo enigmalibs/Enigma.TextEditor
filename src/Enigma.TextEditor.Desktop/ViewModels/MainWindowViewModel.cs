@@ -56,7 +56,11 @@ public sealed class MainWindowViewModel : ObservableObject
         AboutCommand = new AsyncRelayCommand(() => _about.ShowAsync());
         HelpCommand = new AsyncRelayCommand(() => _help.ShowAsync());
 
+        // Whatever opens, creates or rearranges a document brings the files back: from the settings page,
+        // File → Open, Ctrl+N, :e or a split would otherwise act on documents nobody can see.
         Workspace.PropertyChanged += OnWorkspacePropertyChanged;
+        Workspace.DocumentShown += (_, _) => Shell.ShowFiles();
+        Workspace.LayoutChanged += (_, _) => Shell.ShowFiles();
         Follow(Workspace.ActiveDocument);
     }
 
@@ -134,6 +138,7 @@ public sealed class MainWindowViewModel : ObservableObject
         if (e.PropertyName == nameof(WorkspaceViewModel.ActiveDocument))
         {
             Follow(Workspace.ActiveDocument);
+            Shell.ShowFiles();
         }
     }
 
