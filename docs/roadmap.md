@@ -75,8 +75,8 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-0242 | New settings defaults                | DONE        | docs/plan/FEATURE-0242.md |
 | FEATURE-0D4A | First-run setup dialog               | DONE        | docs/plan/FEATURE-0D4A.md |
 | FEATURE-4362 | Release 1.6.0                        | DONE        | docs/plan/FEATURE-4362.md |
-| BUG-78F9     | Readable colours in the dark theme   | TODO        | docs/plan/BUG-78F9.md     |
-| - PHASE01    | Link colours                         | TODO        | (in BUG-78F9.md)          |
+| BUG-78F9     | Readable colours in the dark theme   | IN PROGRESS | docs/plan/BUG-78F9.md     |
+| - PHASE01    | Link colours                         | DONE        | (in BUG-78F9.md)          |
 | - PHASE02    | Settings hints and hex row           | TODO        | (in BUG-78F9.md)          |
 | FEATURE-AEBF | Release 1.7.0                        | TODO        | docs/plan/FEATURE-AEBF.md |
 
