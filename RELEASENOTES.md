@@ -1,5 +1,46 @@
 # Release notes
 
+## 1.8.0 — 2026-10-28
+
+A minor release with a new application icon. The page of text gives way to an editor window: a gutter of line marks,
+four lines of text with the green block cursor, and a status bar with a green mode pill along the bottom, in softer
+blues on the same dark tile as the other Enigma applications. Underneath, the Avalonia set moves to 12.1.4.
+
+### Application icon
+
+- **The new drawing is everywhere the icon shows:** the Windows executable and taskbar, the window on every platform,
+  the About dialog, and the Linux launcher.
+- **The Windows icon has ten sizes instead of six.** The new ones are 20, 24, 40 and 96 pixels, so Windows no longer
+  scales an image at 125 %, 150 %, 250 % or 300 % display scaling.
+- **The Linux installer puts eight sizes in the icon theme instead of six**, adding 24 and 96 pixels for panels and
+  launchers. The uninstaller removes all eight.
+- The small sizes (16 to 32 pixels) come from a simplified drawing with heavier shapes, so they stay sharp.
+
+### Upgrading from 1.7
+
+- **Your settings carry over** unchanged. 1.8 adds no settings key, and going back to 1.7 reads the same file.
+- **On Linux, run `packaging/linux/install.sh` again** to pick up the new icon. Some desktops cache icons until you
+  log in again.
+- On Windows, Explorer may show the old icon on a shortcut until its icon cache refreshes.
+
+### Dependencies
+
+- **The Avalonia set moves from 12.1.2 to 12.1.4**, all together:
+  - Avalonia, Avalonia.Desktop, Avalonia.Themes.Fluent, Avalonia.Fonts.Inter;
+  - and, in the tests, Avalonia.Headless and Avalonia.Skia.
+- **Enigma.Avalonia.Desktop moves from 1.2.0 to 1.3.0.** That release is what allows the move: it needs Avalonia
+  12.1.4, and it changes no API and no theme colour.
+- AvaloniaEdit stays at 12.0.0, the latest. Nothing else has an update.
+
+### Compatibility
+
+- Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 (was 12.1.2) and AvaloniaEdit 12.0.0.
+
+### Version
+
+- **1.8.0** is a minor release under Semantic Versioning. It changes the icon and patch-level dependencies, and keeps
+  every stored format and every default.
+
 ## 1.7.0 — 2026-10-27
 
 A minor release about colours. Links in the text — URLs and e-mail addresses — were drawn in pure blue, which is

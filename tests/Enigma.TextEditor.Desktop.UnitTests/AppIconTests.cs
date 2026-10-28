@@ -16,11 +16,11 @@ using Xunit;
 namespace Enigma.TextEditor.Desktop.UnitTests;
 
 /// <summary>
-/// The application icon as the assembly ships it: the six frames of <c>app.ico</c>, the copy of its
+/// The application icon as the assembly ships it: the ten frames of <c>app.ico</c>, the copy of its
 /// largest frame the About dialog shows, and the window that carries it.
 /// </summary>
 /// <remarks>
-/// The frames are rendered from <c>packaging/icon/*.svg</c> and packed by hand, so these pin what a
+/// The frames are rendered from <c>packaging/icon/*.svg</c> and packed outside the build, so these pin what a
 /// regeneration has to keep: the sizes, the encoding, and the copy being a copy.
 /// </remarks>
 [Collection(HeadlessCollection.Name)]
@@ -29,12 +29,12 @@ public sealed class AppIconTests(HeadlessAvaloniaFixture fixture)
     private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     [Fact]
-    public void TheIcon_HoldsSixSquare32BitPngFramesFrom16To256()
+    public void TheIcon_HoldsTenSquare32BitPngFramesFrom16To256()
         => fixture.Run(() =>
         {
             IReadOnlyList<IconFrame> frames = ReadFrames(ReadAsset("app.ico"));
 
-            Assert.Equal([16, 32, 48, 64, 128, 256], frames.Select(frame => frame.Size));
+            Assert.Equal([16, 20, 24, 32, 40, 48, 64, 96, 128, 256], frames.Select(frame => frame.Size));
 
             foreach (IconFrame frame in frames)
             {
