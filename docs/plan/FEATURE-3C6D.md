@@ -1,6 +1,6 @@
 # FEATURE-3C6D — Release 1.8.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-3c6d-release-1-8-0`
 **Run:** feature/2026-10-28-new-icons-release

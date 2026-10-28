@@ -5,9 +5,10 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.7** — colours that read in the dark theme: links (URLs and e-mail addresses) in a lighter blue
-> instead of pure blue, the settings page's descriptions a step brighter, and the hex view's current row in the editor's
-> selection colour. 1.6 brought a narrow rail on the left of the window, with the files at the top and the settings page
+> **What's new in 1.8** — a new application icon, an editor window with a green block cursor and a status-bar mode pill,
+> in ten sizes on Windows and eight in the Linux icon theme. 1.7 brought colours that read in the dark theme: links
+> (URLs and e-mail addresses) in a lighter blue instead of pure blue, the settings page's descriptions a step brighter,
+> and the hex view's current row in the editor's selection colour. 1.6 brought a narrow rail on the left of the window, with the files at the top and the settings page
 > at the bottom (Ctrl+, too, Esc to go back); a welcome dialog on the first start; and new defaults. 1.5 brought the editor's font, from the monospace faces the machine has, and
 > kept the text clear of the scrollbars and the minimap. 1.4 made `Space rj` move the bar between stacked panes down and
 > `Space rk` up. 1.3 made Space a leader key, with `Space rh`, `rj`, `rk`, `rl` to move the bar between two panes from
