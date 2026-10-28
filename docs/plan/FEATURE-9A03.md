@@ -1,6 +1,6 @@
 # FEATURE-9A03 — New application icon
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-9a03-new-app-icon`
 **Run:** feature/2026-10-28-new-icons-release

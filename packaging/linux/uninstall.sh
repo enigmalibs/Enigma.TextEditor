@@ -9,7 +9,7 @@ set -euo pipefail
 
 readonly APP_ID='enigma-text-editor'
 readonly APP_EXE='Enigma.TextEditor.Desktop'
-readonly ICON_SIZES=(16 32 48 64 128 256)
+readonly ICON_SIZES=(16 24 32 48 64 96 128 256)
 
 data_home=${XDG_DATA_HOME:-$HOME/.local/share}
 bin_home=${XDG_BIN_HOME:-$HOME/.local/bin}
@@ -29,7 +29,7 @@ usage() {
 Usage: uninstall.sh [-h|--help]
 
 Removes Enigma Text Editor from the XDG directories install.sh wrote to:
-the application, the launcher symlink, the desktop entry and the six icons.
+the application, the launcher symlink, the desktop entry and the eight icons.
 
 Your settings and the log in ~/.config/Enigma.TextEditor are left exactly as they are.
 USAGE

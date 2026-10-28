@@ -145,7 +145,7 @@ and in your file manager's *Open With* for text files:
 | The application                                   | `~/.local/share/enigma-text-editor`                                |
 | A launcher command, `enigma-text-editor [file …]` | `~/.local/bin/enigma-text-editor`                                  |
 | The desktop entry                                 | `~/.local/share/applications/enigma-text-editor.desktop`           |
-| The icon, in six sizes                            | `~/.local/share/icons/hicolor/<N>x<N>/apps/enigma-text-editor.png` |
+| The icon, in eight sizes                          | `~/.local/share/icons/hicolor/<N>x<N>/apps/enigma-text-editor.png` |
 
 By default the .NET runtime is bundled with the application (about 123 MB), so it runs whatever is installed on the
 machine. The installer's options:
