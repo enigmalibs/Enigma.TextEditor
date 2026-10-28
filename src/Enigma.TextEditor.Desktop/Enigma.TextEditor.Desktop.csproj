@@ -5,7 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Enigma.TextEditor.Desktop</RootNamespace>
     <!-- The product version; the Core csproj carries the same value and the two move together. -->
-    <Version>1.7.0</Version>
+    <Version>1.8.0</Version>
     <!-- Required by Avalonia's Windows backend (drag & drop, native dialogs). -->
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <!-- Compiled bindings are the default in Avalonia 12; making it explicit documents that every view
@@ -20,7 +20,7 @@
        come from Directory.Build.props. No Version attribute on a PackageReference either — versions
        live in Directory.Packages.props (CPM). The <Version> property above is the product version. -->
   <ItemGroup>
-    <!-- Version-coupled Avalonia set (12.1.2): bump them together, never one alone. -->
+    <!-- Version-coupled Avalonia set (12.1.4): bump them together, never one alone. -->
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
