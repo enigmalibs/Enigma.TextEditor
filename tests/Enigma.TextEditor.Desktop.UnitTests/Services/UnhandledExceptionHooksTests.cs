@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Threading;
 using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Xunit;
@@ -8,20 +9,46 @@ using Xunit;
 namespace Enigma.TextEditor.Desktop.UnitTests.Services;
 
 /// <summary>
-/// The way into the safety net: what is reported before the reporter exists is kept and handed over, and
-/// nothing reaches a reporter that was taken away. The process events are neither hooked nor raised here:
-/// an exception that reaches <see cref="AppDomain.UnhandledException"/> ends the test host too, and the
-/// test host's own unobserved tasks would land among the reports under test.
+/// The way into the safety net: what is reported before the reporter exists is kept and handed over,
+/// nothing reaches a reporter that was taken away, and a posted callback that throws is reported, not
+/// rethrown. The process events are neither hooked nor raised here: an exception that reaches
+/// <see cref="AppDomain.UnhandledException"/> ends the test host too, and the test host's own unobserved
+/// tasks would land among the reports under test.
 /// </summary>
 /// <remarks>
-/// In a collection of its own: the hooks' state is the process's, so no two tests that touch it run at once.
+/// In the headless collection: the hooks' state is the process's, and the dispatcher hook — unhooked again
+/// after each test — must never be live while another UI test runs.
 /// </remarks>
-[Collection(UnhandledExceptionHooksCollection.Name)]
+[Collection(HeadlessCollection.Name)]
 public sealed class UnhandledExceptionHooksTests : IDisposable
 {
-    public UnhandledExceptionHooksTests() => UnhandledExceptionHooks.ResetForTests();
+    private readonly HeadlessAvaloniaFixture _fixture;
+
+    public UnhandledExceptionHooksTests(HeadlessAvaloniaFixture fixture)
+    {
+        _fixture = fixture;
+        UnhandledExceptionHooks.ResetForTests();
+    }
 
     public void Dispose() => UnhandledExceptionHooks.ResetForTests();
+
+    [Fact]
+    public void ACallbackThatThrowsOnTheUiThread_IsReported_AndTheDispatcherCarriesOn()
+        => _fixture.Run(() =>
+        {
+            RecordingErrorReporter reporter = new();
+            UnhandledExceptionHooks.InstallDispatcher();
+            UnhandledExceptionHooks.Attach(reporter);
+            InvalidOperationException error = new("a command failed");
+            bool after = false;
+
+            Dispatcher.UIThread.Post(() => throw error);
+            Dispatcher.UIThread.Post(() => after = true);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(UnhandledErrorSource.Dispatcher, reporter.SourceOf(error));
+            Assert.True(after, "The dispatcher stopped at the failing callback.");
+        });
 
     [Fact]
     public void AReportBeforeTheReporter_IsHandedOverOnAttach_WithItsSource()

@@ -153,6 +153,12 @@ public static class ServiceCollectionExtensions
             services.TryAddSingleton(FirstRunState.Returning);
             services.AddSingleton<FirstRunViewModel>();
             services.AddSingleton<IFirstRunDialogService, FirstRunDialogService>();
+
+            // The safety net. One instance under both names: the composition root hands the concrete one
+            // the window's dialog host, and everything else reports through the interface.
+            services.TryAddSingleton(TimeProvider.System);
+            services.AddSingleton<UnhandledErrorReporter>();
+            services.AddSingleton<IUnhandledErrorReporter>(provider => provider.GetRequiredService<UnhandledErrorReporter>());
         }
     }
 }

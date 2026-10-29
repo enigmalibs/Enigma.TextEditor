@@ -82,7 +82,7 @@ collapsed details and *Copy details*. This is the same net as Enigma.GitClient's
 
 ## PHASE02 — Error dialog and wiring
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

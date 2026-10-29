@@ -153,14 +153,24 @@ public static class UnhandledExceptionHooks
     }
 
     /// <summary>
-    /// Forgets the attached reporter and every early report. For the tests, which share the process.
+    /// Forgets the attached reporter and every early report, and unhooks the dispatcher. For the tests,
+    /// which share the process: a dispatcher hook left behind would mark every later test's failure handled.
     /// </summary>
     internal static void ResetForTests()
     {
+        bool unhookDispatcher;
+
         lock (Gate)
         {
             _reporter = null;
             Early.Clear();
+            unhookDispatcher = _dispatcherInstalled;
+            _dispatcherInstalled = false;
+        }
+
+        if (unhookDispatcher)
+        {
+            Dispatcher.UIThread.UnhandledException -= OnDispatcherUnhandledException;
         }
     }
 
