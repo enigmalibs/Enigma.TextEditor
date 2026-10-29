@@ -86,7 +86,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Error policy and process hooks       | DONE        | (in FEATURE-452D.md)      |
 | - PHASE02    | Error dialog and wiring              | DONE        | (in FEATURE-452D.md)      |
 | - PHASE03    | Fire-and-forget tasks reach the net  | DONE        | (in FEATURE-452D.md)      |
-| FEATURE-84C3 | Windows and Linux publish scripts    | TODO        | docs/plan/FEATURE-84C3.md |
+| FEATURE-84C3 | Windows and Linux publish scripts    | DONE        | docs/plan/FEATURE-84C3.md |
 | FEATURE-8EDF | Release 1.9.0                        | TODO        | docs/plan/FEATURE-8EDF.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

@@ -1,6 +1,6 @@
 # FEATURE-84C3 — Windows and Linux publish scripts
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-84c3-publish-scripts`
 **Run:** feature/2026-10-29-uniform-enigma-apps
