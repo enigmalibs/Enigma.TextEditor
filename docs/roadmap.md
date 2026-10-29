@@ -82,8 +82,8 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-9A03 | New application icon                 | DONE        | docs/plan/FEATURE-9A03.md |
 | FEATURE-3C6D | Release 1.8.0                        | DONE        | docs/plan/FEATURE-3C6D.md |
 | FEATURE-4092 | App icon in the output directory     | DONE        | docs/plan/FEATURE-4092.md |
-| FEATURE-452D | Catch unhandled exceptions           | TODO        | docs/plan/FEATURE-452D.md |
-| - PHASE01    | Error policy and process hooks       | TODO        | (in FEATURE-452D.md)      |
+| FEATURE-452D | Catch unhandled exceptions           | IN PROGRESS | docs/plan/FEATURE-452D.md |
+| - PHASE01    | Error policy and process hooks       | DONE        | (in FEATURE-452D.md)      |
 | - PHASE02    | Error dialog and wiring              | TODO        | (in FEATURE-452D.md)      |
 | - PHASE03    | Fire-and-forget tasks reach the net  | TODO        | (in FEATURE-452D.md)      |
 | FEATURE-84C3 | Windows and Linux publish scripts    | TODO        | docs/plan/FEATURE-84C3.md |

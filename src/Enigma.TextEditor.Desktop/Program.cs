@@ -3,6 +3,7 @@
 // referenced Enigma.Avalonia.* assemblies instead of Avalonia itself.
 using System;
 using Avalonia;
+using Enigma.TextEditor.Desktop.Services;
 
 namespace Enigma.TextEditor.Desktop;
 
@@ -15,9 +16,17 @@ public static class Program
     /// Starts the application. The arguments are the files to open; see <see cref="App"/>.
     /// </summary>
     /// <param name="args">The command-line arguments.</param>
+    /// <remarks>
+    /// The process-wide unhandled-exception hooks come first, so a failure anywhere in the start is caught
+    /// too.
+    /// </remarks>
     [STAThread]
     public static void Main(string[] args)
-        => BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    {
+        UnhandledExceptionHooks.Install();
+
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
 
     /// <summary>
     /// Configures Avalonia for the desktop. Also used by the designer.
