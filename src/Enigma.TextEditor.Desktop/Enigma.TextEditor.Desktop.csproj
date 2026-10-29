@@ -49,6 +49,11 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets/**" />
   </ItemGroup>
+  <!-- The icon also sits beside the executable, in the build and the publish output, so a shortcut, a
+       launcher or an installer can point at a file instead of extracting it from the .exe. -->
+  <ItemGroup>
+    <None Include="Assets/app.ico" CopyToOutputDirectory="PreserveNewest" TargetPath="app.ico" />
+  </ItemGroup>
   <!-- The composition root stays internal; the unit-test project drives it. -->
   <ItemGroup>
     <InternalsVisibleTo Include="Enigma.TextEditor.Desktop.UnitTests" />
