@@ -1,6 +1,6 @@
 # FEATURE-452D — Catch unhandled exceptions
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-452d-phaseNN-<slug>` (one per phase)
 **Run:** feature/2026-10-29-uniform-enigma-apps
@@ -130,7 +130,7 @@ collapsed details and *Copy details*. This is the same net as Enigma.GitClient's
 
 ## PHASE03 — Fire-and-forget tasks reach the net
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

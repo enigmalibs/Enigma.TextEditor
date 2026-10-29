@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Enigma.Avalonia.Desktop.Controls.ContentDialog;
 using Enigma.Avalonia.Desktop.Services;
 using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Desktop.Extensions;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
 
@@ -30,7 +31,7 @@ public sealed class EncodingPicker : IEncodingPicker
 
         // Enter or a double click picks without the button: the dialog is closed from here, which
         // resolves it as dismissed, and the pick is read back from the view-model.
-        view.Picked += (_, _) => _ = _dialogs.HideAsync();
+        view.Picked += (_, _) => _dialogs.HideAsync().Forget();
 
         DialogResult result = await _dialogs.ShowAsync(dialog =>
         {

@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using Enigma.Configuration;
 using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Core.Settings;
+using Enigma.TextEditor.Desktop.Extensions;
 using Enigma.TextEditor.Desktop.Services;
 
 namespace Enigma.TextEditor.Desktop.ViewModels;
@@ -85,7 +86,7 @@ public sealed class PreferencesViewModel : ObservableObject
 
             if (!string.Equals(family, Value.EditorFontFamily, StringComparison.Ordinal) && !_announcing)
             {
-                _ = _menu.SetFontFamilyAsync(family);
+                _menu.SetFontFamilyAsync(family).Forget();
             }
         }
     }
@@ -100,7 +101,7 @@ public sealed class PreferencesViewModel : ObservableObject
         {
             if ((value != Value.EditorFontSize) && !_announcing)
             {
-                _ = _menu.SetFontSizeAsync(value);
+                _menu.SetFontSizeAsync(value).Forget();
             }
         }
     }
@@ -130,7 +131,7 @@ public sealed class PreferencesViewModel : ObservableObject
         {
             if ((value != Value.Theme) && !_announcing)
             {
-                _ = _menu.SetThemeAsync(value);
+                _menu.SetThemeAsync(value).Forget();
             }
         }
     }
@@ -146,7 +147,7 @@ public sealed class PreferencesViewModel : ObservableObject
         {
             if ((value != Value.ShowMinimap) && !_announcing)
             {
-                _ = _menu.SetMinimapAsync(value);
+                _menu.SetMinimapAsync(value).Forget();
             }
         }
     }
@@ -161,7 +162,7 @@ public sealed class PreferencesViewModel : ObservableObject
         {
             if ((value != Value.WordWrap) && !_announcing)
             {
-                _ = _menu.SetWordWrapAsync(value);
+                _menu.SetWordWrapAsync(value).Forget();
             }
         }
     }
@@ -176,7 +177,7 @@ public sealed class PreferencesViewModel : ObservableObject
         {
             if ((value != Value.VimEnabled) && !_announcing)
             {
-                _ = _menu.SetVimEnabledAsync(value);
+                _menu.SetVimEnabledAsync(value).Forget();
             }
         }
     }
@@ -191,7 +192,7 @@ public sealed class PreferencesViewModel : ObservableObject
         {
             if ((value != Value.PaneResizeStep) && !_announcing)
             {
-                _ = _menu.SetPaneResizeStepAsync(value);
+                _menu.SetPaneResizeStepAsync(value).Forget();
             }
         }
     }
@@ -206,7 +207,7 @@ public sealed class PreferencesViewModel : ObservableObject
         {
             if ((value != Value.IndentWithTabs) && !_announcing)
             {
-                _ = _menu.SetDefaultIndentationAsync(value, Value.IndentSize);
+                _menu.SetDefaultIndentationAsync(value, Value.IndentSize).Forget();
             }
         }
     }
@@ -221,7 +222,7 @@ public sealed class PreferencesViewModel : ObservableObject
         {
             if ((value != Value.IndentSize) && !_announcing)
             {
-                _ = _menu.SetDefaultIndentationAsync(Value.IndentWithTabs, value);
+                _menu.SetDefaultIndentationAsync(Value.IndentWithTabs, value).Forget();
             }
         }
     }
@@ -236,7 +237,7 @@ public sealed class PreferencesViewModel : ObservableObject
         {
             if ((value != Value.DefaultLineEnding) && !_announcing)
             {
-                _ = _menu.SetDefaultLineEndingAsync(value);
+                _menu.SetDefaultLineEndingAsync(value).Forget();
             }
         }
     }

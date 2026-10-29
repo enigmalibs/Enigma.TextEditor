@@ -81,7 +81,7 @@ public partial class App : Application
             // Posted, so the window is on screen before the welcome dialog of a first start and the first
             // file read, and any dialog either raises has a window to appear in.
             StartupFiles startup = StartupFiles.Parse(desktop.Args ?? [], Environment.CurrentDirectory, File.Exists, Directory.Exists);
-            Dispatcher.UIThread.Post(() => _ = viewModel.StartAsync(startup));
+            Dispatcher.UIThread.Post(() => viewModel.StartAsync(startup).Forget(UnhandledErrorSource.Startup));
             logger.LogInformation("{DisplayName} {Version} started.", AppInfo.DisplayName, AppInfo.Version);
 
             desktop.Exit += (_, _) => OnExit(host, logger);
