@@ -1,5 +1,63 @@
 # Release notes
 
+## 1.9.0 — 2026-10-29
+
+A minor release that brings the editor in line with the other Enigma applications. An error that nothing else handles
+no longer vanishes or takes the editor down with it: it goes to the log, and a dialog says what went wrong and that the
+editor is still running. The application icon now sits beside the executable as `app.ico`, and one script per platform
+publishes the editor.
+
+### Errors that nothing else handles
+
+- **A dialog, not a silent failure or a crash.** Some failures are not handled where they happen: in a command, a key
+  binding or background work. The editor now writes each one to the log and opens a *Something went wrong* dialog.
+  The dialog says what failed, and that the editor is still running, so you can carry on or restart it.
+- **One dialog for a burst.**
+  - Errors that come while the dialog is open are counted into it ("2 more errors occurred"), rather than opening a
+    dialog each.
+  - After you close it, the same error is not shown again for a minute.
+- **Never over a question.** While the editor is asking you something, such as whether to save changes or which
+  encoding to reopen with, the dialog waits until you have answered.
+- **Details for a bug report.** A collapsed *Details* section holds each error's type, message and stack trace, and
+  *Copy details* puts them on the clipboard. Nothing else attached to an error is shown or copied.
+- **Work started in the background reports its failures the same way.** That covers saving a setting, running an ex
+  command and opening dropped files. Before, such a failure could go unseen.
+- **An error that ends the process is still fatal.** It is now written to the log, and the log is flushed, before the
+  process ends.
+- **Cancelling is not an error.** Cancelling something, or closing the editor while work is in flight, shows nothing.
+
+### Packaging
+
+- **`app.ico` beside the executable.** The build and publish output now hold the application icon as `app.ico`, next
+  to `Enigma.TextEditor.Desktop(.exe)`. A shortcut, a launcher or an installer can point at it.
+- **Publish scripts.** Each one publishes a ReadyToRun Release build:
+  - `packaging/windows/publish.ps1` and `publish.bat`, for win-x64;
+  - `packaging/linux/publish.sh`, for linux-x64.
+
+  Each runs from any directory and fails when `dotnet publish` fails. The result runs on an installed .NET 10 runtime.
+  `docs/RELEASE.md` says where the output lands.
+
+### Upgrading from 1.8
+
+- **Your settings carry over** unchanged. 1.9 adds no settings key, and going back to 1.8 reads the same file.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- **No change: every package is at its latest stable version.** That includes:
+  - the Avalonia set at 12.1.4, with Enigma.Avalonia.Desktop 1.3.0;
+  - AvaloniaEdit 12.0.0;
+  - Microsoft.Extensions.Hosting 10.0.14. Its 11.0.0 is a release candidate only, and is not taken.
+
+### Compatibility
+
+- Unchanged from 1.8.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+
+### Version
+
+- **1.9.0** is a minor release under Semantic Versioning. It adds the error dialog and the packaging helpers, and
+  keeps every stored format and every default.
+
 ## 1.8.0 — 2026-10-28
 
 A minor release with a new application icon. The page of text gives way to an editor window: a gutter of line marks,

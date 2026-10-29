@@ -12,7 +12,8 @@ Security fixes are provided for the latest released version. Enigma.TextEditor f
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.8.x   | :white_check_mark: |
+| 1.9.x   | :white_check_mark: |
+| 1.8.x   | :x:                |
 | 1.7.x   | :x:                |
 | 1.6.x   | :x:                |
 | 1.5.x   | :x:                |
@@ -54,6 +55,8 @@ The following are in scope:
 - the syntax highlighting it runs over a file's text;
 - the Vim engine's handling of what is typed into it, including search and substitution patterns;
 - the way it reads and writes its settings file and its log;
+- the error dialog it shows when a failure is not handled elsewhere: what that dialog shows and what *Copy details*
+  puts on the clipboard;
 - the Linux install and uninstall scripts in `packaging/linux`: what they write into your home directory, what they
   remove, and the desktop entry they generate.
 
