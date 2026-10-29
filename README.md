@@ -5,8 +5,10 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.8** — a new application icon, an editor window with a green block cursor and a status-bar mode pill,
-> in ten sizes on Windows and eight in the Linux icon theme. 1.7 brought colours that read in the dark theme: links
+> **What's new in 1.9** — an error that nothing else handles is shown in a dialog, with details to copy for a bug
+> report, and the editor keeps running; the icon sits beside the executable as `app.ico`; and one script per platform
+> publishes the editor. 1.8 brought a new application icon, an editor window with a green block cursor and a status-bar
+> mode pill, in ten sizes on Windows and eight in the Linux icon theme. 1.7 brought colours that read in the dark theme: links
 > (URLs and e-mail addresses) in a lighter blue instead of pure blue, the settings page's descriptions a step brighter,
 > and the hex view's current row in the editor's selection colour. 1.6 brought a narrow rail on the left of the window, with the files at the top and the settings page
 > at the bottom (Ctrl+, too, Esc to go back); a welcome dialog on the first start; and new defaults. 1.5 brought the editor's font, from the monospace faces the machine has, and

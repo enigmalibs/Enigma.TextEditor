@@ -1,6 +1,6 @@
 # FEATURE-8EDF — Release 1.9.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-8edf-release-1-9-0`
 **Run:** feature/2026-10-29-uniform-enigma-apps
