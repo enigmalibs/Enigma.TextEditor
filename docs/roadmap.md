@@ -81,5 +81,12 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-AEBF | Release 1.7.0                        | DONE        | docs/plan/FEATURE-AEBF.md |
 | FEATURE-9A03 | New application icon                 | DONE        | docs/plan/FEATURE-9A03.md |
 | FEATURE-3C6D | Release 1.8.0                        | DONE        | docs/plan/FEATURE-3C6D.md |
+| FEATURE-4092 | App icon in the output directory     | TODO        | docs/plan/FEATURE-4092.md |
+| FEATURE-452D | Catch unhandled exceptions           | TODO        | docs/plan/FEATURE-452D.md |
+| - PHASE01    | Error policy and process hooks       | TODO        | (in FEATURE-452D.md)      |
+| - PHASE02    | Error dialog and wiring              | TODO        | (in FEATURE-452D.md)      |
+| - PHASE03    | Fire-and-forget tasks reach the net  | TODO        | (in FEATURE-452D.md)      |
+| FEATURE-84C3 | Windows and Linux publish scripts    | TODO        | docs/plan/FEATURE-84C3.md |
+| FEATURE-8EDF | Release 1.9.0                        | TODO        | docs/plan/FEATURE-8EDF.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
