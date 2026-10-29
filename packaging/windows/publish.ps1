@@ -1,0 +1,41 @@
+#Requires -Version 5.1
+<#
+.SYNOPSIS
+    Publishes Enigma Text Editor (Enigma.TextEditor) for Windows x64.
+
+.DESCRIPTION
+    Runs, from wherever it is started:
+
+        dotnet publish .\src\Enigma.TextEditor.Desktop\ -c Release -r win-x64 -p:PublishReadyToRun=true
+
+    A Release build for win-x64, compiled ReadyToRun so it starts faster, which runs on an installed
+    .NET 10 runtime. The result lands in
+
+        src\Enigma.TextEditor.Desktop\bin\Release\net10.0\win-x64\publish\
+
+    and dotnet's last line names that folder. Start Enigma.TextEditor.Desktop.exe in it; app.ico beside it
+    is the icon, for a shortcut.
+
+    publish.bat, in this same directory, runs the same command without PowerShell.
+
+.EXAMPLE
+    .\packaging\windows\publish.ps1
+
+.EXAMPLE
+    powershell -ExecutionPolicy Bypass -File packaging\windows\publish.ps1
+
+    Windows PowerShell's default policy refuses to run local scripts; this runs this one without
+    changing the policy.
+#>
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+# Resolved from this script rather than the current directory, so it runs from anywhere.
+$project = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\Enigma.TextEditor.Desktop')).Path
+
+dotnet publish $project -c Release -r win-x64 -p:PublishReadyToRun=true
+
+# A native command's failure is not a PowerShell error: pass its exit code on, so a failed publish
+# fails the script.
+exit $LASTEXITCODE

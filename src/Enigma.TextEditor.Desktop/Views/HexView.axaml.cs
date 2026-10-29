@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Enigma.TextEditor.Core.Vim;
+using Enigma.TextEditor.Desktop.Extensions;
 using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.ViewModels;
 
@@ -94,8 +95,8 @@ public partial class HexView : UserControl
             pane.VimShared);
 
         // Not awaited, as in the editor: a keystroke handler has nowhere to return a task to.
-        engine.ExCommandRequested += (_, request) => _ = _pane?.ExecuteExAsync(request);
-        engine.WindowCommandRequested += (_, command) => _ = _pane?.ExecuteWindowAsync(command);
+        engine.ExCommandRequested += (_, request) => _pane?.ExecuteExAsync(request).Forget();
+        engine.WindowCommandRequested += (_, command) => _pane?.ExecuteWindowAsync(command).Forget();
 
         return engine;
     }

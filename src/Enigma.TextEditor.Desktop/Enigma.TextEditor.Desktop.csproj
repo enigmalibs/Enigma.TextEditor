@@ -5,7 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Enigma.TextEditor.Desktop</RootNamespace>
     <!-- The product version; the Core csproj carries the same value and the two move together. -->
-    <Version>1.8.0</Version>
+    <Version>1.9.0</Version>
     <!-- Required by Avalonia's Windows backend (drag & drop, native dialogs). -->
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <!-- Compiled bindings are the default in Avalonia 12; making it explicit documents that every view
@@ -48,6 +48,11 @@
   <!-- The icon's frames, rendered from packaging/icon/*.svg. -->
   <ItemGroup>
     <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
+  <!-- The icon also sits beside the executable, in the build and the publish output, so a shortcut, a
+       launcher or an installer can point at a file instead of extracting it from the .exe. -->
+  <ItemGroup>
+    <None Include="Assets/app.ico" CopyToOutputDirectory="PreserveNewest" TargetPath="app.ico" />
   </ItemGroup>
   <!-- The composition root stays internal; the unit-test project drives it. -->
   <ItemGroup>

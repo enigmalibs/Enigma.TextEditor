@@ -33,6 +33,11 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // First: a command or a posted callback that throws from here on is caught and shown, not the end
+            // of the process. The dispatcher is safe to touch now that the platform is set up; the headless
+            // tests never come this way.
+            UnhandledExceptionHooks.InstallDispatcher();
+
             // Before the load, and it has to be: the loader moves an unreadable file aside, which leaves the
             // path absent — asked one line later, a broken file would look like a first run.
             FirstRunState firstRun = FirstRunState.Detect(AppPaths.SettingsFile);
@@ -50,6 +55,12 @@ public partial class App : Application
 
             IServiceProvider services = host.Services;
             ILogger<App> logger = services.GetRequiredService<ILogger<App>>();
+
+            // The safety net, as soon as it can be built: anything caught before it was is handed over, and
+            // shown once the window has handed it its dialog host.
+            IUnhandledErrorReporter errors = services.GetRequiredService<IUnhandledErrorReporter>();
+            UnhandledExceptionHooks.Attach(errors);
+            desktop.ShutdownRequested += (_, _) => errors.ShutdownStarted();
 
             if (settings.Failure is not null)
             {
@@ -70,7 +81,7 @@ public partial class App : Application
             // Posted, so the window is on screen before the welcome dialog of a first start and the first
             // file read, and any dialog either raises has a window to appear in.
             StartupFiles startup = StartupFiles.Parse(desktop.Args ?? [], Environment.CurrentDirectory, File.Exists, Directory.Exists);
-            Dispatcher.UIThread.Post(() => _ = viewModel.StartAsync(startup));
+            Dispatcher.UIThread.Post(() => viewModel.StartAsync(startup).Forget(UnhandledErrorSource.Startup));
             logger.LogInformation("{DisplayName} {Version} started.", AppInfo.DisplayName, AppInfo.Version);
 
             desktop.Exit += (_, _) => OnExit(host, logger);
@@ -118,8 +129,9 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Hands the window's host controls and storage provider to the Enigma services. Has to run
-    /// before the window is shown: a service whose host is unregistered throws on first use.
+    /// Hands the window's host controls and storage provider to the Enigma services, and its dialog host
+    /// to the safety net. Has to run before the window is shown: a service whose host is unregistered
+    /// throws on first use.
     /// </summary>
     /// <param name="services">The container.</param>
     /// <param name="window">The main window.</param>
@@ -133,11 +145,17 @@ public partial class App : Application
         services.GetRequiredService<IInfoBarService>().RegisterHost(window.HostInfoBar);
         services.GetRequiredService<IFileDialogService>().SetStorageProvider(window.StorageProvider);
         services.GetRequiredService<IFolderDialogService>().SetStorageProvider(window.StorageProvider);
+        services.GetRequiredService<UnhandledErrorReporter>().RegisterHost(window.HostDialog);
     }
 
     private static void OnExit(IHost host, ILogger<App> logger)
     {
         logger.LogInformation("{DisplayName} is shutting down.", AppInfo.DisplayName);
+
+        // Closing: no cancellation is worth a word now, and a late report must not log through the
+        // container disposed below.
+        host.Services.GetRequiredService<IUnhandledErrorReporter>().ShutdownStarted();
+        UnhandledExceptionHooks.Detach();
 
         // Resolved before the sequence starts: if it overruns, the work walked away from is the work
         // that disposes the container.

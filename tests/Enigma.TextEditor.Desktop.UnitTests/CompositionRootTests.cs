@@ -50,6 +50,7 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
     [InlineData(typeof(ShellViewModel))]
     [InlineData(typeof(FirstRunViewModel))]
     [InlineData(typeof(IFirstRunDialogService))]
+    [InlineData(typeof(IUnhandledErrorReporter))]
     public void TheContainer_ResolvesEveryService(Type serviceType)
     {
         using TempFolder folder = new();
@@ -59,6 +60,22 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
             using IHost host = BuildHost(folder);
 
             Assert.NotNull(host.Services.GetRequiredService(serviceType));
+        });
+    }
+
+    [Fact]
+    public void TheSafetyNet_IsOneInstance_UnderBothNames()
+    {
+        using TempFolder folder = new();
+
+        fixture.Run(() =>
+        {
+            using IHost host = BuildHost(folder);
+
+            // RegisterHosts hands the concrete one the dialog host; the hooks report through the interface.
+            Assert.Same(
+                host.Services.GetRequiredService<UnhandledErrorReporter>(),
+                host.Services.GetRequiredService<IUnhandledErrorReporter>());
         });
     }
 
