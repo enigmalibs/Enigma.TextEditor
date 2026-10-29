@@ -129,7 +129,9 @@ dotnet run --project src/Enigma.TextEditor.Desktop -- [file …]
 dotnet test --solution Enigma.TextEditor.slnx
 ```
 
-To run it on a machine without the SDK, publish it for that platform; `docs/RELEASE.md` has the command.
+To run it on a machine without the SDK, publish it for that platform: `packaging/windows/publish.ps1` (or
+`publish.bat`) on Windows, `packaging/linux/publish.sh` on Linux. `docs/RELEASE.md` says where the output lands, and how
+to bundle the .NET runtime instead.
 
 ## Install on Linux
 
@@ -167,7 +169,8 @@ else. Your settings and the log, in `~/.config/Enigma.TextEditor`, are left as t
 | `tests/Enigma.TextEditor.Core.UnitTests`    | xUnit v3 tests for the core library                                    |
 | `tests/Enigma.TextEditor.Desktop.UnitTests` | xUnit v3 tests for the app, including headless Avalonia tests          |
 | `packaging/icon`                            | The application icon's SVG sources                                     |
-| `packaging/linux`                           | The Linux installer and uninstaller, the desktop entry, the icons      |
+| `packaging/linux`                           | Linux install, uninstall and publish scripts, desktop entry, icons     |
+| `packaging/windows`                         | The Windows publish scripts                                            |
 | `docs/`                                     | Roadmap, plans, completion records and the release runbook             |
 
 ## License

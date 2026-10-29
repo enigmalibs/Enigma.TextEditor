@@ -68,8 +68,19 @@ git push origin X.Y.Z
 
 ## 5. Publish the application
 
-A Release build for one platform, with the .NET runtime bundled so the result runs on a machine with no .NET
-installed:
+The publish scripts build a Release for one platform, compiled ReadyToRun so it starts faster, which runs on an
+installed .NET 10 runtime. They run from wherever they are started, and fail when `dotnet publish` fails:
+
+| Platform | Script                                                             | Output, under `src/Enigma.TextEditor.Desktop/` |
+|----------|--------------------------------------------------------------------|------------------------------------------------|
+| Windows  | `packaging/windows/publish.ps1` or `packaging/windows/publish.bat` | `bin/Release/net10.0/win-x64/publish/`         |
+| Linux    | `packaging/linux/publish.sh`                                       | `bin/Release/net10.0/linux-x64/publish/`       |
+
+Each runs `dotnet publish src/Enigma.TextEditor.Desktop -c Release -r <rid> -p:PublishReadyToRun=true`, and the
+output folder holds `app.ico` beside the executable, for a shortcut. Windows PowerShell's default policy refuses local
+scripts: run `powershell -ExecutionPolicy Bypass -File packaging\windows\publish.ps1`, or the `.bat`.
+
+For a build that runs on a machine with no .NET installed, bundle the runtime instead:
 
 ```bash
 dotnet publish src/Enigma.TextEditor.Desktop -c Release -r linux-x64 --self-contained true -o ./artifacts
