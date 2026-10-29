@@ -13,6 +13,7 @@ using Avalonia.VisualTree;
 using AvaloniaEdit.Editing;
 using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Core.Vim;
+using Enigma.TextEditor.Desktop.Extensions;
 using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.ViewModels;
 using AvaloniaTextEditor = AvaloniaEdit.TextEditor;
@@ -159,8 +160,8 @@ public partial class EditorPaneView : UserControl
                 _vim = new VimEditorBehavior(
                     Editor,
                     () => _session,
-                    request => _ = _pane?.ExecuteExAsync(request),
-                    command => _ = _pane?.ExecuteWindowAsync(command),
+                    request => _pane?.ExecuteExAsync(request).Forget(),
+                    command => _pane?.ExecuteWindowAsync(command).Forget(),
                     OnVimOptionsChanged,
                     pane.VimShared);
 
@@ -312,7 +313,7 @@ public partial class EditorPaneView : UserControl
         // Opened once the drop has returned: the platform's drag loop has to be over before a dialog — the
         // binary-file question, a file that cannot be read — can appear. Not awaited, as the ex commands are
         // not: failures are reported by the services the opening goes through.
-        Dispatcher.UIThread.Post(() => _ = pane.OpenDroppedAsync(paths));
+        Dispatcher.UIThread.Post(() => pane.OpenDroppedAsync(paths).Forget());
     }
 
     private void OnEditorDocumentChanged(object? sender, EventArgs e)

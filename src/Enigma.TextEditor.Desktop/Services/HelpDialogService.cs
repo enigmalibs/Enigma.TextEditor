@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Enigma.Avalonia.Desktop.Services;
+using Enigma.TextEditor.Desktop.Extensions;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
 
@@ -23,7 +24,7 @@ public sealed class HelpDialogService : IHelpDialogService
     /// <inheritdoc />
     public async Task ShowAsync()
     {
-        HelpView view = new() { DataContext = new HelpViewModel(() => _ = _dialogs.HideAsync()) };
+        HelpView view = new() { DataContext = new HelpViewModel(() => _dialogs.HideAsync().Forget()) };
 
         await _dialogs.ShowAsync(dialog =>
         {

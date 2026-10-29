@@ -17,7 +17,7 @@ namespace Enigma.TextEditor.Desktop.UnitTests;
 
 /// <summary>
 /// The application icon as the assembly ships it: the ten frames of <c>app.ico</c>, the copy of its
-/// largest frame the About dialog shows, and the window that carries it.
+/// largest frame the About dialog shows, the copy written beside the executable, and the window that carries it.
 /// </summary>
 /// <remarks>
 /// The frames are rendered from <c>packaging/icon/*.svg</c> and packed outside the build, so these pin what a
@@ -61,6 +61,18 @@ public sealed class AppIconTests(HeadlessAvaloniaFixture fixture)
             using MemoryStream stream = new(image);
             using Bitmap bitmap = new(stream);
             Assert.Equal(new PixelSize(256, 256), bitmap.PixelSize);
+        });
+
+    [Fact]
+    public void TheIcon_SitsBesideTheExecutable_ByteForByteTheAsset()
+        => fixture.Run(() =>
+        {
+            // The test project's output receives the referenced app's copy-to-output items, so the file
+            // the build writes beside Enigma.TextEditor.Desktop is the one found here.
+            string copy = Path.Combine(AppContext.BaseDirectory, "app.ico");
+
+            Assert.True(File.Exists(copy), "app.ico is not written to the output directory.");
+            Assert.Equal(ReadAsset("app.ico"), File.ReadAllBytes(copy));
         });
 
     [Fact]

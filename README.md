@@ -5,8 +5,10 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.8** — a new application icon, an editor window with a green block cursor and a status-bar mode pill,
-> in ten sizes on Windows and eight in the Linux icon theme. 1.7 brought colours that read in the dark theme: links
+> **What's new in 1.9** — an error that nothing else handles is shown in a dialog, with details to copy for a bug
+> report, and the editor keeps running; the icon sits beside the executable as `app.ico`; and one script per platform
+> publishes the editor. 1.8 brought a new application icon, an editor window with a green block cursor and a status-bar
+> mode pill, in ten sizes on Windows and eight in the Linux icon theme. 1.7 brought colours that read in the dark theme: links
 > (URLs and e-mail addresses) in a lighter blue instead of pure blue, the settings page's descriptions a step brighter,
 > and the hex view's current row in the editor's selection colour. 1.6 brought a narrow rail on the left of the window, with the files at the top and the settings page
 > at the bottom (Ctrl+, too, Esc to go back); a welcome dialog on the first start; and new defaults. 1.5 brought the editor's font, from the monospace faces the machine has, and
@@ -129,7 +131,9 @@ dotnet run --project src/Enigma.TextEditor.Desktop -- [file …]
 dotnet test --solution Enigma.TextEditor.slnx
 ```
 
-To run it on a machine without the SDK, publish it for that platform; `docs/RELEASE.md` has the command.
+To run it on a machine without the SDK, publish it for that platform: `packaging/windows/publish.ps1` (or
+`publish.bat`) on Windows, `packaging/linux/publish.sh` on Linux. `docs/RELEASE.md` says where the output lands, and how
+to bundle the .NET runtime instead.
 
 ## Install on Linux
 
@@ -167,7 +171,8 @@ else. Your settings and the log, in `~/.config/Enigma.TextEditor`, are left as t
 | `tests/Enigma.TextEditor.Core.UnitTests`    | xUnit v3 tests for the core library                                    |
 | `tests/Enigma.TextEditor.Desktop.UnitTests` | xUnit v3 tests for the app, including headless Avalonia tests          |
 | `packaging/icon`                            | The application icon's SVG sources                                     |
-| `packaging/linux`                           | The Linux installer and uninstaller, the desktop entry, the icons      |
+| `packaging/linux`                           | Linux install, uninstall and publish scripts, desktop entry, icons     |
+| `packaging/windows`                         | The Windows publish scripts                                            |
 | `docs/`                                     | Roadmap, plans, completion records and the release runbook             |
 
 ## License
