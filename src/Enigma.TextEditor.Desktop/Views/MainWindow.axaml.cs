@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Enigma.TextEditor.Desktop.Extensions;
 using Enigma.TextEditor.Desktop.ViewModels;
 using AvaloniaTextEditor = AvaloniaEdit.TextEditor;
 
@@ -153,7 +154,7 @@ public partial class MainWindow : Window
 
         if (!_confirming)
         {
-            _ = ConfirmAndCloseAsync(viewModel);
+            ConfirmAndCloseAsync(viewModel).Forget();
         }
     }
 
