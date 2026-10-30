@@ -814,24 +814,40 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     }
 
     /// <summary>
-    /// Opens the files named on the command line, the last one active.
+    /// Opens the files named on the command line — this launch's, or another's that handed them over — in the
+    /// active pane, the last one active.
     /// </summary>
     /// <param name="startup">The files, as read from the arguments.</param>
     /// <returns>A task that completes when every file has been opened or reported.</returns>
     /// <remarks>
+    /// <para>
     /// A missing file becomes an empty buffer the first save creates, unless its folder does not exist
     /// either, which no save could fix. With nothing to open, an untitled buffer is ready to type into,
     /// as Vim starts.
+    /// </para>
+    /// <para>
+    /// A new tab showing — untitled, empty, unchanged — gives its place to the first file that opens, as it does
+    /// to a dropped one: a window that has just been opened has one, and it is not what the files were sent to.
+    /// </para>
     /// </remarks>
     public async Task OpenStartupFilesAsync(StartupFiles startup)
     {
         ArgumentNullException.ThrowIfNull(startup);
 
         List<string> problems = [.. startup.Skipped.Select(skipped => $"{skipped} is not a file")];
+        EditorPaneViewModel pane = ActivePane;
+        EditorTabViewModel? fresh = pane.ActiveTab is { } target && IsFresh(target) ? target : null;
 
         foreach (StartupFile file in startup.Files)
         {
-            if (file.Exists)
+            if (file.Exists && (fresh is not null))
+            {
+                if (await OpenInPlaceOfAsync(pane, fresh, file.Path))
+                {
+                    fresh = null;
+                }
+            }
+            else if (file.Exists)
             {
                 await OpenAsync(file.Path);
             }

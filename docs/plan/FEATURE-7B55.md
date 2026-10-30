@@ -1,6 +1,6 @@
 # FEATURE-7B55 — Open files in the running instance
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-7b55-phaseNN-<slug>` (one per phase)
 **Run:** feature/2026-10-30-move-tabs-reuse-instance
@@ -71,7 +71,7 @@ instance.
 
 ## PHASE02 — Forward launches to the open window
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

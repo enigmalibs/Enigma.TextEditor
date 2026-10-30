@@ -54,7 +54,9 @@ and the editor's right-click menu show the Vim keys of the commands that have th
 
 **Files.** Open them with **File → Open…** (several at once), by dropping them on a pane, or by naming them on the
 command line. A name that does not exist yet, in a folder that does, opens an empty document that the first save
-creates. The editor reads each file the way it is written, and writes it back the same way:
+creates. A file opened from the system — a double-click, *Open with* — while the editor is running opens as a tab in
+the window you used last, which comes to the front; started without a file, the editor opens a new window, so
+several can run side by side. The editor reads each file the way it is written, and writes it back the same way:
 
 - **Encoding.** A byte-order mark, else valid UTF-8, else Windows-1252. **Tools → Reopen with Encoding…** reads the
   file again in another encoding; **Change File Encoding…** sets the one it is saved in. On offer: UTF-8 with or
