@@ -94,5 +94,9 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-7B55 | Open files in the running instance   | DONE        | docs/plan/FEATURE-7B55.md |
 | - PHASE01    | Instance pipe and pointer file       | DONE        | (in FEATURE-7B55.md)      |
 | - PHASE02    | Forward launches to the open window  | DONE        | (in FEATURE-7B55.md)      |
+| BUG-5A45     | Tab drag shows the refusal cursor    | TODO        | docs/plan/BUG-5A45.md     |
+| - PHASE01    | A tab drag the pane runs itself      | TODO        | (in BUG-5A45.md)          |
+| - PHASE02    | Escape cancels a tab drag            | TODO        | (in BUG-5A45.md)          |
+| - PHASE03    | Highlight the pane a tab drops on    | TODO        | (in BUG-5A45.md)          |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
