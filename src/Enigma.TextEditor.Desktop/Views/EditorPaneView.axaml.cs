@@ -24,9 +24,19 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// One editor pane: a tab strip over a single <see cref="AvaloniaTextEditor"/> that shows the active tab.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The editor is shared by every tab. Switching tabs swaps its document, and this view puts the caret
 /// and the scroll back where the incoming tab was left — and records them for the outgoing one as the
 /// user moves — so each tab behaves as if it had an editor of its own.
+/// </para>
+/// <para>
+/// A tab dragged onto another pane is <em>not</em> a platform drag-and-drop session, and that is deliberate. The
+/// gesture never leaves the window, and over its own window Avalonia's X11 drag source delivers the drag in process
+/// without offering it over the protocol, while still taking the X drag selection: a Wayland compositor bridging that
+/// drag sees one nobody has accepted, and draws the refusal pointer for the whole gesture, whatever this view answers
+/// (Enigma.GitClient's BUG-11A4 established it, for its branch badges). Run from pointer events with a capture, the
+/// gesture wears an ordinary cursor. Files dropped from outside the application still come through the platform.
+/// </para>
 /// </remarks>
 public partial class EditorPaneView : UserControl
 {
@@ -42,6 +52,12 @@ public partial class EditorPaneView : UserControl
     public static readonly IValueConverter VerticalScrollBarFor =
         new FuncValueConverter<bool, ScrollBarVisibility>(minimap => minimap ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto);
 
+    /// <summary>
+    /// The pointer worn while a tab is carried, made once: a cursor is a platform handle, not a value, and a drag asks
+    /// for it on every pointer move.
+    /// </summary>
+    internal static readonly Cursor CarryingCursor = new(StandardCursorType.DragMove);
+
     private VimEditorBehavior? _vim;
 
     private EditorPaneViewModel? _pane;
@@ -54,6 +70,17 @@ public partial class EditorPaneView : UserControl
     // The editor's own scroll viewer, once its template is applied: the one place that knows which part
     // of the text is on screen, and the one whose offset actually moves the view in AvaloniaEdit 12.
     private ScrollViewer? _scroll;
+
+    // A left press on a tab, kept until the pointer has gone far enough with it to make a drag, or is let go.
+    private EditorTabViewModel? _pressedTab;
+    private Point _tabPressPoint;
+
+    // The tab being carried, once the press has become a drag; the pointer the strip holds for it; the window
+    // listening for the Escape that cancels it; and the pane showing that the tab would move there.
+    private EditorTabViewModel? _draggedTab;
+    private IPointer? _dragPointer;
+    private TopLevel? _dragRoot;
+    private EditorPaneView? _dropTarget;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EditorPaneView"/> class.
@@ -85,6 +112,30 @@ public partial class EditorPaneView : UserControl
         AddHandler(DragDrop.DragEnterEvent, OnDragOver, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(DragDrop.DragOverEvent, OnDragOver, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(DragDrop.DropEvent, OnDrop, RoutingStrategies.Bubble, handledEventsToo: true);
+
+        // A tab dragged off the strip moves to the pane it is dropped on. Handled events too: the strip's items
+        // take the press, to show the tab, and the press is where the drag starts from.
+        Tabs.AddHandler(PointerPressedEvent, OnTabsPointerPressed, RoutingStrategies.Bubble, handledEventsToo: true);
+        Tabs.AddHandler(PointerMovedEvent, OnTabsPointerMoved, RoutingStrategies.Bubble, handledEventsToo: true);
+        Tabs.AddHandler(PointerReleasedEvent, OnTabsPointerLetGo, RoutingStrategies.Bubble, handledEventsToo: true);
+
+        // Direct, the only route a lost capture travels: a handler listening on any other is never called.
+        Tabs.AddHandler(PointerCaptureLostEvent, OnTabsPointerCaptureLost, RoutingStrategies.Direct, handledEventsToo: true);
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether a tab of this pane is being dragged.
+    /// </summary>
+    internal bool IsDraggingTab => _draggedTab is not null;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether a tab carried from another pane would move here if let go, which the
+    /// pane shows over the whole of itself.
+    /// </summary>
+    internal bool IsDropTarget
+    {
+        get => DropHint.IsVisible;
+        set => DropHint.IsVisible = value;
     }
 
     /// <summary>
@@ -242,6 +293,186 @@ public partial class EditorPaneView : UserControl
         e.Handled = true;
         _pane?.CloseTabCommand.Execute(tab);
     }
+
+    // Not from the close button, whose press is a click on it, and only with the left button, the one that drags.
+    private void OnTabsPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        ForgetTabPress();
+
+        if ((_draggedTab is not null)
+            || !e.GetCurrentPoint(Tabs).Properties.IsLeftButtonPressed
+            || ((e.Source as Visual)?.FindAncestorOfType<Button>(includeSelf: true) is not null)
+            || ((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext is not EditorTabViewModel tab))
+        {
+            return;
+        }
+
+        _pressedTab = tab;
+        _tabPressPoint = e.GetPosition(Tabs);
+    }
+
+    // Past the platform's drag distance — the one beyond which a press is no longer a click — the press becomes a
+    // drag of its tab. Forgotten first: the drag must start once.
+    private void OnTabsPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_draggedTab is not null)
+        {
+            SteerTab(e);
+            return;
+        }
+
+        if (_pressedTab is not { } tab)
+        {
+            return;
+        }
+
+        if (!e.GetCurrentPoint(Tabs).Properties.IsLeftButtonPressed)
+        {
+            ForgetTabPress();
+            return;
+        }
+
+        Size distance = Application.Current?.PlatformSettings?.GetTapSize(e.Pointer.Type) ?? new Size(4, 4);
+
+        if (!TabDragGesture.IsDrag(e.GetPosition(Tabs) - _tabPressPoint, distance))
+        {
+            return;
+        }
+
+        ForgetTabPress();
+        StartDraggingTab(tab, e);
+    }
+
+    // The release ends the drag, and moves the tab when it is let go over a pane that takes it. Moved once the release
+    // has been handled: the strip the tab leaves changes under it, and its whole pane goes when the tab was its last.
+    private void OnTabsPointerLetGo(object? sender, PointerReleasedEventArgs e)
+    {
+        ForgetTabPress();
+
+        if (_draggedTab is not { } tab)
+        {
+            return;
+        }
+
+        EditorPaneViewModel? target = PaneUnder(e)?.DataContext as EditorPaneViewModel;
+
+        StopDraggingTab();
+        e.Handled = true;
+
+        if ((target is not null) && target.CanTakeTab(tab))
+        {
+            Dispatcher.UIThread.Post(() => target.TakeTab(tab));
+        }
+    }
+
+    // Whoever took the pointer owns it now: the drag ends where it is, dropping nothing, and the capture is left to them.
+    private void OnTabsPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        ForgetTabPress();
+
+        if (_draggedTab is null)
+        {
+            return;
+        }
+
+        _dragPointer = null;
+        StopDraggingTab();
+    }
+
+    private void ForgetTabPress() => _pressedTab = null;
+
+    private void StartDraggingTab(EditorTabViewModel tab, PointerEventArgs e)
+    {
+        _draggedTab = tab;
+
+        // The capture makes the rest of the gesture the strip's: every move, and the release that ends it, are
+        // reported here wherever the pointer goes — and the pointer wears the strip's cursor all the while.
+        _dragPointer = e.Pointer;
+        _dragPointer.Capture(Tabs);
+
+        // A drag that brings no platform session has to bring its own way out. On the window, and tunnelling: the
+        // keyboard may be in any pane's editor, and Vim must not take this Escape as its own.
+        _dragRoot = TopLevel.GetTopLevel(this);
+        _dragRoot?.AddHandler(KeyDownEvent, OnDragKeyDown, RoutingStrategies.Tunnel);
+
+        SteerTab(e);
+    }
+
+    private void OnDragKeyDown(object? sender, KeyEventArgs e)
+    {
+        if ((e.Key != Key.Escape) || (_draggedTab is null))
+        {
+            return;
+        }
+
+        StopDraggingTab();
+        e.Handled = true;
+    }
+
+    // The cursor says a drag is under way; the hint says where it would land, which is never the pane it came from.
+    private void SteerTab(PointerEventArgs e)
+    {
+        e.Handled = true;
+
+        EditorPaneView? pane = PaneUnder(e);
+
+        if (TabDragGesture.CursorFor(pane is not null) is not null)
+        {
+            Tabs.Cursor = CarryingCursor;
+        }
+        else
+        {
+            Tabs.ClearValue(CursorProperty);
+        }
+
+        MarkDropTarget(
+            (pane is { DataContext: EditorPaneViewModel target }) && (_draggedTab is { } tab) && target.CanTakeTab(tab)
+                ? pane
+                : null);
+    }
+
+    private void MarkDropTarget(EditorPaneView? pane)
+    {
+        if (ReferenceEquals(_dropTarget, pane))
+        {
+            return;
+        }
+
+        if (_dropTarget is not null)
+        {
+            _dropTarget.IsDropTarget = false;
+        }
+
+        _dropTarget = pane;
+
+        if (_dropTarget is not null)
+        {
+            _dropTarget.IsDropTarget = true;
+        }
+    }
+
+    // Cleared before the capture is let go: letting it go reports a lost capture, which must find no drag left to end.
+    private void StopDraggingTab()
+    {
+        _draggedTab = null;
+
+        Tabs.ClearValue(CursorProperty);
+        MarkDropTarget(null);
+
+        _dragRoot?.RemoveHandler(KeyDownEvent, OnDragKeyDown);
+        _dragRoot = null;
+
+        IPointer? pointer = _dragPointer;
+        _dragPointer = null;
+        pointer?.Capture(null);
+    }
+
+    // The pane under the pointer, in this window. Hit-tested: while the strip holds the pointer, every event comes
+    // from the strip, wherever the pointer is.
+    private EditorPaneView? PaneUnder(PointerEventArgs e)
+        => (TopLevel.GetTopLevel(this) is { } top) && (top.InputHitTest(e.GetPosition(top)) is Visual hit)
+            ? hit.FindAncestorOfType<EditorPaneView>(includeSelf: true)
+            : null;
 
     // What can run is read as the menu opens: the editor's Can* answers are not observable.
     private void OnEditorMenuOpening(object? sender, CancelEventArgs e)

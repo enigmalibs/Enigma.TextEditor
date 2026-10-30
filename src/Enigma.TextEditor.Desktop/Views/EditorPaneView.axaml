@@ -85,6 +85,16 @@
     <Style Selector="Border.paneFrame.framed">
       <Setter Property="BorderBrush" Value="{DynamicResource EnigmaAccentBrush}" />
     </Style>
+    <!-- Where a dragged tab would land: a faint accent wash under a ring twice the frame's width, so it reads apart
+         from the frame that marks the pane with the keyboard. -->
+    <Style Selector="Panel.dropFill">
+      <Setter Property="Background" Value="{DynamicResource EnigmaAccentBrush}" />
+      <Setter Property="Opacity" Value="0.12" />
+    </Style>
+    <Style Selector="Border.dropRing">
+      <Setter Property="BorderBrush" Value="{DynamicResource EnigmaAccentBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
     <Style Selector="TextBlock.placeholder">
       <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundTertiaryBrush}" />
       <Setter Property="HorizontalAlignment" Value="Center" />
@@ -216,6 +226,17 @@
       </views:EditorMinimap.IsVisible>
     </views:EditorMinimap>
     </Grid>
+
+    <!-- Over the whole pane, last so it is drawn on top, and never in the pointer's way. Shown by the pane a tab is
+         dragged from, on the pane the tab would move to. -->
+    <Panel x:Name="DropHint"
+           Grid.Row="0"
+           Grid.RowSpan="2"
+           IsVisible="False"
+           IsHitTestVisible="False">
+      <Panel Classes="dropFill" IsHitTestVisible="False" />
+      <Border Classes="dropRing" IsHitTestVisible="False" />
+    </Panel>
   </Grid>
   </Border>
 </UserControl>

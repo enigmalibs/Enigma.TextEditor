@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -24,6 +25,9 @@ public partial class MainWindow : Window
     private bool _confirming;
     private MainWindowViewModel? _viewModel;
 
+    // What a minimised window comes back as: maximised, if it was before it went down.
+    private WindowState _restoreState = WindowState.Normal;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
     /// </summary>
@@ -38,6 +42,34 @@ public partial class MainWindow : Window
     /// Gets the settings page, or <see langword="null"/> until it is first shown.
     /// </summary>
     internal SettingsPageView? SettingsPage => SettingsHost.Content as SettingsPageView;
+
+    /// <summary>
+    /// Brings the window forward, out of the taskbar if it was minimised, for the files another launch handed over.
+    /// </summary>
+    /// <remarks>
+    /// On Windows a window may only take the foreground with the blessing of the process the user is working with;
+    /// the launch that handed the files over gives it before it does.
+    /// </remarks>
+    internal void BringToFront()
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = _restoreState;
+        }
+
+        Activate();
+    }
+
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if ((change.Property == WindowStateProperty) && (change.GetNewValue<WindowState>() is var state and not WindowState.Minimized))
+        {
+            _restoreState = state;
+        }
+    }
 
     /// <summary>
     /// Gives the keyboard to the active pane: its editor, or its hex rows.

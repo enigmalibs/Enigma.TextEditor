@@ -17,13 +17,25 @@ public static class Program
     /// </summary>
     /// <param name="args">The command-line arguments.</param>
     /// <remarks>
+    /// <para>
     /// The process-wide unhandled-exception hooks come first, so a failure anywhere in the start is caught
     /// too.
+    /// </para>
+    /// <para>
+    /// A launch that names files — a double-click on one, <em>Open with</em> — hands them to the instance used last
+    /// when one is running, and ends there without a window. Without files, or with no instance to take them, the
+    /// editor starts as usual.
+    /// </para>
     /// </remarks>
     [STAThread]
     public static void Main(string[] args)
     {
         UnhandledExceptionHooks.Install();
+
+        if (InstanceForwarding.TryForward(args))
+        {
+            return;
+        }
 
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }

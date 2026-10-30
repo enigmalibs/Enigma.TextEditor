@@ -128,6 +128,26 @@ public sealed class EditorPaneViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Takes in a tab another pane gave up, at the end of the strip, and shows it.
+    /// </summary>
+    /// <param name="tab">The tab, with the place it was left at in its buffer.</param>
+    /// <remarks>
+    /// The tab itself moves rather than a new one being made, so the caret and the scroll come with it. The
+    /// caller makes sure this pane does not already show its buffer.
+    /// </remarks>
+    public void Adopt(EditorTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(tab);
+
+        if (!Tabs.Contains(tab))
+        {
+            Tabs.Add(tab);
+        }
+
+        ActiveTab = tab;
+    }
+
+    /// <summary>
     /// Puts another buffer in a tab's place on the strip, and shows it.
     /// </summary>
     /// <param name="tab">The tab to replace.</param>
@@ -240,6 +260,20 @@ public sealed class EditorPaneViewModel : ObservableObject
     /// <param name="paths">Their full paths, in drop order.</param>
     /// <returns>A task that completes when every file has been opened or skipped.</returns>
     public Task OpenDroppedAsync(IReadOnlyList<string> paths) => _host.OpenDroppedAsync(this, paths);
+
+    /// <summary>
+    /// Whether a tab dragged over this pane could be dropped here: it is on another pane.
+    /// </summary>
+    /// <param name="tab">The tab.</param>
+    /// <returns>Whether <see cref="TakeTab"/> would move it here.</returns>
+    public bool CanTakeTab(EditorTabViewModel tab) => _host.CanMoveTabTo(this, tab);
+
+    /// <summary>
+    /// Moves a tab dropped on this pane here, from the pane it was on; this pane takes the keyboard.
+    /// </summary>
+    /// <param name="tab">The tab.</param>
+    /// <returns>Whether it moved.</returns>
+    public bool TakeTab(EditorTabViewModel tab) => _host.MoveTabTo(this, tab);
 
     /// <summary>
     /// Reports that colouring the text failed, without interrupting the editing.

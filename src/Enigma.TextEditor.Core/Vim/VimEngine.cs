@@ -529,6 +529,20 @@ public sealed class VimEngine
             _ => null,
         };
 
+    /// <summary>
+    /// Which pane <c>&lt;Space&gt;m</c> and a letter moves the tab to: the one <c>g</c> and that letter would
+    /// reach.
+    /// </summary>
+    private static VimWindowCommand? TabMoveCommandFor(char letter)
+        => letter switch
+        {
+            'h' => VimWindowCommand.MoveTabLeft,
+            'j' => VimWindowCommand.MoveTabDown,
+            'k' => VimWindowCommand.MoveTabUp,
+            'l' => VimWindowCommand.MoveTabRight,
+            _ => null,
+        };
+
     private static string Repeat(string text, int count, string separator)
     {
         if (count <= 1)
@@ -705,6 +719,14 @@ public sealed class VimEngine
                 if (SplitterCommandFor(command.Argument) is { } splitter)
                 {
                     WindowCommandRequested?.Invoke(this, splitter);
+                }
+
+                break;
+
+            case VimAction.MoveTab:
+                if (TabMoveCommandFor(command.Argument) is { } move)
+                {
+                    WindowCommandRequested?.Invoke(this, move);
                 }
 
                 break;

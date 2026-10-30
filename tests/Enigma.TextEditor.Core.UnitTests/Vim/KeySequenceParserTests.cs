@@ -808,9 +808,26 @@ public sealed class KeySequenceParserTests
     }
 
     [Theory]
+    [InlineData("<Space>mh", 'h')]
+    [InlineData("<Space>mj", 'j')]
+    [InlineData("<Space>mk", 'k')]
+    [InlineData("<Space>ml", 'l')]
+    public void TheLeaderThenMAndADirection_MovesTheTab_InNormalAndVisualMode(string keys, char letter)
+    {
+        VimCommand expected = new(VimAction.MoveTab, Argument: letter);
+
+        Assert.Equal(expected, Feed(keys, out KeySequenceParser parser).Command);
+        Assert.False(parser.HasPendingSequence);
+        Assert.Equal(expected, FeedIn(keys, VimMode.Visual, out _).Command);
+        Assert.Equal(expected, FeedIn(keys, VimMode.VisualLine, out _).Command);
+    }
+
+    [Theory]
     [InlineData("<Space>")]
     [InlineData("<Space>r")]
     [InlineData("3<Space>r")]
+    [InlineData("<Space>m")]
+    [InlineData("2<Space>m")]
     public void TheLeader_WaitsForTheRestOfAMapping(string keys)
     {
         VimParseResult result = Feed(keys, out KeySequenceParser parser);
@@ -826,8 +843,12 @@ public sealed class KeySequenceParserTests
     [InlineData("<Space>rx")]
     [InlineData("<Space>rr")]
     [InlineData("<Space>r<Esc>")]
+    [InlineData("<Space>mx")]
+    [InlineData("<Space>mm")]
+    [InlineData("<Space>m<Esc>")]
     // A register in front of it, as in front of 'gh': the pane keys read no register.
     [InlineData("\"a<Space>rk")]
+    [InlineData("\"a<Space>ml")]
     public void TheLeaderThenAKeyNoMappingStartsWith_IsDead(string keys)
     {
         VimParseResult dead = Feed(keys, out KeySequenceParser parser);
