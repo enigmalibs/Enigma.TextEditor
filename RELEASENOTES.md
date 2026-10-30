@@ -1,5 +1,86 @@
 # Release notes
 
+## 1.10.0 — 2026-10-30
+
+A minor release about where a document goes. A tab can move to another pane, with `Space` and a direction or by
+dragging it there. A file opened from the system while the editor is running, by a double-click or *Open with*, now
+opens as a tab in the window you used last, instead of in a second window.
+
+### Moving tabs between panes
+
+- **`Space mh`, `mj`, `mk` and `ml`** move the tab you are on to the pane on the left, below, above or on the right:
+  the pane `gh`, `gj`, `gk`, `gl` would reach. That pane takes the keyboard. They work from a hex tab too, and over a
+  selection. With no pane on that side, they do nothing.
+- **Dragging a tab** from its strip onto another pane moves it there too. You can drop it anywhere on that pane: its
+  tabs, its text, its hex view or its empty placeholder.
+  - The drag starts once the pointer has moved a few pixels. A plain click still shows the tab, and the **×** still
+    closes it.
+  - While you drag, the pointer is a move cursor, and the pane the tab would land on is highlighted with a faint wash
+    of the accent colour inside an accent ring.
+  - **Escape cancels the drag**, without leaving Vim's insert or visual mode. Releasing the tab over its own pane, or
+    outside the panes, moves nothing.
+  - Files dragged in from another application still open where they are dropped, as before.
+- **The tab itself moves**, with its caret, its scroll position and, in the hex view, its row. It goes to the end of
+  the other pane's tabs.
+- **A file the other pane already shows** does not get a second tab there. That pane's tab is shown and the moved
+  one goes away. The file stays open, and nothing is asked.
+- **A pane left without tabs closes**, as closing its last tab would close it.
+- **Help → Key Bindings** lists both under *Panes*.
+
+### Files opened while the editor is running
+
+- **The open window takes them.** Some launches name files: a double-click, *Open with*, the Linux launcher, or
+  `enigma-text-editor notes.txt` in a terminal. While the editor is running, such a launch hands its files to the
+  window you used last and ends. The files open there as tabs, and that window comes to the front, maximised again if
+  it was. Before, each such launch started a window of its own.
+- **Where they open:** in the pane with the keyboard, on the files page even if the settings page was showing.
+  - A fresh untitled tab gives its place to the first file, as it does for a dropped file; an untitled tab you have
+    typed in is kept.
+  - A name that does not exist yet opens an empty document, as it does on the command line.
+- **Several windows still.** Started without a file, the editor opens a new window, so several can run side by side.
+  Files go to the one you used last.
+- **Nothing is lost.** If that window has gone, or does not answer within a few seconds, the launch opens its own
+  window with the files, as before.
+- **Only your own launches reach it.** Each window listens on a named pipe that only your user account can connect
+  to, and takes nothing from it but a list of files to open.
+- **Limits:**
+  - files that arrive while the window shows a dialog open behind that dialog;
+  - files that arrive while the window is closing close with it;
+  - a folder named alongside files is left out.
+
+### Upgrading from 1.9
+
+- **Your settings carry over** unchanged. 1.10 adds no settings key, and going back to 1.9 reads the same file.
+- **One new file, `instance.json`,** sits beside `settings.json`. It names the window used last, so that a launch
+  knows where to send its files, and that window removes it when it closes. 1.9 never reads it.
+- **A 1.9 window still open receives no files.** The first file you open starts a 1.10 window, and the files after it
+  go there.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place. The launcher entry already hands its files to
+  the editor, so nothing else changes.
+
+### Dependencies
+
+- **No change: every package is at its latest stable version.** That includes:
+  - the Avalonia set at 12.1.4, with Enigma.Avalonia.Desktop 1.3.0;
+  - AvaloniaEdit 12.0.0;
+  - Microsoft.Extensions.Hosting 10.0.14. Its 11.0.0 is a release candidate only, and is not taken.
+
+### Compatibility
+
+- Unchanged from 1.9.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+- Handing files to the running window is built for Windows and Linux. On macOS, Finder hands files to an application
+  through Apple events, which the editor does not take, so it has not been tried there.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.10.0** is a minor release under Semantic Versioning. It adds moving tabs between panes and handing files to the
+  running window, and keeps every stored format and every default.
+
 ## 1.9.0 — 2026-10-29
 
 A minor release that brings the editor in line with the other Enigma applications. An error that nothing else handles

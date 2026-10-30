@@ -451,6 +451,92 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     public bool MoveSplitter(SplitAxis axis, double delta) => Layout.MoveSplitter(ActivePaneId, axis, delta);
 
     /// <summary>
+    /// Moves the active tab to the pane next to the active one in a direction.
+    /// </summary>
+    /// <param name="direction">The direction.</param>
+    /// <returns>Whether there was a tab, and a pane there to take it.</returns>
+    /// <remarks>
+    /// The pane is the one <see cref="Focus(FocusDirection)"/> would move to. With none, nothing happens, as
+    /// nothing happens when the keyboard cannot move that way.
+    /// </remarks>
+    public bool MoveTab(FocusDirection direction)
+        => (ActiveTab is { } tab)
+           && (Layout.FindNeighbor(ActivePaneId, direction) is { } neighbour)
+           && MoveTab(ActivePane, tab, _byId[neighbour]);
+
+    /// <summary>
+    /// Moves a tab from one pane to another, which takes the keyboard.
+    /// </summary>
+    /// <param name="source">The pane the tab is on.</param>
+    /// <param name="tab">The tab.</param>
+    /// <param name="target">The pane to move it to.</param>
+    /// <returns>Whether it moved: not to its own pane, nor from a pane it is not on.</returns>
+    /// <remarks>
+    /// <para>
+    /// The tab itself moves, with the caret and the scroll it was left at, to the end of the target's strip.
+    /// When the target already shows its buffer, that tab is shown instead and the moved one is closed: a pane
+    /// never shows one buffer in two tabs. Either way nothing is asked — the buffer stays open.
+    /// </para>
+    /// <para>
+    /// The pane the tab leaves closes when it has no tab left, as it would had the tab been closed.
+    /// </para>
+    /// </remarks>
+    public bool MoveTab(EditorPaneViewModel source, EditorTabViewModel tab, EditorPaneViewModel target)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(tab);
+        ArgumentNullException.ThrowIfNull(target);
+
+        if (ReferenceEquals(source, target) || (IdOf(source) is not { } sourceId) || (IdOf(target) is null)
+            || !source.Tabs.Contains(tab))
+        {
+            return false;
+        }
+
+        source.Remove(tab);
+
+        if (target.Tabs.FirstOrDefault(candidate => ReferenceEquals(candidate.Document, tab.Document)) is { } existing)
+        {
+            target.ActiveTab = existing;
+            _registry.Release(tab.Document);
+        }
+        else
+        {
+            target.Adopt(tab);
+        }
+
+        Activate(target);
+
+        if (source.Tabs.Count == 0)
+        {
+            RemovePane(sourceId);
+        }
+
+        RefreshCommands();
+        DocumentShown?.Invoke(this, EventArgs.Empty);
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public bool CanMoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(tab);
+
+        return (PaneOf(tab) is { } source) && !ReferenceEquals(source, target) && (IdOf(target) is not null);
+    }
+
+    /// <inheritdoc />
+    public bool MoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(tab);
+
+        return (PaneOf(tab) is { } source) && MoveTab(source, tab, target);
+    }
+
+    /// <summary>
     /// Opens a file in the active pane, or shows it there when it is already open.
     /// </summary>
     /// <param name="filePath">The file.</param>
@@ -728,24 +814,40 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     }
 
     /// <summary>
-    /// Opens the files named on the command line, the last one active.
+    /// Opens the files named on the command line — this launch's, or another's that handed them over — in the
+    /// active pane, the last one active.
     /// </summary>
     /// <param name="startup">The files, as read from the arguments.</param>
     /// <returns>A task that completes when every file has been opened or reported.</returns>
     /// <remarks>
+    /// <para>
     /// A missing file becomes an empty buffer the first save creates, unless its folder does not exist
     /// either, which no save could fix. With nothing to open, an untitled buffer is ready to type into,
     /// as Vim starts.
+    /// </para>
+    /// <para>
+    /// A new tab showing — untitled, empty, unchanged — gives its place to the first file that opens, as it does
+    /// to a dropped one: a window that has just been opened has one, and it is not what the files were sent to.
+    /// </para>
     /// </remarks>
     public async Task OpenStartupFilesAsync(StartupFiles startup)
     {
         ArgumentNullException.ThrowIfNull(startup);
 
         List<string> problems = [.. startup.Skipped.Select(skipped => $"{skipped} is not a file")];
+        EditorPaneViewModel pane = ActivePane;
+        EditorTabViewModel? fresh = pane.ActiveTab is { } target && IsFresh(target) ? target : null;
 
         foreach (StartupFile file in startup.Files)
         {
-            if (file.Exists)
+            if (file.Exists && (fresh is not null))
+            {
+                if (await OpenInPlaceOfAsync(pane, fresh, file.Path))
+                {
+                    fresh = null;
+                }
+            }
+            else if (file.Exists)
             {
                 await OpenAsync(file.Path);
             }
@@ -808,6 +910,10 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 
         return true;
     }
+
+    // A tab is on one pane at most: the same buffer on another pane is another tab.
+    private EditorPaneViewModel? PaneOf(EditorTabViewModel tab)
+        => _byId.Values.FirstOrDefault(pane => pane.Tabs.Contains(tab));
 
     // Untitled, text, empty, never changed, and shown by this tab alone: nothing would be lost with it.
     private bool IsFresh(EditorTabViewModel tab)

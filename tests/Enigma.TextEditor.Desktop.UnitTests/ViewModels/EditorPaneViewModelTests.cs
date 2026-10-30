@@ -144,6 +144,10 @@ public sealed class EditorPaneViewModelTests
 
         public Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths) => Task.CompletedTask;
 
+        public bool CanMoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab) => false;
+
+        public bool MoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab) => false;
+
         public void ShowStatus(string message)
         {
         }

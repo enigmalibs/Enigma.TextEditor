@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -9,6 +10,7 @@ using Enigma.Logging.Abstractions;
 using Enigma.TextEditor.Core;
 using Enigma.TextEditor.Core.Configuration;
 using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Core.Instances;
 using Enigma.TextEditor.Core.Settings;
 using Enigma.TextEditor.Desktop.Extensions;
 using Enigma.TextEditor.Desktop.Services;
@@ -84,7 +86,21 @@ public partial class App : Application
             Dispatcher.UIThread.Post(() => viewModel.StartAsync(startup).Forget(UnhandledErrorSource.Startup));
             logger.LogInformation("{DisplayName} {Version} started.", AppInfo.DisplayName, AppInfo.Version);
 
-            desktop.Exit += (_, _) => OnExit(host, logger);
+            // Files another launch hands over — a double-click on a file while this window is open — open here.
+            // The window in use is the one they go to, so each activation names this instance as that one.
+            RunningInstance instance = RunningInstance.Start(
+                AppPaths.ActiveInstanceFile,
+                InstanceEndpoint.ForCurrentProcess(),
+                files =>
+                {
+                    Dispatcher.UIThread.Post(() => OpenForwarded(window, viewModel, files));
+
+                    return true;
+                },
+                services.GetRequiredService<ILogger<RunningInstance>>());
+            window.Activated += (_, _) => instance.MarkActiveAsync().Forget();
+
+            desktop.Exit += (_, _) => OnExit(host, logger, instance);
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -148,7 +164,16 @@ public partial class App : Application
         services.GetRequiredService<UnhandledErrorReporter>().RegisterHost(window.HostDialog);
     }
 
-    private static void OnExit(IHost host, ILogger<App> logger)
+    // Read against this instance's own folder: the paths came full from the launch that handed them over.
+    private static void OpenForwarded(MainWindow window, MainWindowViewModel viewModel, IReadOnlyList<string> files)
+    {
+        window.BringToFront();
+
+        StartupFiles startup = StartupFiles.Parse(files, Environment.CurrentDirectory, File.Exists, Directory.Exists);
+        viewModel.OpenForwardedAsync(startup).Forget();
+    }
+
+    private static void OnExit(IHost host, ILogger<App> logger, RunningInstance instance)
     {
         logger.LogInformation("{DisplayName} is shutting down.", AppInfo.DisplayName);
 
@@ -166,6 +191,8 @@ public partial class App : Application
         bool finished = ShutdownSequence.Run(
             async cancellationToken =>
             {
+                // First, so that no launch hands files to a window that is going.
+                await instance.DisposeAsync().ConfigureAwait(false);
                 await host.StopAsync(cancellationToken).ConfigureAwait(false);
                 host.Dispose();
             },

@@ -12,7 +12,8 @@ Security fixes are provided for the latest released version. Enigma.TextEditor f
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.9.x   | :white_check_mark: |
+| 1.10.x  | :white_check_mark: |
+| 1.9.x   | :x:                |
 | 1.8.x   | :x:                |
 | 1.7.x   | :x:                |
 | 1.6.x   | :x:                |
@@ -57,6 +58,9 @@ The following are in scope:
 - the way it reads and writes its settings file and its log;
 - the error dialog it shows when a failure is not handled elsewhere: what that dialog shows and what *Copy details*
   puts on the clipboard;
+- the way a running window takes files from a later launch: the named pipe each window listens on, who may connect
+  to it, how it reads a request and what it opens from one, and the `instance.json` file that names the window used
+  last;
 - the Linux install and uninstall scripts in `packaging/linux`: what they write into your home directory, what they
   remove, and the desktop entry they generate.
 

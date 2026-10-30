@@ -321,4 +321,15 @@ public enum VimAction
     /// engine as a request, and it is not a change: <c>.</c> never repeats it.
     /// </remarks>
     MoveSplitter,
+
+    /// <summary>
+    /// <c>&lt;Space&gt;mh</c>, <c>mj</c>, <c>mk</c>, <c>ml</c> — move the tab showing to the pane on the left, below,
+    /// above, on the right.
+    /// </summary>
+    /// <remarks>
+    /// The letter is the command's argument, and goes the way <c>gh</c>, <c>gj</c>, <c>gk</c>, <c>gl</c> go: the tab
+    /// lands in the pane those keys would reach. Like every window command it leaves the engine as a request, and it
+    /// is not a change: <c>.</c> never repeats it.
+    /// </remarks>
+    MoveTab,
 }

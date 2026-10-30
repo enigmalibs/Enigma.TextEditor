@@ -128,6 +128,22 @@ public sealed class WindowCommandHandler
                 _workspace.MoveSplitter(SplitAxis.Rows, _workspace.ResizeStep);
                 break;
 
+            case VimWindowCommand.MoveTabLeft:
+                _workspace.MoveTab(FocusDirection.Left);
+                break;
+
+            case VimWindowCommand.MoveTabDown:
+                _workspace.MoveTab(FocusDirection.Down);
+                break;
+
+            case VimWindowCommand.MoveTabUp:
+                _workspace.MoveTab(FocusDirection.Up);
+                break;
+
+            case VimWindowCommand.MoveTabRight:
+                _workspace.MoveTab(FocusDirection.Right);
+                break;
+
             default:
                 break;
         }

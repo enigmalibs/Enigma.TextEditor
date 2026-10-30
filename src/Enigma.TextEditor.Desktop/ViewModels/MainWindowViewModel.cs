@@ -149,6 +149,21 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Opens the files another launch of the editor handed over to this one, as if they had been named on its own
+    /// command line: in the active pane, on the files page.
+    /// </summary>
+    /// <param name="startup">The files, as read from the other launch's arguments.</param>
+    /// <returns>A task that completes once they are open, or reported.</returns>
+    public Task OpenForwardedAsync(StartupFiles startup)
+    {
+        ArgumentNullException.ThrowIfNull(startup);
+
+        Shell.ShowFiles();
+
+        return Workspace.OpenStartupFilesAsync(startup);
+    }
+
+    /// <summary>
     /// Asks about unsaved changes before the window closes.
     /// </summary>
     /// <returns>Whether the window may close.</returns>
