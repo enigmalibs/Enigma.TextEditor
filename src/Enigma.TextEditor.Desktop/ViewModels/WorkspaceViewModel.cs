@@ -536,6 +536,47 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         return (PaneOf(tab) is { } source) && MoveTab(source, tab, target);
     }
 
+    /// <inheritdoc />
+    public bool CanSplitWithTab(EditorPaneViewModel target, EditorTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(tab);
+
+        return (PaneOf(tab) is { } source) && (IdOf(target) is not null)
+               && (!ReferenceEquals(source, target) || (source.Tabs.Count > 1));
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// The tab moves as <see cref="MoveTab(EditorPaneViewModel, EditorTabViewModel, EditorPaneViewModel)"/> moves it,
+    /// into a pane that is empty until then, so it is never merged with a tab of the target on the same buffer.
+    /// </para>
+    /// <para>
+    /// A pane's only tab cannot split that pane: the pane would be left without a tab and close, and the layout
+    /// would be what it was.
+    /// </para>
+    /// </remarks>
+    public EditorPaneViewModel? SplitWithTab(EditorPaneViewModel target, EditorTabViewModel tab, FocusDirection side)
+    {
+        if (!CanSplitWithTab(target, tab) || (PaneOf(tab) is not { } source) || (IdOf(target) is not { } targetId))
+        {
+            return null;
+        }
+
+        EditorPaneViewModel? created = null;
+
+        Batch(() =>
+        {
+            created = AddPane(Layout.Split(targetId, side));
+            MoveTab(source, tab, created);
+        });
+
+        UpdateActiveFlags();
+
+        return created;
+    }
+
     /// <summary>
     /// Opens a file in the active pane, or shows it there when it is already open.
     /// </summary>

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
 
@@ -274,6 +275,23 @@ public sealed class EditorPaneViewModel : ObservableObject
     /// <param name="tab">The tab.</param>
     /// <returns>Whether it moved.</returns>
     public bool TakeTab(EditorTabViewModel tab) => _host.MoveTabTo(this, tab);
+
+    /// <summary>
+    /// Whether a tab dragged to an edge of this pane could split it: the tab is on a pane of the editor area, and
+    /// the pane it leaves keeps a tab.
+    /// </summary>
+    /// <param name="tab">The tab.</param>
+    /// <returns>Whether <see cref="SplitWithTab"/> would split this pane.</returns>
+    public bool CanSplitWithTab(EditorTabViewModel tab) => _host.CanSplitWithTab(this, tab);
+
+    /// <summary>
+    /// Splits this pane for a tab dropped on one of its edges, and moves the tab into the new half, which takes the
+    /// keyboard.
+    /// </summary>
+    /// <param name="tab">The tab.</param>
+    /// <param name="side">The edge it was dropped on: where the new pane goes.</param>
+    /// <returns>The new pane, or <see langword="null"/> when nothing was split.</returns>
+    public EditorPaneViewModel? SplitWithTab(EditorTabViewModel tab, FocusDirection side) => _host.SplitWithTab(this, tab, side);
 
     /// <summary>
     /// Reports that colouring the text failed, without interrupting the editing.

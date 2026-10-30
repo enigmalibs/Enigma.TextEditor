@@ -18,7 +18,7 @@ namespace Enigma.TextEditor.Desktop.UnitTests.Views;
 
 /// <summary>
 /// Tabs dragged between panes on the real window, through the real input system: where a drag starts, the cursor
-/// it wears, and where a dropped tab goes.
+/// it wears, where a dropped tab goes, and the panes that split for a tab dropped near their edge.
 /// </summary>
 /// <remarks>
 /// The drag is the pane's own gesture, not a platform session, so the whole of it — press, moves, release — is played
@@ -349,6 +349,183 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             window.Close();
         });
 
+    [Fact]
+    public void ACarriedTab_NearAnotherPanesEdge_MarksTheHalfThatWouldSplitOff_AndInItsMiddle_TheWholePane()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n"));
+            EditorTabViewModel b = (await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b\n")))!;
+            EditorPaneViewModel leftPane = harness.Workspace.ActivePane;
+            harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Activate(leftPane);
+            MainWindow window = Show(harness);
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
+            Point outside = new(-40, -40);
+
+            Carry(window, TitleOf(window, left, b), NearEdge(right, window, FocusDirection.Right));
+            Assert.True(right.IsDropTarget);
+            Assert.Equal(FocusDirection.Right, right.DropSide);
+            Assert.False(left.IsDropTarget);
+            AssertHintCovers(right, new Rect(0.5, 0, 0.5, 1));
+
+            window.MouseMove(Middle(right, window), RawInputModifiers.LeftMouseButton);
+            Assert.True(right.IsDropTarget);
+            Assert.Null(right.DropSide);
+            AssertHintCovers(right, new Rect(0, 0, 1, 1));
+
+            window.MouseMove(NearEdge(right, window, FocusDirection.Up), RawInputModifiers.LeftMouseButton);
+            Assert.Equal(FocusDirection.Up, right.DropSide);
+            AssertHintCovers(right, new Rect(0, 0, 1, 0.5));
+
+            window.MouseMove(NearEdge(right, window, FocusDirection.Down), RawInputModifiers.LeftMouseButton);
+            Assert.Equal(FocusDirection.Down, right.DropSide);
+            AssertHintCovers(right, new Rect(0, 0.5, 1, 0.5));
+
+            window.MouseMove(NearEdge(right, window, FocusDirection.Left), RawInputModifiers.LeftMouseButton);
+            Assert.Equal(FocusDirection.Left, right.DropSide);
+            AssertHintCovers(right, new Rect(0, 0, 0.5, 1));
+
+            window.MouseUp(outside, MouseButton.Left);
+            await DrainAsync();
+
+            Assert.False(right.IsDropTarget);
+            Assert.Null(right.DropSide);
+            Assert.Equal(2, harness.Workspace.Panes.Count);
+            window.Close();
+        });
+
+    [Fact]
+    public void LettingGoNearAnotherPanesEdge_SplitsThatPane_WithTheTabInTheNewHalf()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n"));
+            EditorTabViewModel b = (await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b\n")))!;
+            EditorPaneViewModel leftPane = harness.Workspace.ActivePane;
+            EditorPaneViewModel rightPane = harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Activate(leftPane);
+            MainWindow window = Show(harness);
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
+
+            Carry(window, TitleOf(window, left, b), NearEdge(right, window, FocusDirection.Right));
+            window.MouseUp(NearEdge(right, window, FocusDirection.Right), MouseButton.Left);
+            await DrainAsync();
+
+            EditorPaneViewModel created = harness.Workspace.ActivePane;
+            Assert.Equal(3, harness.Workspace.Panes.Count);
+            Assert.Same(b, Assert.Single(created.Tabs));
+            Assert.Equal(harness.Workspace.IdOf(created), harness.Workspace.Layout.FindNeighbor(harness.Workspace.IdOf(rightPane)!.Value, FocusDirection.Right));
+            Assert.Equal(["a.txt"], leftPane.Tabs.Select(tab => tab.Document.Title));
+            Assert.Equal(3, window.GetVisualDescendants().OfType<EditorPaneView>().Count());
+            Assert.False(right.IsDropTarget);
+            window.Close();
+        });
+
+    [Fact]
+    public void LettingGoNearItsOwnPanesBottomEdge_SplitsItBelow_WhenThePaneKeepsAnotherTab()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n")))!;
+            EditorTabViewModel b = (await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b\n")))!;
+            EditorPaneViewModel panePane = harness.Workspace.ActivePane;
+            MainWindow window = Show(harness);
+            EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
+
+            Carry(window, TitleOf(window, pane, b), NearEdge(pane, window, FocusDirection.Down));
+            Assert.True(pane.IsDropTarget);
+            Assert.Equal(FocusDirection.Down, pane.DropSide);
+
+            window.MouseUp(NearEdge(pane, window, FocusDirection.Down), MouseButton.Left);
+            await DrainAsync();
+
+            EditorPaneViewModel created = harness.Workspace.ActivePane;
+            Assert.Equal([panePane, created], harness.Workspace.Panes);
+            Assert.Equal([a], panePane.Tabs);
+            Assert.Same(b, Assert.Single(created.Tabs));
+            Assert.Equal(harness.Workspace.IdOf(created), harness.Workspace.Layout.FindNeighbor(harness.Workspace.IdOf(panePane)!.Value, FocusDirection.Down));
+            Assert.False(pane.IsDropTarget);
+            window.Close();
+        });
+
+    [Fact]
+    public void APanesOnlyTab_NearItsOwnEdge_IsMarkedNowhere_AndSplitsNothing()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n")))!;
+            EditorPaneViewModel panePane = harness.Workspace.ActivePane;
+            MainWindow window = Show(harness);
+            EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
+
+            Carry(window, TitleOf(window, pane, a), NearEdge(pane, window, FocusDirection.Right));
+            Assert.True(pane.IsDraggingTab);
+            Assert.False(pane.IsDropTarget);
+
+            window.MouseUp(NearEdge(pane, window, FocusDirection.Right), MouseButton.Left);
+            await DrainAsync();
+
+            Assert.Same(panePane, Assert.Single(harness.Workspace.Panes));
+            Assert.Equal([a], panePane.Tabs);
+            window.Close();
+        });
+
+    [Fact]
+    public void ATabLetGoOnAnotherPanesStrip_NearItsLeftEnd_MovesThere_RatherThanSplitting()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n"));
+            EditorTabViewModel b = (await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b\n")))!;
+            EditorPaneViewModel leftPane = harness.Workspace.ActivePane;
+            EditorPaneViewModel rightPane = harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Activate(leftPane);
+            MainWindow window = Show(harness);
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
+            Point stripStart = right.TranslatePoint(new Point(10, 15), window)!.Value;
+
+            Carry(window, TitleOf(window, left, b), stripStart);
+            Assert.True(right.IsDropTarget);
+            Assert.Null(right.DropSide);
+
+            window.MouseUp(stripStart, MouseButton.Left);
+            await DrainAsync();
+
+            Assert.Equal(2, harness.Workspace.Panes.Count);
+            Assert.Same(b, rightPane.ActiveTab);
+            Assert.Equal(["a.txt"], leftPane.Tabs.Select(tab => tab.Document.Title));
+            window.Close();
+        });
+
+    [Fact]
+    public void Escape_NearAnEdge_ClearsTheHalf_AndSplitsNothing()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n"));
+            EditorTabViewModel b = (await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b\n")))!;
+            EditorPaneViewModel leftPane = harness.Workspace.ActivePane;
+            harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Activate(leftPane);
+            MainWindow window = Show(harness);
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
+
+            Carry(window, TitleOf(window, left, b), NearEdge(right, window, FocusDirection.Left));
+            Assert.Equal(FocusDirection.Left, right.DropSide);
+
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Assert.False(right.IsDropTarget);
+            Assert.Null(right.DropSide);
+
+            window.MouseUp(NearEdge(right, window, FocusDirection.Left), MouseButton.Left);
+            await DrainAsync();
+
+            Assert.Equal(2, harness.Workspace.Panes.Count);
+            Assert.Equal(2, leftPane.Tabs.Count);
+            window.Close();
+        });
+
     [Theory]
     [InlineData(0, 0, false)]
     [InlineData(4, 4, false)] // On the edge of the distance: still a click.
@@ -367,6 +544,31 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
         // Never StandardCursorType.No: the refusal pointer is what the gesture exists to be rid of.
         Assert.Equal(expected, TabDragGesture.CursorFor(overAPane));
         Assert.NotEqual(StandardCursorType.No, TabDragGesture.CursorFor(overAPane));
+    }
+
+    [Theory]
+    [InlineData(50, 50, 100, 100, null)] // The middle.
+    [InlineData(10, 50, 100, 100, FocusDirection.Left)]
+    [InlineData(90, 50, 100, 100, FocusDirection.Right)]
+    [InlineData(50, 10, 100, 100, FocusDirection.Up)]
+    [InlineData(50, 90, 100, 100, FocusDirection.Down)]
+    [InlineData(5, 20, 100, 100, FocusDirection.Left)] // A corner goes to the nearer side.
+    [InlineData(20, 5, 100, 100, FocusDirection.Up)]
+    [InlineData(95, 85, 100, 100, FocusDirection.Right)]
+    [InlineData(85, 95, 100, 100, FocusDirection.Down)]
+    [InlineData(25, 50, 100, 100, null)] // On the boundary: still the middle.
+    [InlineData(75, 50, 100, 100, null)]
+    [InlineData(50, 75, 100, 100, null)]
+    [InlineData(40, 30, 200, 100, FocusDirection.Left)] // Measured as shares: 20 % from the left beats 30 % from the top.
+    [InlineData(60, 20, 200, 100, FocusDirection.Up)] // 20 % from the top beats 30 % from the left.
+    public void TheSideATabWouldSplitAPaneOn_IsTheNearerEdgeWithinAQuarter(double x, double y, double width, double height, FocusDirection? expected)
+        => Assert.Equal(expected, TabDragGesture.SideFor(new Point(x, y), new Size(width, height)));
+
+    [Fact]
+    public void ContentWithNoWidthOrHeight_HasNoSides()
+    {
+        Assert.Null(TabDragGesture.SideFor(new Point(0, 0), new Size(0, 100)));
+        Assert.Null(TabDragGesture.SideFor(new Point(0, 0), new Size(100, 0)));
     }
 
     // Presses the point, carries it past the drag distance along the strip, then on to where it is going, without
@@ -423,6 +625,39 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
     // On the tab strip, right of the tabs: the strip is the top band of the pane.
     private static Point OnStrip(EditorPaneView pane, MainWindow window)
         => pane.TranslatePoint(new Point(pane.Bounds.Width - 20, 15), window)!.Value;
+
+    // Near one edge of the pane's text — below the strip — well within the quarter that splits the pane on that side.
+    private static Point NearEdge(EditorPaneView pane, MainWindow window, FocusDirection side)
+    {
+        Border strip = pane.FindControl<Border>("Strip")!;
+        double top = strip.IsVisible ? strip.TranslatePoint(new Point(0, strip.Bounds.Height), pane)!.Value.Y : 0;
+        double middle = (top + pane.Bounds.Height) / 2;
+
+        Point inPane = side switch
+        {
+            FocusDirection.Left => new Point(10, middle),
+            FocusDirection.Right => new Point(pane.Bounds.Width - 10, middle),
+            FocusDirection.Up => new Point(pane.Bounds.Width / 2, top + 10),
+            _ => new Point(pane.Bounds.Width / 2, pane.Bounds.Height - 10),
+        };
+
+        return pane.TranslatePoint(inPane, window)!.Value;
+    }
+
+    // The hint, laid out, covers that part of the pane: shares of its width and height, to within the pane's 1 px frame.
+    private static void AssertHintCovers(EditorPaneView pane, Rect share)
+    {
+        Panel hint = pane.FindControl<Panel>("DropHint")!;
+        pane.UpdateLayout();
+        Point origin = hint.TranslatePoint(new Point(0, 0), pane)!.Value;
+        double width = pane.Bounds.Width;
+        double height = pane.Bounds.Height;
+
+        Assert.Equal(share.X * width, origin.X, 2.0);
+        Assert.Equal(share.Y * height, origin.Y, 2.0);
+        Assert.Equal(share.Width * width, hint.Bounds.Width, 2.0);
+        Assert.Equal(share.Height * height, hint.Bounds.Height, 2.0);
+    }
 
     private static async Task DrainAsync()
     {

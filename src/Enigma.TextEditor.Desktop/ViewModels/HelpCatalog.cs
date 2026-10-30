@@ -161,6 +161,7 @@ public static class HelpCatalog
             Window("Space mh, mj, mk, ml", "Move the tab to the pane to the left, below, above, to the right",
                 VimWindowCommand.MoveTabLeft, VimWindowCommand.MoveTabDown, VimWindowCommand.MoveTabUp, VimWindowCommand.MoveTabRight),
             Keys("Drag a tab onto another pane", "Move it there; Escape cancels the drag"),
+            Keys("Drag a tab to a pane's edge", "Split that pane there, the tab in the new half"),
         ]),
         Section("Options", PhosphorIcon.SlidersHorizontal, ":set {name} turns one on, :set no{name} off, :set {name}={n} sets a number",
         [

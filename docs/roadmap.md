@@ -99,5 +99,9 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE02    | Escape cancels a tab drag            | DONE        | (in BUG-5A45.md)          |
 | - PHASE03    | Highlight the pane a tab drops on    | DONE        | (in BUG-5A45.md)          |
 | FEATURE-2448 | Release 1.10.0                       | DONE        | docs/plan/FEATURE-2448.md |
+| FEATURE-9E4A | Drop a tab on an edge to split       | DONE        | docs/plan/FEATURE-9E4A.md |
+| - PHASE01    | Split a pane with a moved tab        | DONE        | (in FEATURE-9E4A.md)      |
+| - PHASE02    | Edge drop zones and their hint       | DONE        | (in FEATURE-9E4A.md)      |
+| FEATURE-1CC6 | Release 1.11.0                       | DONE        | docs/plan/FEATURE-1CC6.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
