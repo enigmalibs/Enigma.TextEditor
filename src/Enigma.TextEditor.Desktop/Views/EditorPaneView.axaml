@@ -117,7 +117,8 @@
 
     <!-- The tab strip. Scrolls sideways rather than wrapping, so opening one more file never moves the
          editor down. -->
-    <Border Grid.Row="0"
+    <Border x:Name="Strip"
+            Grid.Row="0"
             MinHeight="37"
             IsVisible="{Binding HasActiveTab}"
             Background="{DynamicResource EnigmaSurfaceBrush}"
@@ -228,15 +229,22 @@
     </Grid>
 
     <!-- Over the whole pane, last so it is drawn on top, and never in the pointer's way. Shown by the pane a tab is
-         dragged from, on the pane the tab would move to. -->
-    <Panel x:Name="DropHint"
-           Grid.Row="0"
-           Grid.RowSpan="2"
-           IsVisible="False"
-           IsHitTestVisible="False">
-      <Panel Classes="dropFill" IsHitTestVisible="False" />
-      <Border Classes="dropRing" IsHitTestVisible="False" />
-    </Panel>
+         dragged from, on the pane the tab would land on: over all four quarters of this grid when the tab would move
+         here, over the half on one side when the pane would split there for it, where the new pane will stand. -->
+    <Grid Grid.Row="0"
+          Grid.RowSpan="2"
+          ColumnDefinitions="*,*"
+          RowDefinitions="*,*"
+          IsHitTestVisible="False">
+      <Panel x:Name="DropHint"
+             Grid.ColumnSpan="2"
+             Grid.RowSpan="2"
+             IsVisible="False"
+             IsHitTestVisible="False">
+        <Panel Classes="dropFill" IsHitTestVisible="False" />
+        <Border Classes="dropRing" IsHitTestVisible="False" />
+      </Panel>
+    </Grid>
   </Grid>
   </Border>
 </UserControl>

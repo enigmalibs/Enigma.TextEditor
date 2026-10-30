@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AvaloniaEdit.Editing;
 using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Extensions;
 using Enigma.TextEditor.Desktop.Services;
@@ -36,6 +37,11 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// drag sees one nobody has accepted, and draws the refusal pointer for the whole gesture, whatever this view answers
 /// (Enigma.GitClient's BUG-11A4 established it, for its branch badges). Run from pointer events with a capture, the
 /// gesture wears an ordinary cursor. Files dropped from outside the application still come through the platform.
+/// </para>
+/// <para>
+/// Let go over a pane's tab strip or the middle of its text, the tab moves into that pane. Let go near one of the text's
+/// edges (<see cref="TabDragGesture.EdgeShare"/> of the way in), the pane splits on that side and the tab goes into the
+/// new half — its own pane included, when that pane keeps another tab.
 /// </para>
 /// </remarks>
 public partial class EditorPaneView : UserControl
@@ -76,7 +82,7 @@ public partial class EditorPaneView : UserControl
     private Point _tabPressPoint;
 
     // The tab being carried, once the press has become a drag; the pointer the strip holds for it; the window
-    // listening for the Escape that cancels it; and the pane showing that the tab would move there.
+    // listening for the Escape that cancels it; and the pane showing that the tab would land there.
     private EditorTabViewModel? _draggedTab;
     private IPointer? _dragPointer;
     private TopLevel? _dragRoot;
@@ -129,13 +135,69 @@ public partial class EditorPaneView : UserControl
     internal bool IsDraggingTab => _draggedTab is not null;
 
     /// <summary>
-    /// Gets or sets a value indicating whether a tab carried from another pane would move here if let go, which the
-    /// pane shows over the whole of itself.
+    /// Gets a value indicating whether a carried tab would land on this pane if let go, which the pane shows: over the
+    /// whole of itself when the tab would move here, over the half on <see cref="DropSide"/> when it would split there.
     /// </summary>
-    internal bool IsDropTarget
+    internal bool IsDropTarget => DropHint.IsVisible;
+
+    /// <summary>
+    /// Gets the side the pane would split on for the tab it shows as landing here, or <see langword="null"/> when the
+    /// tab would move into the pane, or would not land here at all.
+    /// </summary>
+    internal FocusDirection? DropSide { get; private set; }
+
+    /// <summary>
+    /// Shows that a carried tab would land here: over the whole pane for a move, over the half on a side for a split,
+    /// which is where the new pane would stand.
+    /// </summary>
+    /// <param name="side">The side the pane would split on, or <see langword="null"/> for a move.</param>
+    internal void ShowDropHint(FocusDirection? side)
     {
-        get => DropHint.IsVisible;
-        set => DropHint.IsVisible = value;
+        (int column, int columnSpan, int row, int rowSpan) = side switch
+        {
+            FocusDirection.Left => (0, 1, 0, 2),
+            FocusDirection.Right => (1, 1, 0, 2),
+            FocusDirection.Up => (0, 2, 0, 1),
+            FocusDirection.Down => (0, 2, 1, 1),
+            _ => (0, 2, 0, 2),
+        };
+
+        Grid.SetColumn(DropHint, column);
+        Grid.SetColumnSpan(DropHint, columnSpan);
+        Grid.SetRow(DropHint, row);
+        Grid.SetRowSpan(DropHint, rowSpan);
+
+        DropSide = side;
+        DropHint.IsVisible = true;
+    }
+
+    /// <summary>
+    /// Stops showing that a carried tab would land here.
+    /// </summary>
+    internal void HideDropHint()
+    {
+        DropSide = null;
+        DropHint.IsVisible = false;
+    }
+
+    /// <summary>
+    /// Which side of this pane a tab let go at a point would split it on.
+    /// </summary>
+    /// <param name="point">The point, relative to this pane.</param>
+    /// <returns>
+    /// The side, or <see langword="null"/> over the tab strip or the middle of the content, where the tab would move
+    /// into the pane instead.
+    /// </returns>
+    internal FocusDirection? SideAt(Point point)
+    {
+        // The content starts below the strip — or at the top, when no tab leaves the strip hidden.
+        double top = Strip.IsVisible && (Strip.TranslatePoint(new Point(0, Strip.Bounds.Height), this) is { } bottom)
+            ? bottom.Y
+            : 0;
+
+        return point.Y < top
+            ? null
+            : TabDragGesture.SideFor(new Point(point.X, point.Y - top), new Size(Bounds.Width, Bounds.Height - top));
     }
 
     /// <summary>
@@ -343,8 +405,9 @@ public partial class EditorPaneView : UserControl
         StartDraggingTab(tab, e);
     }
 
-    // The release ends the drag, and moves the tab when it is let go over a pane that takes it. Moved once the release
-    // has been handled: the strip the tab leaves changes under it, and its whole pane goes when the tab was its last.
+    // The release ends the drag, and moves the tab, or splits for it, when it is let go where a pane takes it. Done once
+    // the release has been handled: the strip the tab leaves changes under it, and its whole pane goes when the tab was
+    // its last.
     private void OnTabsPointerLetGo(object? sender, PointerReleasedEventArgs e)
     {
         ForgetTabPress();
@@ -354,12 +417,21 @@ public partial class EditorPaneView : UserControl
             return;
         }
 
-        EditorPaneViewModel? target = PaneUnder(e)?.DataContext as EditorPaneViewModel;
+        (EditorPaneView? pane, FocusDirection? side) = DropUnder(e);
 
         StopDraggingTab();
         e.Handled = true;
 
-        if ((target is not null) && target.CanTakeTab(tab))
+        if ((pane?.DataContext is not EditorPaneViewModel target) || !Takes(target, tab, side))
+        {
+            return;
+        }
+
+        if (side is { } edge)
+        {
+            Dispatcher.UIThread.Post(() => target.SplitWithTab(tab, edge));
+        }
+        else
         {
             Dispatcher.UIThread.Post(() => target.TakeTab(tab));
         }
@@ -409,12 +481,13 @@ public partial class EditorPaneView : UserControl
         e.Handled = true;
     }
 
-    // The cursor says a drag is under way; the hint says where it would land, which is never the pane it came from.
+    // The cursor says a drag is under way; the hint says where it would land: a whole pane it would move to, or the half
+    // of a pane, its own included, that would split off for it.
     private void SteerTab(PointerEventArgs e)
     {
         e.Handled = true;
 
-        EditorPaneView? pane = PaneUnder(e);
+        (EditorPaneView? pane, FocusDirection? side) = DropUnder(e);
 
         if (TabDragGesture.CursorFor(pane is not null) is not null)
         {
@@ -425,31 +498,33 @@ public partial class EditorPaneView : UserControl
             Tabs.ClearValue(CursorProperty);
         }
 
-        MarkDropTarget(
-            (pane is { DataContext: EditorPaneViewModel target }) && (_draggedTab is { } tab) && target.CanTakeTab(tab)
-                ? pane
-                : null);
+        if ((pane?.DataContext is EditorPaneViewModel target) && (_draggedTab is { } tab) && Takes(target, tab, side))
+        {
+            MarkDropTarget(pane, side);
+        }
+        else
+        {
+            MarkDropTarget(null, null);
+        }
     }
 
-    private void MarkDropTarget(EditorPaneView? pane)
+    // Marked again only when the pane or the side changes: the hint is put in place, not redrawn, on every move.
+    private void MarkDropTarget(EditorPaneView? pane, FocusDirection? side)
     {
-        if (ReferenceEquals(_dropTarget, pane))
+        if (ReferenceEquals(_dropTarget, pane) && (_dropTarget?.DropSide == side))
         {
             return;
         }
 
-        if (_dropTarget is not null)
-        {
-            _dropTarget.IsDropTarget = false;
-        }
-
+        _dropTarget?.HideDropHint();
         _dropTarget = pane;
-
-        if (_dropTarget is not null)
-        {
-            _dropTarget.IsDropTarget = true;
-        }
+        _dropTarget?.ShowDropHint(side);
     }
+
+    // In the middle or on the strip a pane takes a tab from another pane; at an edge it splits for any tab whose pane
+    // keeps another.
+    private static bool Takes(EditorPaneViewModel target, EditorTabViewModel tab, FocusDirection? side)
+        => side is null ? target.CanTakeTab(tab) : target.CanSplitWithTab(tab);
 
     // Cleared before the capture is let go: letting it go reports a lost capture, which must find no drag left to end.
     private void StopDraggingTab()
@@ -457,7 +532,7 @@ public partial class EditorPaneView : UserControl
         _draggedTab = null;
 
         Tabs.ClearValue(CursorProperty);
-        MarkDropTarget(null);
+        MarkDropTarget(null, null);
 
         _dragRoot?.RemoveHandler(KeyDownEvent, OnDragKeyDown);
         _dragRoot = null;
@@ -467,12 +542,16 @@ public partial class EditorPaneView : UserControl
         pointer?.Capture(null);
     }
 
-    // The pane under the pointer, in this window. Hit-tested: while the strip holds the pointer, every event comes
-    // from the strip, wherever the pointer is.
-    private EditorPaneView? PaneUnder(PointerEventArgs e)
-        => (TopLevel.GetTopLevel(this) is { } top) && (top.InputHitTest(e.GetPosition(top)) is Visual hit)
+    // The pane under the pointer, in this window, and the side of it the pointer is near. Hit-tested: while the strip
+    // holds the pointer, every event comes from the strip, wherever the pointer is.
+    private (EditorPaneView? Pane, FocusDirection? Side) DropUnder(PointerEventArgs e)
+    {
+        EditorPaneView? pane = (TopLevel.GetTopLevel(this) is { } top) && (top.InputHitTest(e.GetPosition(top)) is Visual hit)
             ? hit.FindAncestorOfType<EditorPaneView>(includeSelf: true)
             : null;
+
+        return (pane, pane?.SideAt(e.GetPosition(pane)));
+    }
 
     // What can run is read as the menu opens: the editor's Can* answers are not observable.
     private void OnEditorMenuOpening(object? sender, CancelEventArgs e)
