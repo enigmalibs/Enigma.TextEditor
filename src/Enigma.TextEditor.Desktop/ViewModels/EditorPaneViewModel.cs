@@ -128,6 +128,26 @@ public sealed class EditorPaneViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Takes in a tab another pane gave up, at the end of the strip, and shows it.
+    /// </summary>
+    /// <param name="tab">The tab, with the place it was left at in its buffer.</param>
+    /// <remarks>
+    /// The tab itself moves rather than a new one being made, so the caret and the scroll come with it. The
+    /// caller makes sure this pane does not already show its buffer.
+    /// </remarks>
+    public void Adopt(EditorTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(tab);
+
+        if (!Tabs.Contains(tab))
+        {
+            Tabs.Add(tab);
+        }
+
+        ActiveTab = tab;
+    }
+
+    /// <summary>
     /// Puts another buffer in a tab's place on the strip, and shows it.
     /// </summary>
     /// <param name="tab">The tab to replace.</param>

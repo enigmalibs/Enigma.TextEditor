@@ -451,6 +451,74 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     public bool MoveSplitter(SplitAxis axis, double delta) => Layout.MoveSplitter(ActivePaneId, axis, delta);
 
     /// <summary>
+    /// Moves the active tab to the pane next to the active one in a direction.
+    /// </summary>
+    /// <param name="direction">The direction.</param>
+    /// <returns>Whether there was a tab, and a pane there to take it.</returns>
+    /// <remarks>
+    /// The pane is the one <see cref="Focus(FocusDirection)"/> would move to. With none, nothing happens, as
+    /// nothing happens when the keyboard cannot move that way.
+    /// </remarks>
+    public bool MoveTab(FocusDirection direction)
+        => (ActiveTab is { } tab)
+           && (Layout.FindNeighbor(ActivePaneId, direction) is { } neighbour)
+           && MoveTab(ActivePane, tab, _byId[neighbour]);
+
+    /// <summary>
+    /// Moves a tab from one pane to another, which takes the keyboard.
+    /// </summary>
+    /// <param name="source">The pane the tab is on.</param>
+    /// <param name="tab">The tab.</param>
+    /// <param name="target">The pane to move it to.</param>
+    /// <returns>Whether it moved: not to its own pane, nor from a pane it is not on.</returns>
+    /// <remarks>
+    /// <para>
+    /// The tab itself moves, with the caret and the scroll it was left at, to the end of the target's strip.
+    /// When the target already shows its buffer, that tab is shown instead and the moved one is closed: a pane
+    /// never shows one buffer in two tabs. Either way nothing is asked — the buffer stays open.
+    /// </para>
+    /// <para>
+    /// The pane the tab leaves closes when it has no tab left, as it would had the tab been closed.
+    /// </para>
+    /// </remarks>
+    public bool MoveTab(EditorPaneViewModel source, EditorTabViewModel tab, EditorPaneViewModel target)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(tab);
+        ArgumentNullException.ThrowIfNull(target);
+
+        if (ReferenceEquals(source, target) || (IdOf(source) is not { } sourceId) || (IdOf(target) is null)
+            || !source.Tabs.Contains(tab))
+        {
+            return false;
+        }
+
+        source.Remove(tab);
+
+        if (target.Tabs.FirstOrDefault(candidate => ReferenceEquals(candidate.Document, tab.Document)) is { } existing)
+        {
+            target.ActiveTab = existing;
+            _registry.Release(tab.Document);
+        }
+        else
+        {
+            target.Adopt(tab);
+        }
+
+        Activate(target);
+
+        if (source.Tabs.Count == 0)
+        {
+            RemovePane(sourceId);
+        }
+
+        RefreshCommands();
+        DocumentShown?.Invoke(this, EventArgs.Empty);
+
+        return true;
+    }
+
+    /// <summary>
     /// Opens a file in the active pane, or shows it there when it is already open.
     /// </summary>
     /// <param name="filePath">The file.</param>

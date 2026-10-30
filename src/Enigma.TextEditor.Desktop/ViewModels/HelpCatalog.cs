@@ -158,6 +158,8 @@ public static class HelpCatalog
                 VimWindowCommand.MoveSplitterLeft, VimWindowCommand.MoveSplitterRight),
             Window("Space rj, Space rk", "Move the bar between stacked panes down, up, from either pane",
                 VimWindowCommand.MoveSplitterDown, VimWindowCommand.MoveSplitterUp),
+            Window("Space mh, mj, mk, ml", "Move the tab to the pane to the left, below, above, to the right",
+                VimWindowCommand.MoveTabLeft, VimWindowCommand.MoveTabDown, VimWindowCommand.MoveTabUp, VimWindowCommand.MoveTabRight),
         ]),
         Section("Options", PhosphorIcon.SlidersHorizontal, ":set {name} turns one on, :set no{name} off, :set {name}={n} sets a number",
         [

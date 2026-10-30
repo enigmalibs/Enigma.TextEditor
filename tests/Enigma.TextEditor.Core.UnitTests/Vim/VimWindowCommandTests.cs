@@ -104,6 +104,33 @@ public sealed class VimWindowCommandTests
     }
 
     [Theory]
+    [InlineData("<Space>mh", VimWindowCommand.MoveTabLeft)]
+    [InlineData("<Space>mj", VimWindowCommand.MoveTabDown)]
+    [InlineData("<Space>mk", VimWindowCommand.MoveTabUp)]
+    [InlineData("<Space>ml", VimWindowCommand.MoveTabRight)]
+    [InlineData("3<Space>ml", VimWindowCommand.MoveTabRight)]
+    public void TheLeaderThenMAndADirection_AsksToMoveTheTab_AndLeavesTheTextAlone(string keys, VimWindowCommand expected)
+    {
+        VimRun run = VimScript.Run("a|bc\ndef", keys);
+
+        Assert.Equal(expected, Assert.Single(run.WindowCommands));
+        Assert.Equal("a|bc\ndef", run.Text);
+        Assert.False(run.Engine.HasPendingSequence);
+        Assert.Equal(VimMode.Normal, run.Engine.Mode);
+    }
+
+    [Fact]
+    public void TheTabKeys_WorkInVisualMode_AndAreNotWhatDotRepeats()
+    {
+        VimRun visual = VimScript.Run("a|bc", "v<Space>mh");
+        Assert.Equal(VimWindowCommand.MoveTabLeft, Assert.Single(visual.WindowCommands));
+
+        VimRun run = VimScript.Run("a|bc", "x<Space>mj.");
+        Assert.Equal("|a", run.Text);
+        Assert.Equal(VimWindowCommand.MoveTabDown, Assert.Single(run.WindowCommands));
+    }
+
+    [Theory]
     [InlineData("gt", VimExCommand.BufferNext)]
     [InlineData("gT", VimExCommand.BufferPrevious)]
     [InlineData("3gt", VimExCommand.BufferNext)]

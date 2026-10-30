@@ -111,4 +111,24 @@ public enum VimWindowCommand
     /// <c>&lt;Space&gt;rl</c> — move the bar between the side-by-side panes to the right: the left-hand pane grows.
     /// </summary>
     MoveSplitterRight,
+
+    /// <summary>
+    /// <c>&lt;Space&gt;mh</c> — move the tab showing to the pane on the left, which takes the keyboard.
+    /// </summary>
+    MoveTabLeft,
+
+    /// <summary>
+    /// <c>&lt;Space&gt;mj</c> — move the tab showing to the pane below.
+    /// </summary>
+    MoveTabDown,
+
+    /// <summary>
+    /// <c>&lt;Space&gt;mk</c> — move the tab showing to the pane above.
+    /// </summary>
+    MoveTabUp,
+
+    /// <summary>
+    /// <c>&lt;Space&gt;ml</c> — move the tab showing to the pane on the right.
+    /// </summary>
+    MoveTabRight,
 }

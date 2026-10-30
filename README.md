@@ -29,6 +29,8 @@ keyboard has an accent frame, and `Ctrl+W h`, `j`, `k`, `l` (or `gh`, `gj`, `gk`
 `Ctrl+W +`, `-`, `>`, `<` (or `g+`, `g-`, `g>`, `g<`) make the active pane taller, shorter, wider or narrower.
 Space is the leader key: `Space rl` and `Space rh` move the bar between side-by-side panes right and left, and
 `Space rj` and `Space rk` move the bar between stacked panes down and up, from whichever of the two has the keyboard.
+`Space mh`, `mj`, `mk` and `ml` move the tab you are on to the pane on the left, below, above or on the right, which
+takes the keyboard; a pane left without tabs closes.
 
 **Vim.** The editor starts in NORMAL mode, with a broad set of Vim's commands:
 

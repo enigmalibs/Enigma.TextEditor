@@ -33,7 +33,8 @@ namespace Enigma.TextEditor.Core.Vim;
 /// </para>
 /// <para>
 /// The leader is Space, as a <c>mapleader</c> of <c>" "</c> makes it in Vim. It opens a table of its
-/// own, read key by key — <c>&lt;Space&gt;rk</c> is Space, then <c>r</c>, then <c>k</c> — and a key
+/// own — <c>r</c> and a direction moves the bar between two panes, <c>m</c> and a direction moves the
+/// tab to another pane — read key by key: <c>&lt;Space&gt;rk</c> is Space, then <c>r</c>, then <c>k</c>. A key
 /// that no mapping starts with ends the sequence as a dead one, the way a wrong second key ends a
 /// <c>g</c>. Space is the leader in normal mode and over a selection, which is where Vim's leader
 /// mappings live; behind an operator it is still the motion it always was, so <c>d&lt;Space&gt;</c>
@@ -102,14 +103,18 @@ public sealed class KeySequenceParser
 
     private const char Leader = ' ';
 
-    // The leader's mappings, by the keys typed after it. The four pane keys move the bar between two
-    // panes, and carry the direction as the argument.
+    // The leader's mappings, by the keys typed after it. The 'r' keys move the bar between two panes, the
+    // 'm' keys move the tab showing to another pane; each carries its direction as the argument.
     private static readonly Dictionary<string, VimCommand> LeaderMappings = new(StringComparer.Ordinal)
     {
         ["rh"] = new(VimAction.MoveSplitter, Argument: 'h'),
         ["rj"] = new(VimAction.MoveSplitter, Argument: 'j'),
         ["rk"] = new(VimAction.MoveSplitter, Argument: 'k'),
         ["rl"] = new(VimAction.MoveSplitter, Argument: 'l'),
+        ["mh"] = new(VimAction.MoveTab, Argument: 'h'),
+        ["mj"] = new(VimAction.MoveTab, Argument: 'j'),
+        ["mk"] = new(VimAction.MoveTab, Argument: 'k'),
+        ["ml"] = new(VimAction.MoveTab, Argument: 'l'),
     };
 
     private readonly StringBuilder _sequence = new();
