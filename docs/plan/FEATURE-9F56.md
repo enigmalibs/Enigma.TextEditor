@@ -1,6 +1,6 @@
 # FEATURE-9F56 — Move tabs between panes
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-9f56-phaseNN-<slug>` (one per phase)
 **Run:** feature/2026-10-30-move-tabs-reuse-instance
@@ -87,7 +87,7 @@ Move a tab from one split pane to another:
 
 ## PHASE02 — Drag a tab onto another pane
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

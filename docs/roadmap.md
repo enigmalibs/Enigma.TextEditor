@@ -88,9 +88,9 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE03    | Fire-and-forget tasks reach the net  | DONE        | (in FEATURE-452D.md)      |
 | FEATURE-84C3 | Windows and Linux publish scripts    | DONE        | docs/plan/FEATURE-84C3.md |
 | FEATURE-8EDF | Release 1.9.0                        | DONE        | docs/plan/FEATURE-8EDF.md |
-| FEATURE-9F56 | Move tabs between panes              | IN PROGRESS | docs/plan/FEATURE-9F56.md |
+| FEATURE-9F56 | Move tabs between panes              | DONE        | docs/plan/FEATURE-9F56.md |
 | - PHASE01    | Space m keys move the tab            | DONE        | (in FEATURE-9F56.md)      |
-| - PHASE02    | Drag a tab onto another pane         | TODO        | (in FEATURE-9F56.md)      |
+| - PHASE02    | Drag a tab onto another pane         | DONE        | (in FEATURE-9F56.md)      |
 | FEATURE-7B55 | Open files in the running instance   | TODO        | docs/plan/FEATURE-7B55.md |
 | - PHASE01    | Instance pipe and pointer file       | TODO        | (in FEATURE-7B55.md)      |
 | - PHASE02    | Forward launches to the open window  | TODO        | (in FEATURE-7B55.md)      |

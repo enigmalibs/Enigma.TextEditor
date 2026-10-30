@@ -54,6 +54,22 @@ public interface IPaneHost
     Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths);
 
     /// <summary>
+    /// Whether a tab could be moved to a pane: it is on another pane of this editor area.
+    /// </summary>
+    /// <param name="target">The pane it would move to.</param>
+    /// <param name="tab">The tab.</param>
+    /// <returns>Whether <see cref="MoveTabTo"/> would move it.</returns>
+    bool CanMoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab);
+
+    /// <summary>
+    /// Moves a tab from whichever pane has it to another, which takes the keyboard.
+    /// </summary>
+    /// <param name="target">The pane to move it to.</param>
+    /// <param name="tab">The tab.</param>
+    /// <returns>Whether it moved.</returns>
+    bool MoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab);
+
+    /// <summary>
     /// Shows a message on the status bar's message line.
     /// </summary>
     /// <param name="message">The message.</param>

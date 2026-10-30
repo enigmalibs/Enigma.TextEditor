@@ -518,6 +518,24 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         return true;
     }
 
+    /// <inheritdoc />
+    public bool CanMoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(tab);
+
+        return (PaneOf(tab) is { } source) && !ReferenceEquals(source, target) && (IdOf(target) is not null);
+    }
+
+    /// <inheritdoc />
+    public bool MoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(tab);
+
+        return (PaneOf(tab) is { } source) && MoveTab(source, tab, target);
+    }
+
     /// <summary>
     /// Opens a file in the active pane, or shows it there when it is already open.
     /// </summary>
@@ -876,6 +894,10 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 
         return true;
     }
+
+    // A tab is on one pane at most: the same buffer on another pane is another tab.
+    private EditorPaneViewModel? PaneOf(EditorTabViewModel tab)
+        => _byId.Values.FirstOrDefault(pane => pane.Tabs.Contains(tab));
 
     // Untitled, text, empty, never changed, and shown by this tab alone: nothing would be lost with it.
     private bool IsFresh(EditorTabViewModel tab)
