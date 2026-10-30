@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
 
@@ -68,6 +69,25 @@ public interface IPaneHost
     /// <param name="tab">The tab.</param>
     /// <returns>Whether it moved.</returns>
     bool MoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab);
+
+    /// <summary>
+    /// Whether a pane could be split to give a tab a pane of its own beside it: the tab is on a pane of this editor
+    /// area, and that pane keeps a tab when the tab leaves it.
+    /// </summary>
+    /// <param name="target">The pane that would be split.</param>
+    /// <param name="tab">The tab.</param>
+    /// <returns>Whether <see cref="SplitWithTab"/> would split it.</returns>
+    bool CanSplitWithTab(EditorPaneViewModel target, EditorTabViewModel tab);
+
+    /// <summary>
+    /// Splits a pane, half each, and moves a tab from whichever pane has it into the new half, which takes the
+    /// keyboard.
+    /// </summary>
+    /// <param name="target">The pane to split.</param>
+    /// <param name="tab">The tab.</param>
+    /// <param name="side">The side of the pane the new one goes.</param>
+    /// <returns>The new pane, or <see langword="null"/> when nothing was split.</returns>
+    EditorPaneViewModel? SplitWithTab(EditorPaneViewModel target, EditorTabViewModel tab, FocusDirection side);
 
     /// <summary>
     /// Shows a message on the status bar's message line.

@@ -1,6 +1,6 @@
 # FEATURE-9E4A — Drop a tab on an edge to split
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-9e4a-phase01-split-with-tab`
 **Branch (PHASE02):** `feature/feature-9e4a-phase02-edge-drop-zones`
@@ -73,7 +73,7 @@ highlighted. Make the same gesture able to **split**, on any pane, the tab's own
 
 ## PHASE01 — Split a pane with a moved tab
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

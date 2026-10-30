@@ -59,6 +59,54 @@ public sealed class LayoutTreeTests
         Assert.Equal(new LayoutRect(0.5, 0.5, 0.5, 0.5), rects[c]);
     }
 
+    [Theory]
+    [InlineData(FocusDirection.Left, 0, 0, 0.5, 1, 0.5, 0, 0.5, 1)]
+    [InlineData(FocusDirection.Right, 0.5, 0, 0.5, 1, 0, 0, 0.5, 1)]
+    [InlineData(FocusDirection.Up, 0, 0, 1, 0.5, 0, 0.5, 1, 0.5)]
+    [InlineData(FocusDirection.Down, 0, 0.5, 1, 0.5, 0, 0, 1, 0.5)]
+    public void Split_ToASide_PutsTheNewPaneOnThatSide_HalfEach(
+        FocusDirection side,
+        double newX, double newY, double newWidth, double newHeight,
+        double oldX, double oldY, double oldWidth, double oldHeight)
+    {
+        LayoutTree tree = new();
+        PaneId existing = tree.Panes[0];
+
+        PaneId created = tree.Split(existing, side);
+
+        IReadOnlyDictionary<PaneId, LayoutRect> rects = tree.Geometry();
+        Assert.Equal(new LayoutRect(newX, newY, newWidth, newHeight), rects[created]);
+        Assert.Equal(new LayoutRect(oldX, oldY, oldWidth, oldHeight), rects[existing]);
+    }
+
+    [Fact]
+    public void Split_ToTheLeft_InANestedTree_SplitsOnlyThatPane()
+    {
+        LayoutTree tree = new();
+        PaneId a = tree.Panes[0];
+        PaneId b = tree.Split(a, SplitAxis.Columns);
+
+        PaneId c = tree.Split(b, FocusDirection.Left);
+
+        IReadOnlyDictionary<PaneId, LayoutRect> rects = tree.Geometry();
+        Assert.Equal([a, c, b], tree.Panes);
+        Assert.Equal(new LayoutRect(0, 0, 0.5, 1), rects[a]);
+        Assert.Equal(new LayoutRect(0.5, 0, 0.25, 1), rects[c]);
+        Assert.Equal(new LayoutRect(0.75, 0, 0.25, 1), rects[b]);
+    }
+
+    [Fact]
+    public void Split_Above_RaisesChangedOnce()
+    {
+        LayoutTree tree = new();
+        int changes = 0;
+        tree.Changed += (_, _) => changes++;
+
+        tree.Split(tree.Panes[0], FocusDirection.Up);
+
+        Assert.Equal(1, changes);
+    }
+
     [Fact]
     public void Split_RaisesChanged()
     {
