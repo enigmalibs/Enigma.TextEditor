@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Enigma.TextEditor.Core.Layout;
+using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
@@ -188,6 +189,88 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             window.Close();
         });
 
+    [Fact]
+    public void Escape_DuringADrag_CancelsIt_WithoutReachingVim()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n")))!;
+            EditorPaneViewModel leftPane = harness.Workspace.ActivePane;
+            EditorPaneViewModel rightPane = harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Activate(leftPane);
+            MainWindow window = Show(harness);
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
+            ListBox strip = StripOf(left);
+            Cursor? before = strip.Cursor;
+            await InsertModeAsync(window, left);
+
+            Carry(window, TitleOf(window, left, a), Middle(right, window));
+            Assert.True(left.IsDraggingTab);
+
+            // The keyboard in the editor, where Vim would take an Escape for its own.
+            left.FocusEditor();
+            Dispatcher.UIThread.RunJobs();
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+
+            Assert.False(left.IsDraggingTab);
+            Assert.Same(before, strip.Cursor);
+            Assert.Equal(VimMode.Insert, left.Vim!.Mode);
+
+            window.MouseUp(Middle(right, window), MouseButton.Left);
+            await DrainAsync();
+
+            Assert.Equal([a], leftPane.Tabs);
+            Assert.Single(rightPane.Tabs);
+            Assert.Equal(2, harness.Workspace.Panes.Count);
+            window.Close();
+        });
+
+    [Fact]
+    public void ADragCancelledWithEscape_CanBeStartedAgain_AndDropped()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n"));
+            EditorTabViewModel b = (await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b\n")))!;
+            EditorPaneViewModel leftPane = harness.Workspace.ActivePane;
+            EditorPaneViewModel rightPane = harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Activate(leftPane);
+            MainWindow window = Show(harness);
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
+
+            Carry(window, TitleOf(window, left, b), Middle(right, window));
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            window.MouseUp(Middle(right, window), MouseButton.Left);
+            await DrainAsync();
+            Assert.Equal(2, leftPane.Tabs.Count);
+
+            Carry(window, TitleOf(window, left, b), Middle(right, window));
+            Assert.True(left.IsDraggingTab);
+            window.MouseUp(Middle(right, window), MouseButton.Left);
+            await DrainAsync();
+
+            Assert.Equal(["a.txt"], leftPane.Tabs.Select(tab => tab.Document.Title));
+            Assert.Same(b, rightPane.ActiveTab);
+            window.Close();
+        });
+
+    [Fact]
+    public void Escape_WithNoDrag_StillReachesTheEditor()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n"));
+            MainWindow window = Show(harness);
+            EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
+            await InsertModeAsync(window, pane);
+
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            await DrainAsync();
+
+            Assert.Equal(VimMode.Normal, pane.Vim!.Mode);
+            window.Close();
+        });
+
     [Theory]
     [InlineData(0, 0, false)]
     [InlineData(4, 4, false)] // On the edge of the distance: still a click.
@@ -215,6 +298,17 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
         window.MouseDown(from, MouseButton.Left);
         window.MouseMove(from + new Point(30, 0), RawInputModifiers.LeftMouseButton);
         window.MouseMove(to, RawInputModifiers.LeftMouseButton);
+    }
+
+    // Gives the pane's editor the keyboard and types 'i': an Escape that reaches Vim from there leaves insert mode.
+    private static async Task InsertModeAsync(MainWindow window, EditorPaneView pane)
+    {
+        await DrainAsync();
+        pane.FocusEditor();
+        await DrainAsync();
+        window.KeyTextInput("i");
+        await DrainAsync();
+        Assert.Equal(VimMode.Insert, pane.Vim!.Mode);
     }
 
     private static MainWindow Show(EditorHarness harness)

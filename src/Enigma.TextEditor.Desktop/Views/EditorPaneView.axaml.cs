@@ -75,9 +75,11 @@ public partial class EditorPaneView : UserControl
     private EditorTabViewModel? _pressedTab;
     private Point _tabPressPoint;
 
-    // The tab being carried, once the press has become a drag, and the pointer the strip holds for it.
+    // The tab being carried, once the press has become a drag; the pointer the strip holds for it; and the window
+    // listening for the Escape that cancels it.
     private EditorTabViewModel? _draggedTab;
     private IPointer? _dragPointer;
+    private TopLevel? _dragRoot;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EditorPaneView"/> class.
@@ -375,7 +377,23 @@ public partial class EditorPaneView : UserControl
         _dragPointer = e.Pointer;
         _dragPointer.Capture(Tabs);
 
+        // A drag that brings no platform session has to bring its own way out. On the window, and tunnelling: the
+        // keyboard may be in any pane's editor, and Vim must not take this Escape as its own.
+        _dragRoot = TopLevel.GetTopLevel(this);
+        _dragRoot?.AddHandler(KeyDownEvent, OnDragKeyDown, RoutingStrategies.Tunnel);
+
         SteerTab(e);
+    }
+
+    private void OnDragKeyDown(object? sender, KeyEventArgs e)
+    {
+        if ((e.Key != Key.Escape) || (_draggedTab is null))
+        {
+            return;
+        }
+
+        StopDraggingTab();
+        e.Handled = true;
     }
 
     private void SteerTab(PointerEventArgs e)
@@ -398,6 +416,9 @@ public partial class EditorPaneView : UserControl
         _draggedTab = null;
 
         Tabs.ClearValue(CursorProperty);
+
+        _dragRoot?.RemoveHandler(KeyDownEvent, OnDragKeyDown);
+        _dragRoot = null;
 
         IPointer? pointer = _dragPointer;
         _dragPointer = null;

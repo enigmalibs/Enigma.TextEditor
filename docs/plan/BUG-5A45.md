@@ -117,7 +117,7 @@ pointer events so the pointer becomes an ordinary `Cursor` the app sets.
 
 ## PHASE02 — Escape cancels a tab drag
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
