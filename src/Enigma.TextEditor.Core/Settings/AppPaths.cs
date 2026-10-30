@@ -29,6 +29,11 @@ public static class AppPaths
     public const string LogFileName = "app.log";
 
     /// <summary>
+    /// The name of the file pointing at the instance used last, which a launch with files hands them to.
+    /// </summary>
+    public const string ActiveInstanceFileName = "instance.json";
+
+    /// <summary>
     /// Gets the full path of the settings file.
     /// </summary>
     public static string SettingsFile
@@ -39,4 +44,10 @@ public static class AppPaths
     /// </summary>
     public static string LogFile
         => ConfigPaths.InApplicationData(AppInfo.AppDataFolderName, Path.Combine(LogsFolderName, LogFileName));
+
+    /// <summary>
+    /// Gets the full path of the file pointing at the instance used last.
+    /// </summary>
+    public static string ActiveInstanceFile
+        => ConfigPaths.InApplicationData(AppInfo.AppDataFolderName, ActiveInstanceFileName);
 }
