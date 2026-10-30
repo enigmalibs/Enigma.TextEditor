@@ -1,6 +1,6 @@
 # BUG-5A45 — Tab drag shows the refusal cursor
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** BUG
 **Branch (PHASE01):** `bugfix/bug-5a45-phase01-pointer-drag`
 **Branch (PHASE02):** `bugfix/bug-5a45-phase02-escape-cancels`
@@ -144,7 +144,7 @@ pointer events so the pointer becomes an ordinary `Cursor` the app sets.
 
 ## PHASE03 — Highlight the pane a tab drops on
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

@@ -75,11 +75,12 @@ public partial class EditorPaneView : UserControl
     private EditorTabViewModel? _pressedTab;
     private Point _tabPressPoint;
 
-    // The tab being carried, once the press has become a drag; the pointer the strip holds for it; and the window
-    // listening for the Escape that cancels it.
+    // The tab being carried, once the press has become a drag; the pointer the strip holds for it; the window
+    // listening for the Escape that cancels it; and the pane showing that the tab would move there.
     private EditorTabViewModel? _draggedTab;
     private IPointer? _dragPointer;
     private TopLevel? _dragRoot;
+    private EditorPaneView? _dropTarget;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EditorPaneView"/> class.
@@ -117,13 +118,25 @@ public partial class EditorPaneView : UserControl
         Tabs.AddHandler(PointerPressedEvent, OnTabsPointerPressed, RoutingStrategies.Bubble, handledEventsToo: true);
         Tabs.AddHandler(PointerMovedEvent, OnTabsPointerMoved, RoutingStrategies.Bubble, handledEventsToo: true);
         Tabs.AddHandler(PointerReleasedEvent, OnTabsPointerLetGo, RoutingStrategies.Bubble, handledEventsToo: true);
-        Tabs.AddHandler(PointerCaptureLostEvent, OnTabsPointerCaptureLost, RoutingStrategies.Bubble, handledEventsToo: true);
+
+        // Direct, the only route a lost capture travels: a handler listening on any other is never called.
+        Tabs.AddHandler(PointerCaptureLostEvent, OnTabsPointerCaptureLost, RoutingStrategies.Direct, handledEventsToo: true);
     }
 
     /// <summary>
     /// Gets a value indicating whether a tab of this pane is being dragged.
     /// </summary>
     internal bool IsDraggingTab => _draggedTab is not null;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether a tab carried from another pane would move here if let go, which the
+    /// pane shows over the whole of itself.
+    /// </summary>
+    internal bool IsDropTarget
+    {
+        get => DropHint.IsVisible;
+        set => DropHint.IsVisible = value;
+    }
 
     /// <summary>
     /// Gets the Vim behaviour attached to the editor, once the pane it belongs to is known.
@@ -396,17 +409,45 @@ public partial class EditorPaneView : UserControl
         e.Handled = true;
     }
 
+    // The cursor says a drag is under way; the hint says where it would land, which is never the pane it came from.
     private void SteerTab(PointerEventArgs e)
     {
         e.Handled = true;
 
-        if (TabDragGesture.CursorFor(PaneUnder(e) is not null) is not null)
+        EditorPaneView? pane = PaneUnder(e);
+
+        if (TabDragGesture.CursorFor(pane is not null) is not null)
         {
             Tabs.Cursor = CarryingCursor;
         }
         else
         {
             Tabs.ClearValue(CursorProperty);
+        }
+
+        MarkDropTarget(
+            (pane is { DataContext: EditorPaneViewModel target }) && (_draggedTab is { } tab) && target.CanTakeTab(tab)
+                ? pane
+                : null);
+    }
+
+    private void MarkDropTarget(EditorPaneView? pane)
+    {
+        if (ReferenceEquals(_dropTarget, pane))
+        {
+            return;
+        }
+
+        if (_dropTarget is not null)
+        {
+            _dropTarget.IsDropTarget = false;
+        }
+
+        _dropTarget = pane;
+
+        if (_dropTarget is not null)
+        {
+            _dropTarget.IsDropTarget = true;
         }
     }
 
@@ -416,6 +457,7 @@ public partial class EditorPaneView : UserControl
         _draggedTab = null;
 
         Tabs.ClearValue(CursorProperty);
+        MarkDropTarget(null);
 
         _dragRoot?.RemoveHandler(KeyDownEvent, OnDragKeyDown);
         _dragRoot = null;

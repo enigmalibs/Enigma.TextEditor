@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Enigma.TextEditor.Core.Layout;
@@ -268,6 +269,83 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             await DrainAsync();
 
             Assert.Equal(VimMode.Normal, pane.Vim!.Mode);
+            window.Close();
+        });
+
+    [Fact]
+    public void ACarriedTab_MarksThePaneItWouldMoveTo_AndNoOther()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n"));
+            EditorTabViewModel b = (await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b\n")))!;
+            EditorPaneViewModel leftPane = harness.Workspace.ActivePane;
+            harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Activate(leftPane);
+            MainWindow window = Show(harness);
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
+            Point outside = new(-40, -40);
+
+            Assert.False(left.IsDropTarget);
+            Assert.False(right.IsDropTarget);
+
+            Carry(window, TitleOf(window, left, b), Middle(right, window));
+            Assert.True(right.IsDropTarget);
+            Assert.False(left.IsDropTarget);
+
+            // Over the pane it came from, the tab has nowhere to go; off the panes, nothing to say.
+            window.MouseMove(Middle(left, window), RawInputModifiers.LeftMouseButton);
+            Assert.False(right.IsDropTarget);
+            Assert.False(left.IsDropTarget);
+
+            window.MouseMove(outside, RawInputModifiers.LeftMouseButton);
+            Assert.False(right.IsDropTarget);
+            Assert.False(left.IsDropTarget);
+
+            window.MouseMove(OnStrip(right, window), RawInputModifiers.LeftMouseButton);
+            Assert.True(right.IsDropTarget);
+
+            window.MouseUp(OnStrip(right, window), MouseButton.Left);
+            await DrainAsync();
+
+            Assert.Same(b, ((EditorPaneViewModel)right.DataContext!).ActiveTab);
+            Assert.False(right.IsDropTarget);
+            Assert.False(left.IsDropTarget);
+            window.Close();
+        });
+
+    [Fact]
+    public void TheMark_NeverStaysBehind_AfterEscape_OrALostCapture()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n")))!;
+            EditorPaneViewModel leftPane = harness.Workspace.ActivePane;
+            harness.Workspace.Split(SplitAxis.Columns);
+            harness.Workspace.Activate(leftPane);
+            MainWindow window = Show(harness);
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
+            IPointer? mouse = null;
+            window.AddHandler(InputElement.PointerMovedEvent, (_, e) => mouse = e.Pointer, RoutingStrategies.Tunnel, handledEventsToo: true);
+
+            Carry(window, TitleOf(window, left, a), Middle(right, window));
+            Assert.True(right.IsDropTarget);
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Assert.False(right.IsDropTarget);
+            window.MouseUp(Middle(right, window), MouseButton.Left);
+            await DrainAsync();
+
+            // Another control taking the pointer ends the drag where it is.
+            Carry(window, TitleOf(window, left, a), Middle(right, window));
+            Assert.True(right.IsDropTarget);
+            mouse!.Capture(right);
+            Assert.False(left.IsDraggingTab);
+            Assert.False(right.IsDropTarget);
+            window.MouseUp(Middle(right, window), MouseButton.Left);
+            await DrainAsync();
+
+            Assert.Equal([a], leftPane.Tabs);
+            Assert.Equal(2, harness.Workspace.Panes.Count);
             window.Close();
         });
 
