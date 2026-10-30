@@ -1,6 +1,6 @@
 # FEATURE-1CC6 — Release 1.11.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-1cc6-release-1-11-0`
 **Run:** feature/2026-10-30-release-1-11-0
