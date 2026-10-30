@@ -1,6 +1,6 @@
 # FEATURE-2448 — Release 1.10.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-2448-release-1-10-0`
 **Run:** feature/2026-10-30-release-1-10-0
