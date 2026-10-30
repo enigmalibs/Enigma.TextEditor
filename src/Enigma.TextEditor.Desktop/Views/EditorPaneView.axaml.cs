@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -25,9 +24,19 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// One editor pane: a tab strip over a single <see cref="AvaloniaTextEditor"/> that shows the active tab.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The editor is shared by every tab. Switching tabs swaps its document, and this view puts the caret
 /// and the scroll back where the incoming tab was left — and records them for the outgoing one as the
 /// user moves — so each tab behaves as if it had an editor of its own.
+/// </para>
+/// <para>
+/// A tab dragged onto another pane is <em>not</em> a platform drag-and-drop session, and that is deliberate. The
+/// gesture never leaves the window, and over its own window Avalonia's X11 drag source delivers the drag in process
+/// without offering it over the protocol, while still taking the X drag selection: a Wayland compositor bridging that
+/// drag sees one nobody has accepted, and draws the refusal pointer for the whole gesture, whatever this view answers
+/// (Enigma.GitClient's BUG-11A4 established it, for its branch badges). Run from pointer events with a capture, the
+/// gesture wears an ordinary cursor. Files dropped from outside the application still come through the platform.
+/// </para>
 /// </remarks>
 public partial class EditorPaneView : UserControl
 {
@@ -43,6 +52,12 @@ public partial class EditorPaneView : UserControl
     public static readonly IValueConverter VerticalScrollBarFor =
         new FuncValueConverter<bool, ScrollBarVisibility>(minimap => minimap ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto);
 
+    /// <summary>
+    /// The pointer worn while a tab is carried, made once: a cursor is a platform handle, not a value, and a drag asks
+    /// for it on every pointer move.
+    /// </summary>
+    internal static readonly Cursor CarryingCursor = new(StandardCursorType.DragMove);
+
     private VimEditorBehavior? _vim;
 
     private EditorPaneViewModel? _pane;
@@ -57,9 +72,12 @@ public partial class EditorPaneView : UserControl
     private ScrollViewer? _scroll;
 
     // A left press on a tab, kept until the pointer has gone far enough with it to make a drag, or is let go.
-    private PointerPressedEventArgs? _tabPress;
     private EditorTabViewModel? _pressedTab;
     private Point _tabPressPoint;
+
+    // The tab being carried, once the press has become a drag, and the pointer the strip holds for it.
+    private EditorTabViewModel? _draggedTab;
+    private IPointer? _dragPointer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EditorPaneView"/> class.
@@ -96,16 +114,14 @@ public partial class EditorPaneView : UserControl
         // take the press, to show the tab, and the press is where the drag starts from.
         Tabs.AddHandler(PointerPressedEvent, OnTabsPointerPressed, RoutingStrategies.Bubble, handledEventsToo: true);
         Tabs.AddHandler(PointerMovedEvent, OnTabsPointerMoved, RoutingStrategies.Bubble, handledEventsToo: true);
-        Tabs.AddHandler(PointerReleasedEvent, (_, _) => ForgetTabPress(), RoutingStrategies.Bubble, handledEventsToo: true);
-        Tabs.AddHandler(PointerCaptureLostEvent, (_, _) => ForgetTabPress(), RoutingStrategies.Bubble, handledEventsToo: true);
+        Tabs.AddHandler(PointerReleasedEvent, OnTabsPointerLetGo, RoutingStrategies.Bubble, handledEventsToo: true);
+        Tabs.AddHandler(PointerCaptureLostEvent, OnTabsPointerCaptureLost, RoutingStrategies.Bubble, handledEventsToo: true);
     }
 
     /// <summary>
-    /// Gets or sets what starts the platform's drag of a tab: <see cref="DragDrop.DoDragDropAsync"/>, which the
-    /// tests stand in for, the headless platform having no drag source.
+    /// Gets a value indicating whether a tab of this pane is being dragged.
     /// </summary>
-    internal Func<PointerPressedEventArgs, IDataTransfer, DragDropEffects, Task<DragDropEffects>> StartDrag { get; set; }
-        = DragDrop.DoDragDropAsync;
+    internal bool IsDraggingTab => _draggedTab is not null;
 
     /// <summary>
     /// Gets the Vim behaviour attached to the editor, once the pane it belongs to is known.
@@ -268,23 +284,29 @@ public partial class EditorPaneView : UserControl
     {
         ForgetTabPress();
 
-        if (!e.GetCurrentPoint(Tabs).Properties.IsLeftButtonPressed
+        if ((_draggedTab is not null)
+            || !e.GetCurrentPoint(Tabs).Properties.IsLeftButtonPressed
             || ((e.Source as Visual)?.FindAncestorOfType<Button>(includeSelf: true) is not null)
             || ((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext is not EditorTabViewModel tab))
         {
             return;
         }
 
-        _tabPress = e;
         _pressedTab = tab;
         _tabPressPoint = e.GetPosition(Tabs);
     }
 
     // Past the platform's drag distance — the one beyond which a press is no longer a click — the press becomes a
-    // drag of its tab. Forgotten first: the drag takes the pointer, and must start once.
+    // drag of its tab. Forgotten first: the drag must start once.
     private void OnTabsPointerMoved(object? sender, PointerEventArgs e)
     {
-        if ((_tabPress is not { } press) || (_pressedTab is not { } tab))
+        if (_draggedTab is not null)
+        {
+            SteerTab(e);
+            return;
+        }
+
+        if (_pressedTab is not { } tab)
         {
             return;
         }
@@ -295,23 +317,99 @@ public partial class EditorPaneView : UserControl
             return;
         }
 
-        Vector moved = e.GetPosition(Tabs) - _tabPressPoint;
         Size distance = Application.Current?.PlatformSettings?.GetTapSize(e.Pointer.Type) ?? new Size(4, 4);
 
-        if ((Math.Abs(moved.X) <= distance.Width) && (Math.Abs(moved.Y) <= distance.Height))
+        if (!TabDragGesture.IsDrag(e.GetPosition(Tabs) - _tabPressPoint, distance))
         {
             return;
         }
 
         ForgetTabPress();
-        StartDrag(press, DraggedTab.Carrying(tab), DragDropEffects.Move).Forget();
+        StartDraggingTab(tab, e);
     }
 
-    private void ForgetTabPress()
+    // The release ends the drag, and moves the tab when it is let go over a pane that takes it. Moved once the release
+    // has been handled: the strip the tab leaves changes under it, and its whole pane goes when the tab was its last.
+    private void OnTabsPointerLetGo(object? sender, PointerReleasedEventArgs e)
     {
-        _tabPress = null;
-        _pressedTab = null;
+        ForgetTabPress();
+
+        if (_draggedTab is not { } tab)
+        {
+            return;
+        }
+
+        EditorPaneViewModel? target = PaneUnder(e)?.DataContext as EditorPaneViewModel;
+
+        StopDraggingTab();
+        e.Handled = true;
+
+        if ((target is not null) && target.CanTakeTab(tab))
+        {
+            Dispatcher.UIThread.Post(() => target.TakeTab(tab));
+        }
     }
+
+    // Whoever took the pointer owns it now: the drag ends where it is, dropping nothing, and the capture is left to them.
+    private void OnTabsPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        ForgetTabPress();
+
+        if (_draggedTab is null)
+        {
+            return;
+        }
+
+        _dragPointer = null;
+        StopDraggingTab();
+    }
+
+    private void ForgetTabPress() => _pressedTab = null;
+
+    private void StartDraggingTab(EditorTabViewModel tab, PointerEventArgs e)
+    {
+        _draggedTab = tab;
+
+        // The capture makes the rest of the gesture the strip's: every move, and the release that ends it, are
+        // reported here wherever the pointer goes — and the pointer wears the strip's cursor all the while.
+        _dragPointer = e.Pointer;
+        _dragPointer.Capture(Tabs);
+
+        SteerTab(e);
+    }
+
+    private void SteerTab(PointerEventArgs e)
+    {
+        e.Handled = true;
+
+        if (TabDragGesture.CursorFor(PaneUnder(e) is not null) is not null)
+        {
+            Tabs.Cursor = CarryingCursor;
+        }
+        else
+        {
+            Tabs.ClearValue(CursorProperty);
+        }
+    }
+
+    // Cleared before the capture is let go: letting it go reports a lost capture, which must find no drag left to end.
+    private void StopDraggingTab()
+    {
+        _draggedTab = null;
+
+        Tabs.ClearValue(CursorProperty);
+
+        IPointer? pointer = _dragPointer;
+        _dragPointer = null;
+        pointer?.Capture(null);
+    }
+
+    // The pane under the pointer, in this window. Hit-tested: while the strip holds the pointer, every event comes
+    // from the strip, wherever the pointer is.
+    private EditorPaneView? PaneUnder(PointerEventArgs e)
+        => (TopLevel.GetTopLevel(this) is { } top) && (top.InputHitTest(e.GetPosition(top)) is Visual hit)
+            ? hit.FindAncestorOfType<EditorPaneView>(includeSelf: true)
+            : null;
 
     // What can run is read as the menu opens: the editor's Can* answers are not observable.
     private void OnEditorMenuOpening(object? sender, CancelEventArgs e)
@@ -348,15 +446,6 @@ public partial class EditorPaneView : UserControl
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {
-        // A tab moves to any other pane; over its own it has nowhere to go.
-        if (DraggedTab.Read(e.DataTransfer) is { } tab)
-        {
-            e.DragEffects = (_pane is { } pane) && pane.CanTakeTab(tab) ? DragDropEffects.Move : DragDropEffects.None;
-            e.Handled = true;
-
-            return;
-        }
-
         IReadOnlyList<string> paths = DroppedFiles.ReadPaths(e.DataTransfer);
 
         if (paths.Count == 0)
@@ -377,13 +466,6 @@ public partial class EditorPaneView : UserControl
 
     private void OnDrop(object? sender, DragEventArgs e)
     {
-        if (DraggedTab.Read(e.DataTransfer) is { } tab)
-        {
-            DropTab(e, tab);
-
-            return;
-        }
-
         // Read now: the dragged data is only there while the drop event lasts.
         IReadOnlyList<string> paths = DroppedFiles.ReadPaths(e.DataTransfer);
         DragDropEffects effect = DroppedFiles.EffectFor(paths);
@@ -400,23 +482,6 @@ public partial class EditorPaneView : UserControl
         // binary-file question, a file that cannot be read — can appear. Not awaited, as the ex commands are
         // not: failures are reported by the services the opening goes through.
         Dispatcher.UIThread.Post(() => pane.OpenDroppedAsync(paths).Forget());
-    }
-
-    // Moved once the drop has returned, as dropped files are opened: the strips change under the drag otherwise,
-    // the one it started from included.
-    private void DropTab(DragEventArgs e, EditorTabViewModel tab)
-    {
-        e.Handled = true;
-
-        if ((_pane is not { } pane) || !pane.CanTakeTab(tab))
-        {
-            e.DragEffects = DragDropEffects.None;
-
-            return;
-        }
-
-        e.DragEffects = DragDropEffects.Move;
-        Dispatcher.UIThread.Post(() => pane.TakeTab(tab));
     }
 
     private void OnEditorDocumentChanged(object? sender, EventArgs e)

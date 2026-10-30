@@ -1,12 +1,9 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
-using Avalonia.Input.Raw;
-using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Enigma.TextEditor.Core.Layout;
@@ -18,32 +15,40 @@ using Xunit;
 namespace Enigma.TextEditor.Desktop.UnitTests.Views;
 
 /// <summary>
-/// Tabs dragged between panes on the real window: where a drag starts, the cursor it gets over each pane, and
-/// where a dropped tab goes.
+/// Tabs dragged between panes on the real window, through the real input system: where a drag starts, the cursor
+/// it wears, and where a dropped tab goes.
 /// </summary>
 /// <remarks>
-/// The headless platform has no drag source, so the start of a drag is read from the pane's
-/// <see cref="EditorPaneView.StartDrag"/>, and the drop is played as the platform would play it.
+/// The drag is the pane's own gesture, not a platform session, so the whole of it — press, moves, release — is played
+/// with the headless mouse.
 /// </remarks>
 [Collection(HeadlessCollection.Name)]
 public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
 {
-    private const DragDropEffects Allowed = DragDropEffects.Move;
-
     [Fact]
-    public void Hovering_ADraggedTab_OffersAMoveOverTheOtherPane_AndNothingOverItsOwn()
+    public void PressingATab_AndMovingPastTheDragDistance_StartsADrag_AndLettingGoEndsIt()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
-            EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n")))!;
-            harness.Workspace.Split(SplitAxis.Columns);
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n"));
+            EditorTabViewModel b = (await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b\n")))!;
             MainWindow window = Show(harness);
-            (EditorPaneView left, EditorPaneView right) = Panes(window);
+            EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
+            Point title = TitleOf(window, pane, b);
 
-            Assert.Equal(DragDropEffects.Move, Hover(window, Middle(right, window), DraggedTab.Carrying(a)));
-            Assert.Equal(DragDropEffects.Move, Hover(window, OnStrip(right, window), DraggedTab.Carrying(a)));
-            Assert.Equal(DragDropEffects.None, Hover(window, Middle(left, window), DraggedTab.Carrying(a)));
-            Assert.Equal(DragDropEffects.None, Hover(window, OnStrip(left, window), DraggedTab.Carrying(a)));
+            // A small move is still a click.
+            window.MouseDown(title, MouseButton.Left);
+            window.MouseMove(title + new Point(2, 1), RawInputModifiers.LeftMouseButton);
+            Assert.False(pane.IsDraggingTab);
+
+            window.MouseMove(title + new Point(30, 0), RawInputModifiers.LeftMouseButton);
+            Assert.True(pane.IsDraggingTab);
+
+            window.MouseUp(title + new Point(30, 0), MouseButton.Left);
+            await DrainAsync();
+
+            Assert.False(pane.IsDraggingTab);
+            Assert.Equal(["a.txt", "b.txt"], harness.Workspace.ActivePane.Tabs.Select(tab => tab.Document.Title));
             window.Close();
         });
 
@@ -58,14 +63,12 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             EditorPaneViewModel rightPane = harness.Workspace.Split(SplitAxis.Columns);
             harness.Workspace.Activate(leftPane);
             MainWindow window = Show(harness);
-            (_, EditorPaneView right) = Panes(window);
-            DragDropEffects reported = DragDropEffects.None;
-            window.AddHandler(DragDrop.DropEvent, (_, e) => reported = e.DragEffects, RoutingStrategies.Bubble, handledEventsToo: true);
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
 
-            Drop(window, Middle(right, window), DraggedTab.Carrying(b));
+            Carry(window, TitleOf(window, left, b), Middle(right, window));
+            window.MouseUp(Middle(right, window), MouseButton.Left);
             await DrainAsync();
 
-            Assert.Equal(DragDropEffects.Move, reported);
             Assert.Equal(["a.txt"], leftPane.Tabs.Select(tab => tab.Document.Title));
             Assert.Same(b, rightPane.ActiveTab);
             Assert.Same(rightPane, harness.Workspace.ActivePane);
@@ -81,10 +84,11 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n")))!;
             harness.Workspace.Split(SplitAxis.Rows);
             MainWindow window = Show(harness);
-            (_, EditorPaneView bottom) = Panes(window);
+            (EditorPaneView top, EditorPaneView bottom) = Panes(window);
             EditorPaneViewModel bottomPane = (EditorPaneViewModel)bottom.DataContext!;
 
-            Drop(window, OnStrip(bottom, window), DraggedTab.Carrying(a));
+            Carry(window, TitleOf(window, top, a), OnStrip(bottom, window));
+            window.MouseUp(OnStrip(bottom, window), MouseButton.Left);
             await DrainAsync();
 
             Assert.Same(bottomPane, Assert.Single(harness.Workspace.Panes));
@@ -94,7 +98,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
-    public void Dropping_ATab_OnItsOwnPane_ChangesNothing()
+    public void LettingGoOfATab_OverItsOwnPane_OrOffThePanes_ChangesNothing()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
@@ -103,42 +107,52 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             EditorPaneViewModel rightPane = harness.Workspace.Split(SplitAxis.Columns);
             MainWindow window = Show(harness);
             (EditorPaneView left, _) = Panes(window);
+            Point outside = new(-40, -40);
 
-            Drop(window, Middle(left, window), DraggedTab.Carrying(a));
+            Carry(window, TitleOf(window, left, a), Middle(left, window));
+            window.MouseUp(Middle(left, window), MouseButton.Left);
+            await DrainAsync();
+
+            Carry(window, TitleOf(window, left, a), outside);
+            window.MouseUp(outside, MouseButton.Left);
             await DrainAsync();
 
             Assert.Equal([a], leftPane.Tabs);
             Assert.Single(rightPane.Tabs);
             Assert.Equal(2, harness.Workspace.Panes.Count);
-            Assert.Same(rightPane, harness.Workspace.ActivePane);
+            Assert.False(left.IsDraggingTab);
             window.Close();
         });
 
     [Fact]
-    public void PressingATab_AndMovingPastTheDragDistance_StartsAMoveOfThatTab()
+    public void ACarriedTab_WearsTheDragCursorOverEveryPane_ItsOwnOffThem_AndTheStripsOwnAfterwards()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
-            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n"));
-            EditorTabViewModel b = (await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b\n")))!;
+            EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n")))!;
+            harness.Workspace.Split(SplitAxis.Columns);
             MainWindow window = Show(harness);
-            EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
-            List<(EditorTabViewModel? Tab, DragDropEffects Allowed)> started = Record(pane);
-            Point title = TitleOf(window, pane, b);
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
+            ListBox strip = StripOf(left);
+            Cursor? before = strip.Cursor;
+            Point outside = new(-40, -40);
 
-            // A small move is still a click.
-            window.MouseDown(title, MouseButton.Left);
-            window.MouseMove(title + new Point(2, 1), RawInputModifiers.LeftMouseButton);
-            Assert.Empty(started);
+            Carry(window, TitleOf(window, left, a), Middle(left, window));
+            Assert.Same(EditorPaneView.CarryingCursor, strip.Cursor);
 
-            window.MouseMove(title + new Point(30, 0), RawInputModifiers.LeftMouseButton);
-            window.MouseMove(title + new Point(60, 0), RawInputModifiers.LeftMouseButton);
-            window.MouseUp(title + new Point(60, 0), MouseButton.Left);
+            window.MouseMove(Middle(right, window), RawInputModifiers.LeftMouseButton);
+            Assert.Same(EditorPaneView.CarryingCursor, strip.Cursor);
+
+            window.MouseMove(outside, RawInputModifiers.LeftMouseButton);
+            Assert.Same(before, strip.Cursor);
+
+            window.MouseMove(OnStrip(right, window), RawInputModifiers.LeftMouseButton);
+            Assert.Same(EditorPaneView.CarryingCursor, strip.Cursor);
+
+            window.MouseUp(OnStrip(right, window), MouseButton.Left);
             await DrainAsync();
 
-            (EditorTabViewModel? tab, DragDropEffects allowed) = Assert.Single(started);
-            Assert.Same(b, tab);
-            Assert.Equal(DragDropEffects.Move, allowed);
+            Assert.Same(before, strip.Cursor);
             window.Close();
         });
 
@@ -148,38 +162,59 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
         {
             using EditorHarness harness = new();
             EditorTabViewModel a = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n")))!;
+            harness.Workspace.Split(SplitAxis.Columns);
             MainWindow window = Show(harness);
-            EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
-            List<(EditorTabViewModel? Tab, DragDropEffects Allowed)> started = Record(pane);
-            Button close = ItemOf(pane, a).GetVisualDescendants().OfType<Button>().Single();
+            (EditorPaneView left, EditorPaneView right) = Panes(window);
+            EditorPaneViewModel leftPane = (EditorPaneViewModel)left.DataContext!;
+            Button close = ItemOf(left, a).GetVisualDescendants().OfType<Button>().Single();
             Point onClose = close.TranslatePoint(new Point(close.Bounds.Width / 2, close.Bounds.Height / 2), window)!.Value;
-            Point title = TitleOf(window, pane, a);
+            Point title = TitleOf(window, left, a);
 
             window.MouseDown(onClose, MouseButton.Left);
             window.MouseMove(onClose + new Point(40, 0), RawInputModifiers.LeftMouseButton);
-            window.MouseUp(onClose + new Point(40, 0), MouseButton.Left);
+            Assert.False(left.IsDraggingTab);
+            window.MouseMove(Middle(right, window), RawInputModifiers.LeftMouseButton);
+            window.MouseUp(Middle(right, window), MouseButton.Left);
 
             window.MouseDown(title, MouseButton.Right);
             window.MouseMove(title + new Point(40, 0), RawInputModifiers.RightMouseButton);
-            window.MouseUp(title + new Point(40, 0), MouseButton.Right);
+            Assert.False(left.IsDraggingTab);
+            window.MouseMove(Middle(right, window), RawInputModifiers.RightMouseButton);
+            window.MouseUp(Middle(right, window), MouseButton.Right);
             await DrainAsync();
 
-            Assert.Empty(started);
-            Assert.Same(a, Assert.Single(harness.Workspace.ActivePane.Tabs));
+            Assert.Same(a, Assert.Single(leftPane.Tabs));
+            Assert.Equal(2, harness.Workspace.Panes.Count);
             window.Close();
         });
 
-    private static List<(EditorTabViewModel? Tab, DragDropEffects Allowed)> Record(EditorPaneView pane)
+    [Theory]
+    [InlineData(0, 0, false)]
+    [InlineData(4, 4, false)] // On the edge of the distance: still a click.
+    [InlineData(-4, 0, false)]
+    [InlineData(5, 0, true)]
+    [InlineData(0, -5, true)]
+    [InlineData(-30, 2, true)]
+    public void APress_IsADrag_OncePastTheDistanceOnEitherAxis(double x, double y, bool expected)
+        => Assert.Equal(expected, TabDragGesture.IsDrag(new Vector(x, y), new Size(4, 4)));
+
+    [Theory]
+    [InlineData(true, StandardCursorType.DragMove)] // Over a pane, its own included: the drag is under way here.
+    [InlineData(false, null)] // Off the panes: the strip keeps its own.
+    public void TheDragPointer_SaysTheDragIsUnderWay_AndNeverRefuses(bool overAPane, StandardCursorType? expected)
     {
-        List<(EditorTabViewModel? Tab, DragDropEffects Allowed)> started = [];
-        pane.StartDrag = (_, data, allowed) =>
-        {
-            started.Add((DraggedTab.Read(data), allowed));
+        // Never StandardCursorType.No: the refusal pointer is what the gesture exists to be rid of.
+        Assert.Equal(expected, TabDragGesture.CursorFor(overAPane));
+        Assert.NotEqual(StandardCursorType.No, TabDragGesture.CursorFor(overAPane));
+    }
 
-            return Task.FromResult(DragDropEffects.None);
-        };
-
-        return started;
+    // Presses the point, carries it past the drag distance along the strip, then on to where it is going, without
+    // letting go.
+    private static void Carry(MainWindow window, Point from, Point to)
+    {
+        window.MouseDown(from, MouseButton.Left);
+        window.MouseMove(from + new Point(30, 0), RawInputModifiers.LeftMouseButton);
+        window.MouseMove(to, RawInputModifiers.LeftMouseButton);
     }
 
     private static MainWindow Show(EditorHarness harness)
@@ -198,6 +233,8 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
         return (panes[0], panes[1]);
     }
 
+    private static ListBox StripOf(EditorPaneView pane) => pane.FindControl<ListBox>("Tabs")!;
+
     private static ListBoxItem ItemOf(EditorPaneView pane, EditorTabViewModel tab)
         => pane.GetVisualDescendants().OfType<ListBoxItem>().Single(item => ReferenceEquals(item.DataContext, tab));
 
@@ -214,26 +251,6 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
     // On the tab strip, right of the tabs: the strip is the top band of the pane.
     private static Point OnStrip(EditorPaneView pane, MainWindow window)
         => pane.TranslatePoint(new Point(pane.Bounds.Width - 20, 15), window)!.Value;
-
-    private static DragDropEffects Hover(MainWindow window, Point point, DataTransfer data)
-    {
-        DragDropEffects last = DragDropEffects.None;
-        void Record(object? sender, DragEventArgs e) => last = e.DragEffects;
-        window.AddHandler(DragDrop.DragOverEvent, Record, RoutingStrategies.Bubble, handledEventsToo: true);
-        window.DragDrop(point, RawDragEventType.DragEnter, data, Allowed);
-        window.DragDrop(point, RawDragEventType.DragOver, data, Allowed);
-        window.DragDrop(point, RawDragEventType.DragLeave, data, Allowed);
-        window.RemoveHandler(DragDrop.DragOverEvent, Record);
-
-        return last;
-    }
-
-    private static void Drop(MainWindow window, Point point, DataTransfer data)
-    {
-        window.DragDrop(point, RawDragEventType.DragEnter, data, Allowed);
-        window.DragDrop(point, RawDragEventType.DragOver, data, Allowed);
-        window.DragDrop(point, RawDragEventType.Drop, data, Allowed);
-    }
 
     private static async Task DrainAsync()
     {

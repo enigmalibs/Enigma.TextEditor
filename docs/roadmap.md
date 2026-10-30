@@ -94,8 +94,8 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-7B55 | Open files in the running instance   | DONE        | docs/plan/FEATURE-7B55.md |
 | - PHASE01    | Instance pipe and pointer file       | DONE        | (in FEATURE-7B55.md)      |
 | - PHASE02    | Forward launches to the open window  | DONE        | (in FEATURE-7B55.md)      |
-| BUG-5A45     | Tab drag shows the refusal cursor    | TODO        | docs/plan/BUG-5A45.md     |
-| - PHASE01    | A tab drag the pane runs itself      | TODO        | (in BUG-5A45.md)          |
+| BUG-5A45     | Tab drag shows the refusal cursor    | IN PROGRESS | docs/plan/BUG-5A45.md     |
+| - PHASE01    | A tab drag the pane runs itself      | DONE        | (in BUG-5A45.md)          |
 | - PHASE02    | Escape cancels a tab drag            | TODO        | (in BUG-5A45.md)          |
 | - PHASE03    | Highlight the pane a tab drops on    | TODO        | (in BUG-5A45.md)          |
 
