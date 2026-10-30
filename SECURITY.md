@@ -12,7 +12,8 @@ Security fixes are provided for the latest released version. Enigma.TextEditor f
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.10.x  | :white_check_mark: |
+| 1.11.x  | :white_check_mark: |
+| 1.10.x  | :x:                |
 | 1.9.x   | :x:                |
 | 1.8.x   | :x:                |
 | 1.7.x   | :x:                |

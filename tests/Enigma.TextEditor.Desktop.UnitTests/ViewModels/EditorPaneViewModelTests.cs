@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Core.Settings;
 using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
@@ -147,6 +148,10 @@ public sealed class EditorPaneViewModelTests
         public bool CanMoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab) => false;
 
         public bool MoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab) => false;
+
+        public bool CanSplitWithTab(EditorPaneViewModel target, EditorTabViewModel tab) => false;
+
+        public EditorPaneViewModel? SplitWithTab(EditorPaneViewModel target, EditorTabViewModel tab, FocusDirection side) => null;
 
         public void ShowStatus(string message)
         {

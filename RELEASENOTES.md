@@ -1,5 +1,66 @@
 # Release notes
 
+## 1.11.0 — 2026-10-30
+
+A minor release about where a dragged tab goes. In 1.10 a tab dragged onto another pane moved into it. Now, dropped
+near an edge of a pane, it splits that pane on that side and goes into the new half. That works on the pane it came
+from too.
+
+### Splitting a pane with a dragged tab
+
+- **Drop a tab near an edge** of a pane's text or hex view: the top, the right, the bottom or the left. That pane
+  splits on that side, and the tab goes into the new half, which takes the keyboard.
+  - "Near" means within the outer quarter of the pane's width or height. In a corner, the edge the pointer is nearer
+    to wins.
+  - The split is even, as `Ctrl+W v` and `:sp` split.
+- **The highlight shows the new pane.** Near an edge, only the half of the pane the new pane will take is
+  highlighted, with the same accent wash and ring as a move. Over the middle, the whole pane is highlighted, as in
+  1.10.
+- **Moving works as before.** Dropped on a pane's tabs, or on the middle of its text, a tab moves into that pane. The
+  tab strip never splits.
+- **The tab's own pane splits too**, as long as it keeps another tab.
+  - A pane's only tab shows no highlight near that pane's edges, and dropping it there changes nothing. The pane
+    would be left empty and close, and the layout would end up as it was.
+  - The middle of its own pane still moves nothing.
+- **The new pane gets the tab itself**, as a move does: its caret, its scroll position and, in the hex view, its row.
+- **A file the pane already shows** still splits off into the new pane. That pane starts empty, so a file is never
+  shown twice in one pane.
+- **A pane left without tabs closes**, as after a move.
+- **Escape cancels the drag**, as before, and nothing splits.
+- **Help → Key Bindings** lists it under *Panes*.
+- **The keys are unchanged.** `Space mh`, `mj`, `mk` and `ml` still move a tab only to a pane that is already there.
+  Splitting with a tab is done by dragging.
+
+### Upgrading from 1.10
+
+- **Your settings carry over** unchanged. 1.11 adds no settings key and no file, and going back to 1.10 reads the
+  same file.
+- **A 1.10 window still open takes the files of a 1.11 launch**, since handing files to the running window has not
+  changed. Close every window to start using 1.11.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- **No change: every package is at its latest stable version.** That includes:
+  - the Avalonia set at 12.1.4, with Enigma.Avalonia.Desktop 1.3.0;
+  - AvaloniaEdit 12.0.0;
+  - Microsoft.Extensions.Hosting 10.0.14. Its 11.0.0 is a release candidate only, and is not taken.
+
+### Compatibility
+
+- Unchanged from 1.10.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+- Handing files to the running window is still built for Windows and Linux, and has not been tried on macOS.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.11.0** is a minor release under Semantic Versioning. It adds splitting a pane by dropping a tab near its edge,
+  and keeps every stored format and every default.
+
 ## 1.10.0 — 2026-10-30
 
 A minor release about where a document goes. A tab can move to another pane, with `Space` and a direction or by

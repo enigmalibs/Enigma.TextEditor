@@ -5,9 +5,10 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.10** — a tab moves to another pane with `Space mh`, `mj`, `mk`, `ml`, or by dragging it there; and
-> a file opened from the system while the editor is running opens as a tab in the window you used last, instead of in
-> a second window. 1.9 brought a dialog for an error that nothing else handles, with details to copy for a bug report,
+> **What's new in 1.11** — drop a dragged tab near an edge of a pane, its own included, and that pane splits on that
+> side with the tab in the new half; the half it will take is highlighted while you drag. 1.10 brought moving a tab to
+> another pane with `Space mh`, `mj`, `mk`, `ml`, or by dragging it there; and, for a file opened from the system while
+> the editor is running, a tab in the window you used last instead of a second window. 1.9 brought a dialog for an error that nothing else handles, with details to copy for a bug report,
 > while the editor keeps running; the icon beside the executable as `app.ico`; and one script per platform to publish
 > the editor. 1.8 brought a new application icon, an editor window with a green block cursor and a status-bar
 > mode pill, in ten sizes on Windows and eight in the Linux icon theme. 1.7 brought colours that read in the dark theme: links
@@ -32,8 +33,9 @@ keyboard has an accent frame, and `Ctrl+W h`, `j`, `k`, `l` (or `gh`, `gj`, `gk`
 Space is the leader key: `Space rl` and `Space rh` move the bar between side-by-side panes right and left, and
 `Space rj` and `Space rk` move the bar between stacked panes down and up, from whichever of the two has the keyboard.
 `Space mh`, `mj`, `mk` and `ml` move the tab you are on to the pane on the left, below, above or on the right, which
-takes the keyboard; so does dragging a tab onto another pane (`Escape` cancels the drag). A pane left without tabs
-closes.
+takes the keyboard; so does dragging a tab onto another pane's tabs or the middle of its text (`Escape` cancels the
+drag). Drop a tab near an edge of a pane's text instead, that pane's own included, and the pane splits on that side
+with the tab in the new half; the half it will take is highlighted while you drag. A pane left without tabs closes.
 
 **Vim.** The editor starts in NORMAL mode, with a broad set of Vim's commands:
 

@@ -93,11 +93,25 @@ public sealed class LayoutTree
     /// <param name="axis">Side by side (<see cref="SplitAxis.Columns"/>) or stacked (<see cref="SplitAxis.Rows"/>).</param>
     /// <returns>The new pane.</returns>
     public PaneId Split(PaneId pane, SplitAxis axis)
+        => Split(pane, axis == SplitAxis.Columns ? FocusDirection.Right : FocusDirection.Down);
+
+    /// <summary>
+    /// Splits a pane in two, half each, with the new pane on one side of it.
+    /// </summary>
+    /// <param name="pane">The pane to split.</param>
+    /// <param name="side">Where the new pane goes: left or right of it side by side, above or below it stacked.</param>
+    /// <returns>The new pane.</returns>
+    public PaneId Split(PaneId pane, FocusDirection side)
     {
         PaneNode existing = Require(pane);
         SplitNode? parent = existing.Parent;
         PaneNode created = new(NewId());
-        SplitNode split = new(axis, existing, created, 0.5);
+        SplitAxis axis = side is FocusDirection.Left or FocusDirection.Right ? SplitAxis.Columns : SplitAxis.Rows;
+
+        // Left and above are the first side of a split, right and below the second.
+        SplitNode split = side is FocusDirection.Left or FocusDirection.Up
+            ? new(axis, created, existing, 0.5)
+            : new(axis, existing, created, 0.5);
 
         Attach(parent, existing, split);
         OnChanged();
