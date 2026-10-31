@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Avalonia.Controls;
@@ -5,6 +6,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using CommunityToolkit.Mvvm.Input;
 using Enigma.TextEditor.Core;
 using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Core.Settings;
@@ -143,6 +145,80 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
             await menu.ResetZoomCommand.ExecuteAsync(null);
             Assert.Equal(AppSettings.DefaultFontSize, harness.Preferences.FontSize);
             Assert.Equal(AppSettings.DefaultFontSize, harness.Settings.Value.EditorFontSize);
+        });
+
+    [Fact]
+    public void ChoosingAFontSize_AppliesIt_WritesIt_AndTheStatusItemSaysSo()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            SettingsMenuViewModel menu = harness.SettingsMenu;
+            List<string?> announced = [];
+            menu.PropertyChanged += (_, e) => announced.Add(e.PropertyName);
+
+            await menu.SetFontSizeCommand.ExecuteAsync(18);
+
+            Assert.Equal(18, harness.Preferences.FontSize);
+            Assert.Equal(18, SettingsLoader.Load(harness.Settings.FilePath).Config.Value.EditorFontSize);
+            Assert.Equal("Font Size: 18", menu.FontSizeText);
+            Assert.Equal(18, Assert.Single(menu.FontSizeChoices, choice => choice.IsCurrent).Size);
+            Assert.Contains(nameof(SettingsMenuViewModel.FontSizeText), announced);
+        });
+
+    [Fact]
+    public void TheFontSizeList_ChecksTheCurrentSize_MarksTheDefault_AndEachChoiceSetsItsSize()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            SettingsMenuViewModel menu = harness.SettingsMenu;
+
+            FontSizeChoice[] choices = [.. menu.FontSizeChoices];
+
+            Assert.Equal(FontSizes.Presets, choices.Select(choice => choice.Size));
+            Assert.Equal(AppSettings.DefaultFontSize, Assert.Single(choices, choice => choice.IsCurrent).Size);
+            Assert.Equal(AppSettings.DefaultFontSize, Assert.Single(choices, choice => choice.IsDefault).Size);
+            Assert.Equal("Font Size: 14", menu.FontSizeText);
+
+            FontSizeChoice twelve = choices.Single(choice => choice.Size == 12);
+
+            // Given its size boxed, as the list's binding hands it over.
+            await Assert.IsAssignableFrom<IAsyncRelayCommand>(twelve.Command).ExecuteAsync(twelve.Size);
+
+            Assert.Equal(12, harness.Preferences.FontSize);
+            Assert.Equal(12, harness.Settings.Value.EditorFontSize);
+        });
+
+    [Fact]
+    public void TheFontSizeItem_FollowsTheZoomKeys_AndTheReset_AndShowsASizeOffTheList()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            SettingsMenuViewModel menu = harness.SettingsMenu;
+            List<string?> announced = [];
+            menu.PropertyChanged += (_, e) => announced.Add(e.PropertyName);
+            System.Collections.ObjectModel.ReadOnlyObservableCollection<FontSizeChoice> list = menu.FontSizeChoices;
+
+            // 14 + 3 = 17: not one of the presets, added to the list so it can be checked.
+            for (int step = 0; step < 3; step++)
+            {
+                await menu.ZoomInCommand.ExecuteAsync(null);
+            }
+
+            Assert.Equal("Font Size: 17", menu.FontSizeText);
+            Assert.Equal(17, Assert.Single(menu.FontSizeChoices, choice => choice.IsCurrent).Size);
+            Assert.Equal(FontSizes.Presets.Count + 1, menu.FontSizeChoices.Count);
+
+            announced.Clear();
+            await menu.ResetAsync();
+
+            Assert.Equal("Font Size: 14", menu.FontSizeText);
+            Assert.Equal(FontSizes.Presets, menu.FontSizeChoices.Select(choice => choice.Size));
+
+            // The reset announces every property at once, which a binding takes as a change of each.
+            Assert.Contains(string.Empty, announced);
+
+            // One list throughout, changed in place: a flyout follows the list it first showed, never a new one.
+            Assert.Same(list, menu.FontSizeChoices);
         });
 
     [Fact]

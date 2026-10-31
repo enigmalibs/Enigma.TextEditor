@@ -47,7 +47,7 @@ with the tab in the new half; the half it will take is highlighted while you dra
 - `/` and `?` searches that highlight every match as you type, and after Enter, until `:noh`;
 - `:s` substitution over a range;
 - `:set` options (`ignorecase`, `smartcase`, `wrapscan`, `hlsearch`, `incsearch`, `expandtab`, `shiftwidth`,
-  `tabstop`); the last three are the file's indentation, as the status bar shows it. The bar's other items are
+  `tabstop`); the last three are the file's indentation, as the status bar shows it. The bar's other file items are
   `:set` options too, under Vim's names: `fileformat` (`unix`, `dos`), `fileencoding` (`utf-8`, `latin1`, `cp1252`…)
   with `bomb`, and `filetype` (`python`, `cs`…).
 
@@ -91,9 +91,11 @@ scroll.
 - the indentation;
 - the encoding;
 - the language;
-- the line endings.
+- the line endings;
+- the font size.
 
-The last four are buttons that change them.
+The last five are buttons that change them: the font size lists the sizes to pick from, the current one checked, and
+applies to every editor, as the zoom does.
 
 **Settings** apply at once and are remembered: the theme (light, dark or following the system), Vim mode, word wrap,
 the minimap beside the text (press or drag on it to scroll; off, a plain scrollbar is back), how far the resize keys

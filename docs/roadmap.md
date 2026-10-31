@@ -103,7 +103,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Split a pane with a moved tab        | DONE        | (in FEATURE-9E4A.md)      |
 | - PHASE02    | Edge drop zones and their hint       | DONE        | (in FEATURE-9E4A.md)      |
 | FEATURE-1CC6 | Release 1.11.0                       | DONE        | docs/plan/FEATURE-1CC6.md |
-| FEATURE-A198 | Font size picker in the status bar   | TODO        | docs/plan/FEATURE-A198.md |
+| FEATURE-A198 | Font size picker in the status bar   | DONE        | docs/plan/FEATURE-A198.md |
 | FEATURE-B751 | Drop files on a pane edge to split   | TODO        | docs/plan/FEATURE-B751.md |
 | - PHASE01    | Split a pane for dropped files       | TODO        | (in FEATURE-B751.md)      |
 | - PHASE02    | File drop zones and their hint       | TODO        | (in FEATURE-B751.md)      |

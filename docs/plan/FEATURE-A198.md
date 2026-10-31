@@ -1,6 +1,6 @@
 # FEATURE-A198 — Font size picker in the status bar
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-a198-status-font-size`
 **Run:** feature/2026-10-31-font-size-drop-split
