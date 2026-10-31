@@ -58,7 +58,8 @@ Vim can be switched off in **Settings → Vim Mode**: the keys then type, as in 
 and the editor's right-click menu show the Vim keys of the commands that have them.
 
 **Files.** Open them with **File → Open…** (several at once), by dropping them on a pane, or by naming them on the
-command line. A name that does not exist yet, in a folder that does, opens an empty document that the first save
+command line. Dropped near an edge of a pane's text, they split that pane on that side and open in the new half; as for
+a tab, the part of the pane they will go to is highlighted while you drag. A name that does not exist yet, in a folder that does, opens an empty document that the first save
 creates. A file opened from the system — a double-click, *Open with* — while the editor is running opens as a tab in
 the window you used last, which comes to the front; started without a file, the editor opens a new window, so
 several can run side by side. The editor reads each file the way it is written, and writes it back the same way:

@@ -1,6 +1,6 @@
 # FEATURE-B751 — Drop files on a pane edge to split
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-b751-phase01-split-with-files`
 **Branch (PHASE02):** `feature/feature-b751-phase02-file-drop-hint`
@@ -113,7 +113,7 @@ Give them the tab drag's zones and hint (FEATURE-9E4A):
 
 ## PHASE02 — File drop zones and their hint
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

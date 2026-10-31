@@ -104,8 +104,8 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE02    | Edge drop zones and their hint       | DONE        | (in FEATURE-9E4A.md)      |
 | FEATURE-1CC6 | Release 1.11.0                       | DONE        | docs/plan/FEATURE-1CC6.md |
 | FEATURE-A198 | Font size picker in the status bar   | DONE        | docs/plan/FEATURE-A198.md |
-| FEATURE-B751 | Drop files on a pane edge to split   | IN PROGRESS | docs/plan/FEATURE-B751.md |
+| FEATURE-B751 | Drop files on a pane edge to split   | DONE        | docs/plan/FEATURE-B751.md |
 | - PHASE01    | Split a pane for dropped files       | DONE        | (in FEATURE-B751.md)      |
-| - PHASE02    | File drop zones and their hint       | TODO        | (in FEATURE-B751.md)      |
+| - PHASE02    | File drop zones and their hint       | DONE        | (in FEATURE-B751.md)      |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
