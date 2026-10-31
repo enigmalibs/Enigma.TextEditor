@@ -294,6 +294,25 @@ public sealed class EditorPaneViewModel : ObservableObject
     public EditorPaneViewModel? SplitWithTab(EditorTabViewModel tab, FocusDirection side) => _host.SplitWithTab(this, tab, side);
 
     /// <summary>
+    /// Whether files dragged to an edge of this pane could split it: the pane has a tab.
+    /// </summary>
+    /// <returns>Whether <see cref="SplitWithFilesAsync"/> would split this pane.</returns>
+    public bool CanSplitWithFiles() => _host.CanSplitWithFiles(this);
+
+    /// <summary>
+    /// Splits this pane for files dropped on one of its edges, and opens them in the new half, which takes the
+    /// keyboard.
+    /// </summary>
+    /// <param name="paths">Their full paths, in drop order.</param>
+    /// <param name="side">The edge they were dropped on: where the new pane goes.</param>
+    /// <returns>
+    /// A task that completes when every file has been opened or skipped, with the new pane, or <see langword="null"/>
+    /// when nothing was split.
+    /// </returns>
+    public Task<EditorPaneViewModel?> SplitWithFilesAsync(IReadOnlyList<string> paths, FocusDirection side)
+        => _host.SplitWithFilesAsync(this, paths, side);
+
+    /// <summary>
     /// Reports that colouring the text failed, without interrupting the editing.
     /// </summary>
     /// <param name="failure">What went wrong.</param>

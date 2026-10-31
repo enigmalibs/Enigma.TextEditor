@@ -153,6 +153,11 @@ public sealed class EditorPaneViewModelTests
 
         public EditorPaneViewModel? SplitWithTab(EditorPaneViewModel target, EditorTabViewModel tab, FocusDirection side) => null;
 
+        public bool CanSplitWithFiles(EditorPaneViewModel target) => false;
+
+        public Task<EditorPaneViewModel?> SplitWithFilesAsync(EditorPaneViewModel target, IReadOnlyList<string> paths, FocusDirection side)
+            => Task.FromResult<EditorPaneViewModel?>(null);
+
         public void ShowStatus(string message)
         {
         }
