@@ -107,5 +107,6 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-B751 | Drop files on a pane edge to split   | DONE        | docs/plan/FEATURE-B751.md |
 | - PHASE01    | Split a pane for dropped files       | DONE        | (in FEATURE-B751.md)      |
 | - PHASE02    | File drop zones and their hint       | DONE        | (in FEATURE-B751.md)      |
+| FEATURE-C188 | Release 1.12.0                       | TODO        | docs/plan/FEATURE-C188.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
