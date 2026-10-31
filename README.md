@@ -5,8 +5,10 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.11** — drop a dragged tab near an edge of a pane, its own included, and that pane splits on that
-> side with the tab in the new half; the half it will take is highlighted while you drag. 1.10 brought moving a tab to
+> **What's new in 1.12** — drop files from outside the editor near an edge of a pane, and that pane splits on that
+> side with the files in the new half, highlighted while you drag as for a tab; and a font size button on the status
+> bar, listing the sizes to pick from with the current one checked. 1.11 brought splitting a pane by dropping a tab
+> near its edge, its own pane included, with the half it will take highlighted. 1.10 brought moving a tab to
 > another pane with `Space mh`, `mj`, `mk`, `ml`, or by dragging it there; and, for a file opened from the system while
 > the editor is running, a tab in the window you used last instead of a second window. 1.9 brought a dialog for an error that nothing else handles, with details to copy for a bug report,
 > while the editor keeps running; the icon beside the executable as `app.ico`; and one script per platform to publish
@@ -47,7 +49,7 @@ with the tab in the new half; the half it will take is highlighted while you dra
 - `/` and `?` searches that highlight every match as you type, and after Enter, until `:noh`;
 - `:s` substitution over a range;
 - `:set` options (`ignorecase`, `smartcase`, `wrapscan`, `hlsearch`, `incsearch`, `expandtab`, `shiftwidth`,
-  `tabstop`); the last three are the file's indentation, as the status bar shows it. The bar's other items are
+  `tabstop`); the last three are the file's indentation, as the status bar shows it. The bar's other file items are
   `:set` options too, under Vim's names: `fileformat` (`unix`, `dos`), `fileencoding` (`utf-8`, `latin1`, `cp1252`…)
   with `bomb`, and `filetype` (`python`, `cs`…).
 
@@ -58,7 +60,8 @@ Vim can be switched off in **Settings → Vim Mode**: the keys then type, as in 
 and the editor's right-click menu show the Vim keys of the commands that have them.
 
 **Files.** Open them with **File → Open…** (several at once), by dropping them on a pane, or by naming them on the
-command line. A name that does not exist yet, in a folder that does, opens an empty document that the first save
+command line. Dropped near an edge of a pane's text, they split that pane on that side and open in the new half; as for
+a tab, the part of the pane they will go to is highlighted while you drag. A name that does not exist yet, in a folder that does, opens an empty document that the first save
 creates. A file opened from the system — a double-click, *Open with* — while the editor is running opens as a tab in
 the window you used last, which comes to the front; started without a file, the editor opens a new window, so
 several can run side by side. The editor reads each file the way it is written, and writes it back the same way:
@@ -91,9 +94,11 @@ scroll.
 - the indentation;
 - the encoding;
 - the language;
-- the line endings.
+- the line endings;
+- the font size.
 
-The last four are buttons that change them.
+The last five are buttons that change them: the font size lists the sizes to pick from, the current one checked, and
+applies to every editor, as the zoom does.
 
 **Settings** apply at once and are remembered: the theme (light, dark or following the system), Vim mode, word wrap,
 the minimap beside the text (press or drag on it to scroll; off, a plain scrollbar is back), how far the resize keys

@@ -26,6 +26,7 @@ public sealed class StatusBarFocusTests(HeadlessAvaloniaFixture fixture)
     [InlineData("EncodingStatus")]
     [InlineData("LanguageStatus")]
     [InlineData("LineEndingStatus")]
+    [InlineData("FontSizeStatus")]
     public void TheStatusButtons_TakeNoFocus(string name)
         => fixture.RunAsync(async () =>
         {
@@ -41,6 +42,7 @@ public sealed class StatusBarFocusTests(HeadlessAvaloniaFixture fixture)
     [InlineData("IndentationStatus")]
     [InlineData("LineEndingStatus")]
     [InlineData("EncodingStatus")]
+    [InlineData("FontSizeStatus")]
     public void AStatusFlyout_ThatCloses_GivesTheKeyboardBackToTheEditor(string name)
         => fixture.RunAsync(async () =>
         {

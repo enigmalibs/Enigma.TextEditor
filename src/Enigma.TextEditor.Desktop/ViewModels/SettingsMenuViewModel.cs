@@ -1,4 +1,7 @@
 using System;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -10,8 +13,8 @@ using Enigma.TextEditor.Desktop.Services;
 namespace Enigma.TextEditor.Desktop.ViewModels;
 
 /// <summary>
-/// The Settings menu, and the zoom commands of the View menu: every preference is a toggle or a
-/// short choice, applied at once and written at once.
+/// The Settings menu, the zoom commands of the View menu and the status bar's font size item: every
+/// preference is a toggle or a short choice, applied at once and written at once.
 /// </summary>
 /// <remarks>
 /// Each item says what it is and shows its current value as a check or a radio mark. The settings
@@ -26,6 +29,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
     private readonly IThemeService _theme;
     private readonly IVimSession _vim;
     private readonly EditorPreferences _preferences;
+    private readonly ObservableCollection<FontSizeChoice> _fontSizeChoices = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingsMenuViewModel"/> class.
@@ -65,6 +69,9 @@ public sealed class SettingsMenuViewModel : ObservableObject
         ZoomInCommand = Command(() => SetFontSizeAsync(Value.EditorFontSize + 1));
         ZoomOutCommand = Command(() => SetFontSizeAsync(Value.EditorFontSize - 1));
         ResetZoomCommand = Command(() => SetFontSizeAsync(AppSettings.DefaultFontSize));
+        SetFontSizeCommand = new AsyncRelayCommand<int>(SetFontSizeAsync, AsyncRelayCommandOptions.AllowConcurrentExecutions);
+        FontSizeChoices = new ReadOnlyObservableCollection<FontSizeChoice>(_fontSizeChoices);
+        RefreshFontSizeChoices();
     }
 
     /// <summary>
@@ -157,6 +164,25 @@ public sealed class SettingsMenuViewModel : ObservableObject
     /// Gets <em>View → Reset Zoom</em>.
     /// </summary>
     public AsyncRelayCommand ResetZoomCommand { get; }
+
+    /// <summary>
+    /// Gets the status bar's font size list: sets the editors' font size to the size it is given.
+    /// </summary>
+    public AsyncRelayCommand<int> SetFontSizeCommand { get; }
+
+    /// <summary>
+    /// Gets the status bar's font size item: <c>Font Size: 14</c>.
+    /// </summary>
+    public string FontSizeText => string.Create(CultureInfo.InvariantCulture, $"Font Size: {Value.EditorFontSize}");
+
+    /// <summary>
+    /// Gets the sizes the status bar's font size item offers, the current one checked.
+    /// </summary>
+    /// <remarks>
+    /// One collection for the life of the menu, brought in step in place whenever the size changes: a flyout's items
+    /// follow the collection it first showed, and would never see a new one.
+    /// </remarks>
+    public ReadOnlyObservableCollection<FontSizeChoice> FontSizeChoices { get; }
 
     /// <summary>
     /// Gets a value indicating whether the theme follows the system.
@@ -359,6 +385,8 @@ public sealed class SettingsMenuViewModel : ObservableObject
 
         Value.EditorFontSize = clamped;
         _preferences.FontSize = clamped;
+        OnPropertyChanged(nameof(FontSizeText));
+        RefreshFontSizeChoices();
 
         await AppliedAsync();
     }
@@ -404,6 +432,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
         _preferences.PaneResizeStep = Value.PaneResizeStep;
         _preferences.FontSize = Value.EditorFontSize;
         _preferences.FontFamily = EditorPreferences.FamilyFor(Value.EditorFontFamily);
+        RefreshFontSizeChoices();
 
         // Every check and radio mark of the menu at once.
         OnPropertyChanged(string.Empty);
@@ -445,6 +474,37 @@ public sealed class SettingsMenuViewModel : ObservableObject
     // still being written: the writer serializes the writes instead.
     private static AsyncRelayCommand Command(Func<Task> execute)
         => new(execute, AsyncRelayCommandOptions.AllowConcurrentExecutions);
+
+    // Entry by entry, so the list on screen changes only where the sizes or the check do.
+    private void RefreshFontSizeChoices()
+    {
+        int current = Value.EditorFontSize;
+        FontSizeChoice[] wanted =
+        [
+            .. FontSizes.ListFor(current).Select(size => new FontSizeChoice(
+                size,
+                size == current,
+                size == AppSettings.DefaultFontSize,
+                SetFontSizeCommand)),
+        ];
+
+        for (int index = 0; index < wanted.Length; index++)
+        {
+            if (index == _fontSizeChoices.Count)
+            {
+                _fontSizeChoices.Add(wanted[index]);
+            }
+            else if (_fontSizeChoices[index] != wanted[index])
+            {
+                _fontSizeChoices[index] = wanted[index];
+            }
+        }
+
+        while (_fontSizeChoices.Count > wanted.Length)
+        {
+            _fontSizeChoices.RemoveAt(_fontSizeChoices.Count - 1);
+        }
+    }
 
     // Every change ends here once it is applied: whoever shows the preferences is told, then they are
     // written.

@@ -43,6 +43,12 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// edges (<see cref="TabDragGesture.EdgeShare"/> of the way in), the pane splits on that side and the tab goes into the
 /// new half — its own pane included, when that pane keeps another tab.
 /// </para>
+/// <para>
+/// Files dragged in from outside get the same zones and the same hint: over the strip or the middle they open in the
+/// pane, near an edge the pane splits on that side and they open in the new half — unless the pane has no tab, which
+/// takes them whole. A platform drag is reported to the pane under the pointer, so each pane shows its own hint for
+/// files, where for a tab the pane it comes from shows it on the pane it would land on.
+/// </para>
 /// </remarks>
 public partial class EditorPaneView : UserControl
 {
@@ -117,6 +123,7 @@ public partial class EditorPaneView : UserControl
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DragEnterEvent, OnDragOver, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(DragDrop.DragOverEvent, OnDragOver, RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(DragDrop.DragLeaveEvent, OnDragLeave, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(DragDrop.DropEvent, OnDrop, RoutingStrategies.Bubble, handledEventsToo: true);
 
         // A tab dragged off the strip moves to the pane it is dropped on. Handled events too: the strip's items
@@ -199,6 +206,17 @@ public partial class EditorPaneView : UserControl
             ? null
             : TabDragGesture.SideFor(new Point(point.X, point.Y - top), new Size(Bounds.Width, Bounds.Height - top));
     }
+
+    /// <summary>
+    /// Which side of this pane files let go at a point would split it on.
+    /// </summary>
+    /// <param name="point">The point, relative to this pane.</param>
+    /// <returns>
+    /// The side, as for a tab (<see cref="SideAt"/>), or <see langword="null"/> where the files would open in the pane:
+    /// over the strip, in the middle, and anywhere on a pane with no tab, which a split would leave empty beside them.
+    /// </returns>
+    internal FocusDirection? FileSideAt(Point point)
+        => _pane?.CanSplitWithFiles() == true ? SideAt(point) : null;
 
     /// <summary>
     /// Gets the Vim behaviour attached to the editor, once the pane it belongs to is known.
@@ -586,6 +604,7 @@ public partial class EditorPaneView : UserControl
         Editor.TextArea.Focus();
     }
 
+    // Entering and moving alike: the hint follows the pointer from the strip to the middle to an edge.
     private void OnDragOver(object? sender, DragEventArgs e)
     {
         IReadOnlyList<string> paths = DroppedFiles.ReadPaths(e.DataTransfer);
@@ -599,15 +618,33 @@ public partial class EditorPaneView : UserControl
                 e.DragEffects = DragDropEffects.None;
             }
 
+            HideDropHint();
+
             return;
         }
 
         e.DragEffects = DroppedFiles.EffectFor(paths);
         e.Handled = true;
+
+        // Put in place again only when the side changes, as for a tab.
+        FocusDirection? side = FileSideAt(e.GetPosition(this));
+
+        if (!IsDropTarget || (DropSide != side))
+        {
+            ShowDropHint(side);
+        }
     }
+
+    // Raised on the part of the pane the drag was over, whenever it moves to another part, another pane or out of the
+    // window, and when the drag is cancelled. Moving within the pane, the enter on the new part follows at once and
+    // shows the hint again.
+    private void OnDragLeave(object? sender, DragEventArgs e) => HideDropHint();
 
     private void OnDrop(object? sender, DragEventArgs e)
     {
+        // No leave follows a drop.
+        HideDropHint();
+
         // Read now: the dragged data is only there while the drop event lasts.
         IReadOnlyList<string> paths = DroppedFiles.ReadPaths(e.DataTransfer);
         DragDropEffects effect = DroppedFiles.EffectFor(paths);
@@ -620,10 +657,19 @@ public partial class EditorPaneView : UserControl
         e.DragEffects = effect;
         e.Handled = true;
 
+        FocusDirection? side = FileSideAt(e.GetPosition(this));
+
         // Opened once the drop has returned: the platform's drag loop has to be over before a dialog — the
         // binary-file question, a file that cannot be read — can appear. Not awaited, as the ex commands are
         // not: failures are reported by the services the opening goes through.
-        Dispatcher.UIThread.Post(() => pane.OpenDroppedAsync(paths).Forget());
+        if (side is { } edge)
+        {
+            Dispatcher.UIThread.Post(() => pane.SplitWithFilesAsync(paths, edge).Forget());
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(() => pane.OpenDroppedAsync(paths).Forget());
+        }
     }
 
     private void OnEditorDocumentChanged(object? sender, EventArgs e)

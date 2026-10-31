@@ -1,5 +1,82 @@
 # Release notes
 
+## 1.12.0 — 2026-10-31
+
+A minor release with two additions. In 1.11 a tab dropped near an edge of a pane split that pane. Now files dropped
+there from outside the editor do the same, with the same highlight. And the status bar has a button for the font size.
+
+### Splitting a pane with dropped files
+
+- **Drop files near an edge** of a pane's text or hex view: the top, the right, the bottom or the left. That pane
+  splits on that side, and the files open in the new half, which takes the keyboard.
+  - "Near" means within the outer quarter of the pane's width or height, as for a tab. In a corner, the edge the
+    pointer is nearer to wins.
+  - The split is even, as `Ctrl+W v` and `:sp` split.
+- **One split for all of them.** Every file opens in the new pane, in the order they were dropped, and the last one is
+  shown.
+- **The highlight shows where they go.** Near an edge, only the half of the pane the new pane will take is
+  highlighted, with the same accent wash and ring as a dragged tab. Over a pane's tabs or the middle of its text, the
+  whole pane is highlighted. In 1.11, files carried over a pane were not highlighted at all.
+- **Opening in a pane works as before.** Dropped on a pane's tabs, or on the middle of its text, the files open in
+  that pane.
+- **A pane with no tab has no edges.** The window's only pane, showing "No file is open", takes the files whole, with
+  no split: a split would leave that empty pane beside them.
+- **What the split pane keeps:**
+  - a fresh tab stays where it is, and the files open beside it, in the new pane;
+  - a file the split pane already shows opens in the new pane too, as `:vsp file` gives: one file in two panes.
+- **When nothing can open, nothing splits.** If no file is among what is dropped (only folders, or paths that are
+  gone), the layout stays as it is and the status line names them, as for any drop.
+- **When every file is refused**, such as a binary file you choose not to open, the new pane closes again and the
+  pane that was split takes the keyboard back, as after `:split file`.
+- **Text dragged over a pane** is not highlighted, and is still dropped into the text where you release it.
+- **Help → Key Bindings** lists it under *Files & tabs*.
+
+### The font size on the status bar
+
+- **A new button, last on the right**, reads `Font Size: 14`. Pressed, it lists the sizes 8 to 16, then 18, 20, 24,
+  28, 32 and 36.
+  - The current size is checked, and the default reads `14 (default)`: choosing it is the reset.
+  - A size that is not in the list, such as 17 after a zoom, is added in its place and checked, so the list always
+    shows where the text is.
+- **Choosing a size resizes the text at once** in every editor and in the hex view, and the size is remembered, as
+  with **View → Zoom In / Zoom Out / Reset Zoom** (Ctrl+=, Ctrl+-, Ctrl+0) and the settings page.
+- **It follows the other ways in.** A zoom key, the settings page or its *Reset to defaults* changes the button and
+  the check too. Sizes from 6 to 72 stay reachable through those.
+- **It shows for any open tab**, text or hex, since the hex rows use the font size too. With no tab open, it hides with
+  the rest of the bar's right-hand items.
+- **The keyboard stays in the pane.** The button never takes the focus, and the keyboard goes back to the text when
+  the list closes, as for the bar's other buttons.
+
+### Upgrading from 1.11
+
+- **Your settings carry over** unchanged. 1.12 adds no settings key and no file: the button writes the font size the
+  zoom keys and the settings page already wrote. Going back to 1.11 reads the same file.
+- **A 1.11 window still open takes the files of a 1.12 launch**, since handing files to the running window has not
+  changed. Close every window to start using 1.12.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- **No change: every package is at its latest stable version.** That includes:
+  - the Avalonia set at 12.1.4, with Enigma.Avalonia.Desktop 1.3.0;
+  - AvaloniaEdit 12.0.0;
+  - Microsoft.Extensions.Hosting 10.0.14. Its 11.0.0 is a release candidate only, and is not taken.
+
+### Compatibility
+
+- Unchanged from 1.11.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+- Handing files to the running window is still built for Windows and Linux, and has not been tried on macOS.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.12.0** is a minor release under Semantic Versioning. It adds splitting a pane by dropping files near its edge,
+  and a font size button on the status bar, and keeps every stored format and every default.
+
 ## 1.11.0 — 2026-10-30
 
 A minor release about where a dragged tab goes. In 1.10 a tab dragged onto another pane moved into it. Now, dropped

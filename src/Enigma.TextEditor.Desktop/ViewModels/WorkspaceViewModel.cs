@@ -577,6 +577,72 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         return created;
     }
 
+    /// <inheritdoc />
+    public bool CanSplitWithFiles(EditorPaneViewModel target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+
+        return (IdOf(target) is not null) && (target.Tabs.Count > 0);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// The files open in the new pane as files dropped on it would (<see cref="OpenDroppedAsync"/>): in drop order,
+    /// the last one shown, folders and paths that have gone named on the status line. The new pane is empty until
+    /// then, so a fresh tab of the pane that was split stays where it is, and a buffer that pane shows gets a tab of
+    /// its own in the new one.
+    /// </para>
+    /// <para>
+    /// A pane with no tab is not split: the files go into it whole, rather than beside an empty pane. With no file
+    /// among the paths nothing splits, and the paths are named as a drop's are. When none of the files opened after
+    /// all — a binary file declined, a file that could not be read — the new pane closes again and the pane it was
+    /// split from takes the keyboard back, as it does for <c>:split file</c>.
+    /// </para>
+    /// </remarks>
+    public async Task<EditorPaneViewModel?> SplitWithFilesAsync(EditorPaneViewModel target, IReadOnlyList<string> paths, FocusDirection side)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(paths);
+
+        if (!CanSplitWithFiles(target) || (IdOf(target) is not { } targetId))
+        {
+            return null;
+        }
+
+        if (!paths.Any(File.Exists))
+        {
+            await OpenDroppedAsync(target, paths);
+
+            return null;
+        }
+
+        EditorPaneViewModel? created = null;
+
+        Batch(() =>
+        {
+            PaneId id = Layout.Split(targetId, side);
+            created = AddPane(id);
+            Activate(id);
+        });
+
+        UpdateActiveFlags();
+        RefreshCommands();
+
+        EditorPaneViewModel pane = created ?? throw new InvalidOperationException("The split did not create a pane.");
+
+        await OpenDroppedAsync(pane, paths);
+
+        if (pane.Tabs.Count == 0)
+        {
+            await ClosePaneAsync(pane);
+
+            return null;
+        }
+
+        return pane;
+    }
+
     /// <summary>
     /// Opens a file in the active pane, or shows it there when it is already open.
     /// </summary>
