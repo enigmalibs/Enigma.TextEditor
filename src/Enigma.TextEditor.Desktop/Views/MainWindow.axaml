@@ -341,6 +341,31 @@
                 </MenuFlyout>
               </Button.Flyout>
             </Button>
+            <!-- Last, and on any tab: the other items describe the file, this one the size every editor and the hex
+                 view draw text at. Each size in the list carries the command that sets it. -->
+            <Button x:Name="FontSizeStatus"
+                    Focusable="False"
+                    Classes="statusItem"
+                    Content="{Binding Settings.FontSizeText}"
+                    ToolTip.Tip="Font size"
+                    AutomationProperties.Name="Font size">
+              <Button.Flyout>
+                <MenuFlyout Closed="OnStatusFlyoutClosed" ItemsSource="{Binding Settings.FontSizeChoices}">
+                  <MenuFlyout.ItemContainerTheme>
+                    <ControlTheme TargetType="MenuItem"
+                                  BasedOn="{StaticResource {x:Type MenuItem}}"
+                                  x:DataType="vm:FontSizeChoice">
+                      <Setter Property="Header" Value="{Binding Header}" />
+                      <Setter Property="ToggleType" Value="Radio" />
+                      <Setter Property="GroupName" Value="statusFontSize" />
+                      <Setter Property="IsChecked" Value="{Binding IsCurrent, Mode=OneWay}" />
+                      <Setter Property="Command" Value="{Binding Command}" />
+                      <Setter Property="CommandParameter" Value="{Binding Size}" />
+                    </ControlTheme>
+                  </MenuFlyout.ItemContainerTheme>
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
           </StackPanel>
         </Grid>
       </Border>

@@ -134,6 +134,7 @@ public static class HelpCatalog
             Ex("Ctrl+Tab, gt", "Next tab", VimExCommand.BufferNext),
             Ex("Ctrl+Shift+Tab, gT", "Previous tab", VimExCommand.BufferPrevious),
             Keys("Drop files on a pane", "Open them in that pane"),
+            Keys("Drop files on a pane's edge", "Split that pane there, the files in the new half"),
         ]),
         Section("Panes", PhosphorIcon.Columns, "Ctrl+W, then the key",
         [

@@ -90,6 +90,27 @@ public interface IPaneHost
     EditorPaneViewModel? SplitWithTab(EditorPaneViewModel target, EditorTabViewModel tab, FocusDirection side);
 
     /// <summary>
+    /// Whether a pane could be split to open dropped files in a pane of their own beside it: the pane is in this
+    /// editor area and has a tab.
+    /// </summary>
+    /// <param name="target">The pane that would be split.</param>
+    /// <returns>Whether <see cref="SplitWithFilesAsync"/> would split it.</returns>
+    bool CanSplitWithFiles(EditorPaneViewModel target);
+
+    /// <summary>
+    /// Splits a pane, half each, and opens files dropped on one of its edges in the new half, which takes the
+    /// keyboard.
+    /// </summary>
+    /// <param name="target">The pane to split.</param>
+    /// <param name="paths">The files' full paths, in drop order.</param>
+    /// <param name="side">The side of the pane the new one goes.</param>
+    /// <returns>
+    /// A task that completes when every file has been opened or skipped, dialogs included, with the new pane — or
+    /// <see langword="null"/> when nothing was split, or the new pane closed again because nothing opened in it.
+    /// </returns>
+    Task<EditorPaneViewModel?> SplitWithFilesAsync(EditorPaneViewModel target, IReadOnlyList<string> paths, FocusDirection side);
+
+    /// <summary>
     /// Shows a message on the status bar's message line.
     /// </summary>
     /// <param name="message">The message.</param>
