@@ -1,6 +1,6 @@
 # FEATURE-C188 — Release 1.12.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-c188-release-1-12-0`
 **Run:** feature/2026-10-31-release-1-12-0
