@@ -97,8 +97,28 @@ Substitute the runtime identifier for the target platform: `linux-arm64`, `win-x
 - `./artifacts` is a build output: it is not committed.
 
 On Linux, `packaging/linux/install.sh --from ./artifacts` installs that folder for the current user, with a launcher
-entry and the icon (the README's *Install on Linux* has the rest). On Windows and macOS there is no installer: run the
-published folder as it is.
+entry and the icon (the README's *Install on Linux* has the rest).
+
+On Windows, build the MSI and install it:
+
+```powershell
+packaging\windows\buildmsi.ps1          # or buildmsi.bat from a cmd prompt
+```
+
+It runs `git clean -dxf` first, which deletes every file git does not track. Commit or move anything new before
+running it. Then it publishes (`publish.ps1`, above) and packages the result with Enigma.Msi into
+`artifacts\Enigma.TextEditor.X.Y.Z.msi`, beside the `.msipkg.json` profile it was built from.
+
+| What                                | Where                                                                                           |
+|-------------------------------------|-------------------------------------------------------------------------------------------------|
+| The application, for all users      | `%ProgramFiles%\Enigma Text Editor` (a 32-bit package: `Program Files (x86)` on 64-bit Windows) |
+| The shortcuts, "Enigma Text Editor" | The desktop and the program menu                                                                |
+| The entry in *Installed apps*       | "Enigma Text Editor", publisher "Josué Clément"                                                 |
+
+Installing it replaces an earlier version installed from an MSI, and uninstalling it from *Installed apps* leaves
+`%APPDATA%\Enigma.TextEditor` (the settings, the log and `instance.json`) alone.
+
+On macOS there is no installer: run the published folder as it is.
 
 ## 6. Post-release verification
 
@@ -106,6 +126,8 @@ published folder as it is.
 - [ ] It opens a text file and a binary one (the hex-viewer question), and a save keeps the file's encoding and line
       endings.
 - [ ] Settings made in the previous version are still there.
+- [ ] On Windows, after installing the MSI, *Installed apps* lists one **Enigma Text Editor**, at `X.Y.Z`, and the
+      desktop and program-menu shortcuts start it.
 - [ ] `git tag` lists `X.Y.Z` on the merge commit on `main`, and the tag is on the remote.
 
 ## Before distributing a build
@@ -115,16 +137,27 @@ Windows, NLog, Oniguruma) and Apache 2.0 (some of TextMateSharp's grammars) ask 
 binaries. Before handing a build to anyone, ship a third-party notices file beside it. The 1.0.0 licence audit, in
 `docs/done/FEATURE-8F24-PHASE02.md`, lists the components.
 
-## Why there is no NuGet step or MSI
+## Why there is no NuGet step
 
-`dotnet-release` drives a library's release to NuGet, and offers a WixSharp MSI profile for an application. Neither
-has applied so far:
+`dotnet-release` drives a library's release to NuGet. The editor is an application, not a package, so that does not
+apply.
 
-- the editor is an application, not a package;
-- no Windows installer has been asked for.
+Neither installer is a release step:
 
-Linux has an installer, `packaging/linux/install.sh`, but it is not a release step. It builds or copies an application
-into the current user's home, so a release has nothing to produce for it.
+- Linux's, `packaging/linux/install.sh`, builds or copies an application into the current user's home, so a release
+  has nothing to produce for it.
+- Windows', `packaging/windows/buildmsi.ps1`, builds the MSI from the version the csprojs carry. Run it after the
+  merge, when an MSI is wanted.
 
-When one is wanted, generate the **first** MSI profile then. Its `upgradeCode` is created once and reused verbatim in
-every later version; its `productId` is new each time.
+## The Windows installer's identity
+
+There is no committed MSI profile per version (`dotnet-release`'s `msiProfiles/`). `buildmsi.ps1` writes the profile
+on every build from the csprojs' `<Version>` and its own constants, so a release changes nothing for the installer.
+
+- **`upgradeCode`** is `9f063d09-9f4e-4436-8cb3-39109eda380d`, written once in `buildmsi.ps1`. It is the code the MSI
+  that installed 1.9.0 carries, read from its package. It must never change: an MSI with another code installs beside
+  the old version instead of replacing it. `WindowsInstallerIdentityTests` pins it, with the product name and the
+  executable.
+- **`productId`** is new for every build.
+
+The MSI that installed 1.9.0 was built outside this repository with Enigma.Msi, as Enigma.GitClient's were.
