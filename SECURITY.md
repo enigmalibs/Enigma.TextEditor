@@ -12,7 +12,8 @@ Security fixes are provided for the latest released version. Enigma.TextEditor f
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.13.x  | :white_check_mark: |
+| 1.14.x  | :white_check_mark: |
+| 1.13.x  | :x:                |
 | 1.12.x  | :x:                |
 | 1.11.x  | :x:                |
 | 1.10.x  | :x:                |
@@ -68,7 +69,10 @@ The following are in scope:
   to it, how it reads a request and what it opens from one, and the `instance.json` file that names the window used
   last;
 - the Linux install and uninstall scripts in `packaging/linux`: what they write into your home directory, what they
-  remove, and the desktop entry they generate.
+  remove, and the desktop entry they generate;
+- the Windows installer built by `packaging/windows/buildmsi.ps1`: what the script deletes before it builds
+  (`git clean -dxf`), the Enigma.Msi profile it writes, and what the MSI installs: the editor for all users under
+  `%ProgramFiles%\Enigma Text Editor`, its desktop and program-menu shortcuts, and what uninstalling it removes.
 
 Issues rooted in Avalonia, AvaloniaEdit, TextMateSharp and its grammars, SkiaSharp or the .NET runtime should also be
 reported to those projects.

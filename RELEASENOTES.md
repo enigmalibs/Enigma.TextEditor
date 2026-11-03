@@ -1,5 +1,71 @@
 # Release notes
 
+## 1.14.0 — 2026-11-03
+
+A minor release with a new look for the icon and a Windows installer. The icon keeps its editor window but loses the
+dark tile behind it. On Windows, one script now builds an MSI that installs the editor for all users, with its
+shortcuts, and replaces a version installed from an earlier MSI.
+
+### Application icon
+
+- **The dark rounded tile is gone.** The editor window (the gutter of line marks, the four lines of text with the green
+  block cursor, and the status bar with its green mode pill) now stands on a transparent background, in the same blues.
+- **It shows everywhere the icon showed:** the Windows executable and taskbar, the window on every platform, the About
+  dialog, and the Linux launcher.
+- **The sizes are unchanged:** ten in the Windows icon, from 16 to 256 pixels, and eight in the Linux icon theme. The
+  small sizes (16 to 32 pixels) still come from a simplified drawing with heavier shapes.
+
+### Windows installer
+
+- **`packaging\windows\buildmsi.ps1`**, or `buildmsi.bat` from a `cmd` prompt, builds
+  `artifacts\Enigma.TextEditor.X.Y.Z.msi` in one step:
+  - it runs `git clean -dxf` first, which deletes **every file git does not track** in the repository, so commit or
+    move anything new before running it;
+  - it publishes the editor with `publish.ps1`, as before;
+  - it packages the result, uncompressed, with Enigma.Msi, whose worker is in `packaging\windows\Enigma.Msi.Worker\`.
+  The Enigma.Msi profile it was built from is kept beside the MSI, as `Enigma.TextEditor.X.Y.Z.msipkg.json`.
+- **What the MSI installs:**
+  - the editor, for all users, in `%ProgramFiles%\Enigma Text Editor` (`Program Files (x86)` on 64-bit Windows, since
+    the package is 32-bit);
+  - a shortcut named *Enigma Text Editor* on the desktop and one in the program menu;
+  - an entry in *Installed apps*, *Enigma Text Editor* by Josué Clément, with the icon.
+- **It replaces an earlier version installed from an MSI**, such as 1.9.0: every MSI carries the same upgrade code.
+  Uninstalling it leaves your settings, the log and `instance.json` in `%APPDATA%\Enigma.TextEditor` alone.
+- Building it needs Windows, the .NET 10 SDK and the WiX CLI (`dotnet tool install --global wix`). The script checks for
+  all three, and for the worker, before it cleans anything. The installed editor needs the .NET 10 runtime.
+
+### Upgrading from 1.13
+
+- **Your settings carry over** unchanged. 1.14 adds no settings key and no file, and going back to 1.13 reads the same
+  file.
+- **On Windows, an MSI built from 1.14 upgrades the installed version** in place. Explorer may show the old icon on a
+  shortcut until its icon cache refreshes.
+- **On Linux, run `packaging/linux/install.sh` again** to pick up the new icon. Some desktops cache icons until you log
+  in again.
+
+### Dependencies
+
+- **No change.** The Avalonia set is held back at **12.1.4**, with Enigma.Avalonia.Desktop 1.3.0. Avalonia 12.1.5
+  is out, but the set moves as a whole, and Enigma.Avalonia.Desktop has not moved.
+- Nothing else has an update.
+- The Windows installer's build uses Enigma.Msi 1.7.0's worker (WixSharp_wix4 2.14.2, WiX 4.0.1 assemblies) and the
+  WiX CLI. None of their files goes into the MSI.
+
+### Compatibility
+
+- Unchanged from 1.13.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+- The MSI is for Windows only. On Linux the installer is still `packaging/linux/install.sh`; macOS has none.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.14.0** is a minor release under Semantic Versioning. It changes the icon and adds a Windows installer, and keeps
+  every stored format and every default.
+
 ## 1.13.0 — 2026-11-02
 
 A minor release with a file explorer. A panel on the left of the panes shows a folder's files and folders as a tree.
