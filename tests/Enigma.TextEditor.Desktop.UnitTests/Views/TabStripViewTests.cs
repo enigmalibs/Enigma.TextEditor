@@ -16,11 +16,14 @@ namespace Enigma.TextEditor.Desktop.UnitTests.Views;
 
 /// <summary>
 /// The tab strip on the real window, through the real input system: the double-click on its empty part that opens a
-/// new tab.
+/// new tab, and the wheel that scrolls it when its tabs do not fit.
 /// </summary>
 [Collection(HeadlessCollection.Name)]
 public sealed class TabStripViewTests(HeadlessAvaloniaFixture fixture)
 {
+    // How far one notch moves the strip: Avalonia's step for Shift and the wheel, which the plain wheel matches.
+    private const double TabStripWheelStep = 50;
+
     [Fact]
     public void DoubleClicking_RightOfTheLastTab_OpensANewUntitledTabThere_WithTheKeyboard()
         => fixture.RunAsync(async () =>
@@ -79,6 +82,92 @@ public sealed class TabStripViewTests(HeadlessAvaloniaFixture fixture)
             Assert.True(right.EditorControl.TextArea.IsKeyboardFocusWithin);
             window.Close();
         });
+
+    [Fact]
+    public void TheWheel_OverAStripTooNarrowForItsTabs_ScrollsItSideways_AndStopsAtBothEnds()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", string.Concat(Enumerable.Repeat("line\n", 200))));
+            OpenUntitled(harness, 30);
+            MainWindow window = Show(harness);
+            EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
+            ScrollViewer strip = ScrollOf(pane);
+            strip.Offset = default;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(strip.Extent.Width > strip.Viewport.Width);
+            double end = strip.Extent.Width - strip.Viewport.Width;
+            double textOffset = pane.EditorControl.VerticalOffset;
+
+            window.MouseWheel(OnStrip(pane, window), new Vector(0, -1));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(TabStripWheelStep, strip.Offset.X, 0.5);
+
+            window.MouseWheel(OnStrip(pane, window), new Vector(0, 1));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(0, strip.Offset.X, 0.5);
+
+            window.MouseWheel(OnStrip(pane, window), new Vector(0, 1));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(0, strip.Offset.X, 0.5);
+
+            for (int notch = 0; notch < 200; notch++)
+            {
+                window.MouseWheel(OnStrip(pane, window), new Vector(0, -1));
+            }
+
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(end, strip.Offset.X, 0.5);
+            Assert.Equal(textOffset, pane.EditorControl.VerticalOffset);
+            window.Close();
+        });
+
+    [Fact]
+    public void TheWheel_OverAStripThatHoldsItsTabs_LeavesItWhereItIs()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a\n"));
+            MainWindow window = Show(harness);
+            EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
+            ScrollViewer strip = ScrollOf(pane);
+
+            window.MouseWheel(OnStrip(pane, window), new Vector(0, -1));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(0, strip.Offset.X);
+            window.Close();
+        });
+
+    [Fact]
+    public void ShiftAndTheWheel_OverAStripTooNarrowForItsTabs_StillScrollItSideways()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            OpenUntitled(harness, 30);
+            MainWindow window = Show(harness);
+            EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
+            ScrollViewer strip = ScrollOf(pane);
+            strip.Offset = default;
+            Dispatcher.UIThread.RunJobs();
+
+            window.MouseWheel(OnStrip(pane, window), new Vector(0, -1), RawInputModifiers.Shift);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(TabStripWheelStep, strip.Offset.X, 0.5);
+            window.Close();
+        });
+
+    private static void OpenUntitled(EditorHarness harness, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            harness.Workspace.NewDocument();
+        }
+    }
+
+    private static ScrollViewer ScrollOf(EditorPaneView pane)
+        => pane.FindControl<ListBox>("Tabs")!.GetVisualDescendants().OfType<ScrollViewer>().First();
 
     private static void DoubleClick(MainWindow window, Point point)
     {

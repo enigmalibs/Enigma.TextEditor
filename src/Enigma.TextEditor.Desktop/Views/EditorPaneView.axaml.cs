@@ -58,6 +58,12 @@ public partial class EditorPaneView : UserControl
     public const double LineNumberSpacing = 4;
 
     /// <summary>
+    /// How far one notch of the wheel moves the tab strip sideways: Avalonia's own step for Shift and the wheel, so
+    /// that both gestures move it alike.
+    /// </summary>
+    internal const double TabStripWheelStep = 50;
+
+    /// <summary>
     /// The editor's vertical scrollbar for the minimap setting: hidden while the minimap stands in for
     /// it, shown when needed otherwise.
     /// </summary>
@@ -138,6 +144,9 @@ public partial class EditorPaneView : UserControl
         // A double-click on the strip's empty part opens a new tab there. Handled events too: the list takes the press
         // the double-click is made of.
         Strip.AddHandler(DoubleTappedEvent, OnStripDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
+
+        // Not handled events: Shift+wheel and a sideways swipe already scroll the strip, and must not scroll it twice.
+        Tabs.AddHandler(PointerWheelChangedEvent, OnTabsPointerWheelChanged, RoutingStrategies.Bubble);
     }
 
     /// <summary>
@@ -376,6 +385,27 @@ public partial class EditorPaneView : UserControl
 
         e.Handled = true;
         _pane?.CloseTabCommand.Execute(tab);
+    }
+
+    // The list scrolls each axis by the wheel's own delta, and the strip has no vertical one to scroll: a plain wheel,
+    // which only turns vertically, would move nothing. Down goes on to the later tabs, as in a browser's strip.
+    private void OnTabsPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if ((e.Delta.Y == 0) || (Tabs.Scroll is not ScrollViewer scroll))
+        {
+            return;
+        }
+
+        double end = Math.Max(0, scroll.Extent.Width - scroll.Viewport.Width);
+        double offset = Math.Clamp(scroll.Offset.X - (e.Delta.Y * TabStripWheelStep), 0, end);
+
+        if (Math.Abs(offset - scroll.Offset.X) < 0.5)
+        {
+            return;
+        }
+
+        scroll.Offset = new Vector(offset, scroll.Offset.Y);
+        e.Handled = true;
     }
 
     // Right of the last tab, or under the tabs: not on a tab — its close button is part of it — and not on the scrollbar,

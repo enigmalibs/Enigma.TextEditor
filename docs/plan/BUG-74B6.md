@@ -1,6 +1,6 @@
 # BUG-74B6 — Wheel does not scroll the tab strip
 
-**Status:** TODO
+**Status:** DONE
 **Type:** BUG
 **Branch:** `bugfix/bug-74b6-tab-strip-wheel`
 **Run:** feature/2026-11-02-tab-strip-file-explorer
