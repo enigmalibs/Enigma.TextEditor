@@ -146,6 +146,50 @@ public sealed class DocumentRegistry
         return remaining;
     }
 
+    /// <summary>
+    /// Gets the buffers whose file is a path, or lies under it when it is a folder.
+    /// </summary>
+    /// <param name="path">The file or folder.</param>
+    /// <returns>The buffers, in the order they were opened.</returns>
+    public IReadOnlyList<DocumentViewModel> FindUnder(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+
+        return [.. _documents.Where(document => (document.FilePath is { } file) && IsAtOrUnder(file, root))];
+    }
+
+    /// <summary>
+    /// Moves the buffers of a renamed or moved file — or of every file under a renamed or moved folder — to the same
+    /// place under its new path.
+    /// </summary>
+    /// <param name="oldPath">Where the file or folder was.</param>
+    /// <param name="newPath">Where it is now.</param>
+    /// <returns>How many buffers moved.</returns>
+    public int Relocate(string oldPath, string newPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(oldPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(newPath);
+
+        string from = Path.TrimEndingDirectorySeparator(Path.GetFullPath(oldPath));
+        string to = Path.TrimEndingDirectorySeparator(Path.GetFullPath(newPath));
+        IReadOnlyList<DocumentViewModel> moving = FindUnder(from);
+
+        foreach (DocumentViewModel document in moving)
+        {
+            document.Relocate(to + document.FilePath![from.Length..]);
+        }
+
+        return moving.Count;
+    }
+
+    private static bool IsAtOrUnder(string file, string root)
+        => string.Equals(file, root, PathComparison)
+            || (file.StartsWith(root, PathComparison)
+                && (file.Length > root.Length)
+                && ((file[root.Length] == Path.DirectorySeparatorChar) || (file[root.Length] == Path.AltDirectorySeparatorChar)));
+
     private DocumentViewModel? Find(string filePath, bool hex)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);

@@ -1,5 +1,100 @@
 # Release notes
 
+## 1.13.0 — 2026-11-02
+
+A minor release with a file explorer. A panel on the left of the panes shows a folder's files and folders as a tree.
+From it you open a file with a double-click, and create, rename and delete files and folders. The tab strip changes a
+little too: a double-click on its empty part opens a new tab, and the mouse wheel scrolls it.
+
+### The file explorer
+
+- **A panel on the left of the panes**, hidden until you show it with the first button of the status bar,
+  **View → Explorer** or Ctrl+Shift+E. The same three hide it again.
+  - It is 260 px wide at first. Drag its edge to widen or narrow it, down to 160 px; the panes keep at least 240.
+    Hidden and shown again, it keeps its width.
+  - The button is on the status bar of the files page only. Showing the explorer from the settings page brings the
+    files page back.
+  - Ctrl+Shift+E gives it the keyboard: the tree, or the *Open Folder…* button when no folder is open. Esc gives the
+    keyboard back to the text.
+- **Open Folder…**, in the panel or the **File** menu, asks for a folder, starting in the open one, else in the folder
+  of the file you are on. One folder is open at a time: opening another replaces it, and opening one shows the panel.
+- **Close Folder**, in the panel or the **File** menu, empties the panel.
+- **The tree** shows the folder's files and folders. The folder's name heads the panel, with its path as a tooltip.
+  - Folders come first, then files, each in natural order and ignoring case, so `file2` comes before `file10`.
+  - Nothing is hidden: dot files and hidden entries are listed.
+  - A folder is read the first time it is expanded. A folder that cannot be read shows one row saying why:
+    *Not found*, *No access* or *Cannot be read*.
+- **A double-click or Enter opens a file** in the pane you are in, which takes the keyboard. It opens as with
+  **File → Open…**: a binary file is asked about, and a file already open is shown. On a folder, the same keys expand
+  or collapse it.
+- **Refresh** reads the folder again. The explorer does not watch the disk, so after changes made outside the editor,
+  press it. The folders you expanded stay expanded, and the selection stays on its entry if that is still there.
+- **Its right-click menu** acts on the row you click, or on the folder itself from the empty part of the tree:
+  - **New File…** and **New Folder…** create an entry in the selected folder, beside the selected file, or in the
+    folder itself. The name is checked as you type it: an empty name, `.` or `..`, a path separator, a character or a
+    name the system does not allow, and a name already taken are refused before you can confirm. Nothing is ever
+    overwritten. The new entry is selected, and a new file, empty, opens;
+  - **Rename…** (F2) starts with the current name, the part before its extension selected. A change of case alone
+    works. The tabs of the renamed file, or of the files under a renamed folder, follow it with their unsaved
+    changes, so a save never brings the old name back;
+  - **Delete** (Delete) asks first, then moves the entry to the Recycle Bin on Windows or the trash on Linux. If the
+    trash refuses the entry, a second question offers to delete it for good; where there is no trash, that is the
+    only question. Both questions have *Cancel* as their default, so an Enter typed too soon deletes nothing.
+- **The tabs of deleted files close**, unless they hold unsaved changes: those stay open, and a save writes the file
+  again.
+- **When an operation fails**, for a file in use or a name taken in the meantime, an error says so, and the folder is
+  read again.
+- **Nothing is remembered** from one run to the next: the explorer starts hidden, at its first width, with no folder.
+- **Help → Key Bindings** lists the explorer's keys under *Files & tabs*, and Ctrl+Shift+E and Esc under
+  *Application*.
+
+### The tab strip
+
+- **A double-click on the empty part of a pane's tab strip**, right of the last tab or below the tabs, opens a new
+  untitled document in a new tab at the end of that pane, as **File → New** does. That pane takes the keyboard, even
+  when it was not the one you were in.
+  - A double-click on a tab, its **×** or the strip's scrollbar opens nothing.
+  - **Help → Key Bindings** lists it under *Files & tabs*.
+- **The mouse wheel scrolls a tab strip** too narrow for its tabs, sideways: down towards the later tabs, up towards
+  the first. It stops at both ends.
+  - In 1.12, only Shift and the wheel, a sideways swipe or the scrollbar moved it. Those work as before, and a notch
+    moves the strip as far with Shift as without.
+
+### Upgrading from 1.12
+
+- **Your settings carry over** unchanged. 1.13 adds no settings key and no file: the explorer remembers nothing
+  between runs. Going back to 1.12 reads the same file.
+- **A 1.12 window still open takes the files of a 1.13 launch**, since handing files to the running window has not
+  changed. Close every window to start using 1.13.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- **No change.** The Avalonia set is held back at **12.1.4**, with Enigma.Avalonia.Desktop 1.3.0. Avalonia 12.1.5
+  is out, but the set moves as a whole, and Enigma.Avalonia.Desktop has not moved.
+- AvaloniaEdit 12.0.0 is the latest. Microsoft.Extensions.Hosting stays at 10.0.14: its 11.0.0 is a release candidate
+  only, and is not taken. Nothing else has an update.
+
+### Compatibility
+
+- Unchanged from 1.12.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+- **Where a deleted entry goes:**
+  - on Windows, the Recycle Bin;
+  - on Linux, the trash, through `gio trash` where it is installed. Without it, the trash in your home folder, which
+    takes only entries on the same drive as your home: for an entry elsewhere, you are offered a permanent delete;
+  - on macOS, the trash is not used yet: a delete asks once, for a permanent delete.
+- Handing files to the running window is still built for Windows and Linux, and has not been tried on macOS.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.13.0** is a minor release under Semantic Versioning. It adds a file explorer and a new tab on a double-click of
+  the tab strip, makes the mouse wheel scroll the tab strip, and keeps every stored format and every default.
+
 ## 1.12.0 — 2026-10-31
 
 A minor release with two additions. In 1.11 a tab dropped near an edge of a pane split that pane. Now files dropped

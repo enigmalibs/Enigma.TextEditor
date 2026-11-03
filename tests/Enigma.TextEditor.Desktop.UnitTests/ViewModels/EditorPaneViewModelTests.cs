@@ -116,6 +116,19 @@ public sealed class EditorPaneViewModelTests
         Assert.Same(tab, Assert.Single(closed));
     }
 
+    [Fact]
+    public void NewTab_AsksTheHostForANewBufferInThisPane()
+    {
+        using TempFolder folder = new();
+        EditorPreferences preferences = new(SettingsLoader.Load(folder.PathOf(AppPaths.SettingsFileName)).Config);
+        RecordingHost host = new([]);
+        EditorPaneViewModel pane = new(preferences, host);
+
+        pane.NewTab();
+
+        Assert.Same(pane, Assert.Single(host.NewDocumentPanes));
+    }
+
     private static EditorPaneViewModel NewPane(out List<EditorTabViewModel> closed)
     {
         List<EditorTabViewModel> asked = [];
@@ -144,6 +157,14 @@ public sealed class EditorPaneViewModelTests
         public Task ExecuteExAsync(EditorPaneViewModel pane, VimExRequest request) => Task.CompletedTask;
 
         public Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths) => Task.CompletedTask;
+
+        public List<EditorPaneViewModel> NewDocumentPanes { get; } = [];
+
+        public EditorTabViewModel? NewDocument(EditorPaneViewModel pane)
+        {
+            NewDocumentPanes.Add(pane);
+            return null;
+        }
 
         public bool CanMoveTabTo(EditorPaneViewModel target, EditorTabViewModel tab) => false;
 

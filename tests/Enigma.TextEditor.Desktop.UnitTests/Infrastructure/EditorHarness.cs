@@ -26,13 +26,14 @@ internal sealed class EditorHarness : IDisposable
         Preferences = new EditorPreferences(Settings);
         Vim = new VimSession(Settings, StatusLine);
         Workspace = new WorkspaceViewModel(Documents, Registry, Prompts, Unsaved, StatusLine, Vim, VimShared, Shutdown, Preferences, Help, Languages);
+        Explorer = new FileExplorerViewModel(Workspace, Prompts, ExplorerPrompts, Messages, Trash);
         StatusBar = new StatusBarViewModel(Workspace, StatusLine);
         Tools = new ToolsViewModel(Workspace, LanguagePicker, EncodingPicker, Confirm, Documents);
         SettingsWriter = new SettingsWriter(Settings, Messages, NullLogger<SettingsWriter>.Instance);
         SettingsMenu = new SettingsMenuViewModel(Settings, SettingsWriter, Theme, Vim, Preferences);
         PreferencesPage = new PreferencesViewModel(Settings, SettingsMenu);
         Window = new MainWindowViewModel(
-            Workspace, StatusBar, Tools, SettingsMenu, Shell, PreferencesPage, About, Help, firstRun ?? FirstRunState.Returning, FirstRunDialog, Shutdown);
+            Workspace, Explorer, StatusBar, Tools, SettingsMenu, Shell, PreferencesPage, About, Help, firstRun ?? FirstRunState.Returning, FirstRunDialog, Shutdown);
     }
 
     public TempFolder Folder { get; } = new();
@@ -40,6 +41,10 @@ internal sealed class EditorHarness : IDisposable
     public IConfig<AppSettings> Settings { get; }
 
     public FakeFilePrompts Prompts { get; } = new();
+
+    public FakeFileExplorerPrompts ExplorerPrompts { get; } = new();
+
+    public FakeTrashService Trash { get; } = new();
 
     public FakeMessageService Messages { get; } = new();
 
@@ -93,6 +98,8 @@ internal sealed class EditorHarness : IDisposable
     public EditorPreferences Preferences { get; }
 
     public WorkspaceViewModel Workspace { get; }
+
+    public FileExplorerViewModel Explorer { get; }
 
     public StatusBarViewModel StatusBar { get; }
 

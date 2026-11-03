@@ -5,10 +5,13 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.12** — drop files from outside the editor near an edge of a pane, and that pane splits on that
-> side with the files in the new half, highlighted while you drag as for a tab; and a font size button on the status
-> bar, listing the sizes to pick from with the current one checked. 1.11 brought splitting a pane by dropping a tab
-> near its edge, its own pane included, with the half it will take highlighted. 1.10 brought moving a tab to
+> **What's new in 1.13** — a file explorer on the left of the panes, shown with the status bar's first button,
+> **View → Explorer** or Ctrl+Shift+E: open a folder, open its files with a double-click, and create, rename and
+> delete files and folders, to the Recycle Bin or the trash after asking. A double-click on the empty part of a tab
+> strip opens a new tab there, and the mouse wheel scrolls a strip too narrow for its tabs. 1.12 brought splitting a
+> pane by dropping files from outside the editor near its edge, with the half they will take highlighted, and a font
+> size button on the status bar. 1.11 brought splitting a pane by dropping a tab near its edge, its own pane
+> included, with the half it will take highlighted. 1.10 brought moving a tab to
 > another pane with `Space mh`, `mj`, `mk`, `ml`, or by dragging it there; and, for a file opened from the system while
 > the editor is running, a tab in the window you used last instead of a second window. 1.9 brought a dialog for an error that nothing else handles, with details to copy for a bug report,
 > while the editor keeps running; the icon beside the executable as `app.ico`; and one script per platform to publish
@@ -26,7 +29,7 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 > [RELEASENOTES.md](RELEASENOTES.md).
 
 **Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its **×**,
-a middle click or Ctrl+F4. Ctrl+Tab and Ctrl+Shift+Tab, or `gt` and `gT`, move between tabs. Panes split any way you
+a middle click or Ctrl+F4. A double-click on the empty part of a pane's tab strip opens a new untitled tab there. Ctrl+Tab and Ctrl+Shift+Tab, or `gt` and `gT`, move between tabs. Panes split any way you
 like: right or down from the **View** menu, `Ctrl+W v` and `Ctrl+W s`, or `:vs` and `:sp`, each opening a new untitled
 document in the new pane, or the file you name (`:sp notes.txt`). The View menu and `Ctrl+W` also close a pane, keep
 only this one, make them all the same size (`g=` too), and move to the next one. With several panes, the one with the
@@ -59,8 +62,15 @@ changes away, and Vim's abbreviations (`:vsp`, `:clo`). **Help → Key Bindings*
 Vim can be switched off in **Settings → Vim Mode**: the keys then type, as in any editor. While it is on, the menus
 and the editor's right-click menu show the Vim keys of the commands that have them.
 
-**Files.** Open them with **File → Open…** (several at once), by dropping them on a pane, or by naming them on the
-command line. Dropped near an edge of a pane's text, they split that pane on that side and open in the new half; as for
+**Files.** Open them with **File → Open…** (several at once), by dropping them on a pane, by naming them on the
+command line, or from the explorer. The explorer is a panel on the left of the panes, hidden until you show it with the
+first button of the status bar, **View → Explorer** or Ctrl+Shift+E; drag its edge to widen it. **Open Folder…**, in
+the panel or the **File** menu, shows a folder's files and folders as a tree, folders first; a double-click or Enter
+opens a file in the pane you are in, Esc goes back to the text, **Refresh** reads the folder again after changes made
+outside the editor, and **Close Folder** empties the panel. Its right-click menu creates a file (which opens) or a
+folder, renames one (F2; the tabs of the files it moves follow them) and deletes one (Delete), to the Recycle Bin or
+the trash after asking, or for good after asking again where there is none; the tabs of deleted files close, unless
+they hold unsaved changes. Dropped near an edge of a pane's text, they split that pane on that side and open in the new half; as for
 a tab, the part of the pane they will go to is highlighted while you drag. A name that does not exist yet, in a folder that does, opens an empty document that the first save
 creates. A file opened from the system — a double-click, *Open with* — while the editor is running opens as a tab in
 the window you used last, which comes to the front; started without a file, the editor opens a new window, so
@@ -89,6 +99,7 @@ scroll.
 
 **The status bar** shows, left to right:
 
+- the explorer's button, on the files page;
 - the Vim mode;
 - the line and column;
 - the indentation;

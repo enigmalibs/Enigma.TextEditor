@@ -263,6 +263,13 @@ public sealed class EditorPaneViewModel : ObservableObject
     public Task OpenDroppedAsync(IReadOnlyList<string> paths) => _host.OpenDroppedAsync(this, paths);
 
     /// <summary>
+    /// Opens a new untitled buffer in a new tab at the end of this pane, which takes the keyboard: a double-click on
+    /// the empty part of the tab strip.
+    /// </summary>
+    /// <returns>The new tab, or <see langword="null"/> when the pane is not in its editor area.</returns>
+    public EditorTabViewModel? NewTab() => _host.NewDocument(this);
+
+    /// <summary>
     /// Whether a tab dragged over this pane could be dropped here: it is on another pane.
     /// </summary>
     /// <param name="tab">The tab.</param>

@@ -18,9 +18,11 @@ internal sealed class TempFolder : IDisposable
 
     public string PathOf(string name) => Path.Combine(Root, name);
 
+    // A name with folders in it gets them.
     public string Write(string name, string text)
     {
         string path = PathOf(name);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, text);
         return path;
     }
