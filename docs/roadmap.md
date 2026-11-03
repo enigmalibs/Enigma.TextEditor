@@ -117,7 +117,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE04    | Rename files and folders             | DONE        | (in FEATURE-F0CE.md)      |
 | - PHASE05    | Delete files and folders             | DONE        | (in FEATURE-F0CE.md)      |
 | FEATURE-6D39 | Release 1.13.0                       | DONE        | docs/plan/FEATURE-6D39.md |
-| FEATURE-3266 | New icon set without the tile        | TODO        | docs/plan/FEATURE-3266.md |
+| FEATURE-3266 | New icon set without the tile        | DONE        | docs/plan/FEATURE-3266.md |
 | FEATURE-37C9 | Windows MSI build script             | TODO        | docs/plan/FEATURE-37C9.md |
 | - PHASE01    | Vendor the Enigma.Msi worker         | TODO        | (in FEATURE-37C9.md)      |
 | - PHASE02    | The buildmsi script                  | TODO        | (in FEATURE-37C9.md)      |
