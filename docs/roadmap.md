@@ -108,5 +108,13 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Split a pane for dropped files       | DONE        | (in FEATURE-B751.md)      |
 | - PHASE02    | File drop zones and their hint       | DONE        | (in FEATURE-B751.md)      |
 | FEATURE-C188 | Release 1.12.0                       | DONE        | docs/plan/FEATURE-C188.md |
+| FEATURE-4107 | New tab on a tab strip double-click  | TODO        | docs/plan/FEATURE-4107.md |
+| BUG-74B6     | Wheel does not scroll the tab strip  | TODO        | docs/plan/BUG-74B6.md     |
+| FEATURE-F0CE | File explorer on the files page      | TODO        | docs/plan/FEATURE-F0CE.md |
+| - PHASE01    | Folder tree model                    | TODO        | (in FEATURE-F0CE.md)      |
+| - PHASE02    | Explorer panel and its toggle        | TODO        | (in FEATURE-F0CE.md)      |
+| - PHASE03    | New file and new folder              | TODO        | (in FEATURE-F0CE.md)      |
+| - PHASE04    | Rename files and folders             | TODO        | (in FEATURE-F0CE.md)      |
+| - PHASE05    | Delete files and folders             | TODO        | (in FEATURE-F0CE.md)      |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
