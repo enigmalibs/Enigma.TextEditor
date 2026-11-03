@@ -1,5 +1,61 @@
 # Release notes
 
+## 1.15.0 — 2026-11-03
+
+A minor release that makes the icon bigger. Its editor window, still without a tile, is drawn larger so it fills its
+frame, and it reads better on the taskbar and in a launcher. Nothing else changes.
+
+### Application icon
+
+- **The editor window fills its frame.** It is the same drawing as 1.14's, on the same transparent background and in
+  the same blues:
+  - the gutter of line marks;
+  - the four lines of text with the green block cursor;
+  - the status bar with its green mode pill.
+
+  It is drawn about a quarter larger, and its longest side now runs almost from edge to edge.
+- **The small sizes are redrawn too.** From 16 to 32 pixels, the simplified drawing with heavier shapes fills the same
+  area.
+- **It shows everywhere the icon showed:**
+  - the Windows executable and taskbar;
+  - the window, on every platform;
+  - the About dialog;
+  - the MSI's shortcuts and its *Installed apps* entry;
+  - the Linux launcher.
+- **The sizes are unchanged:** ten in the Windows icon, from 16 to 256 pixels, and eight in the Linux icon theme.
+
+### Upgrading from 1.14
+
+- **Your settings carry over** unchanged. 1.15 adds no settings key and no file, and going back to 1.14 reads the same
+  file.
+- **On Windows, an MSI built from 1.15 upgrades the installed version** in place, 1.14.0 included:
+  - `packaging\windows\buildmsi.ps1` names it `Enigma.TextEditor.1.15.0.msi`;
+  - the script takes the version from the projects, so it needs no change of its own.
+
+  Explorer may show the old icon on a shortcut until its icon cache refreshes.
+- **On Linux, run `packaging/linux/install.sh` again** to pick up the new icon. Some desktops cache icons until you log
+  in again.
+
+### Dependencies
+
+- **No change.** The Avalonia set is held back at **12.1.4**, with Enigma.Avalonia.Desktop 1.3.0. Avalonia 12.1.5
+  is out, but the set moves as a whole, and Enigma.Avalonia.Desktop has not moved.
+- Nothing else has an update.
+
+### Compatibility
+
+- Unchanged from 1.14.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.15.0** is a minor release under Semantic Versioning. It changes the icon, and keeps every stored format and every
+  default.
+
 ## 1.14.0 — 2026-11-03
 
 A minor release with a new look for the icon and a Windows installer. The icon keeps its editor window but loses the
