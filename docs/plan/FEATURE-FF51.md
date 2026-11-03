@@ -1,6 +1,6 @@
 # FEATURE-FF51 — Icon set filling the frame (final3)
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-ff51-final3-icon-set`
 **Run:** feature/2026-11-03-final3-icons-release

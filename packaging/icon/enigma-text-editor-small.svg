@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Enigma.TextEditor application icon without the tile, simplified for the 16 to 32 px frames: enigma-text-editor.svg with heavier marks and fewer details.
+  Enigma.TextEditor application icon without the tile, filling the frame (final3), simplified for the 16 to 32 px frames: enigma-text-editor.svg with heavier marks and fewer details.
+  Drawn on the live area, 16 to 240, with its straight edges on the 16-unit grid.
+  Regenerate the SVGs, the PNG frames and the .ico with: python3 Branding/Apps/export.py final3
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256">
-  <rect x="32" y="40" width="192" height="176" rx="24" fill="#6A9BF4"/>
-  <path d="M56 40H64V176H32V64A24 24 0 0 1 56 40Z" fill="#4F7FDB"/>
-  <path d="M32 176H224V192A24 24 0 0 1 200 216H56A24 24 0 0 1 32 192Z" fill="#304A7F"/>
-  <rect x="48" y="184" width="48" height="16" rx="4" fill="#63C77D"/>
-  <rect x="80" y="64" width="112" height="16" fill="#304A7F"/>
-  <rect x="80" y="96" width="64" height="16" fill="#304A7F"/>
-  <rect x="80" y="128" width="96" height="16" fill="#304A7F"/>
-  <rect x="160" y="88" width="24" height="32" fill="#63C77D"/>
+  <rect x="16" y="32" width="224" height="192" rx="24" fill="#6A9BF4"/>
+  <path d="M40 32H48V176H16V56A24 24 0 0 1 40 32Z" fill="#4F7FDB"/>
+  <path d="M16 176H240V200A24 24 0 0 1 216 224H40A24 24 0 0 1 16 200Z" fill="#304A7F"/>
+  <rect x="32" y="192" width="48" height="16" rx="4" fill="#63C77D"/>
+  <rect x="64" y="64" width="128" height="16" fill="#304A7F"/>
+  <rect x="64" y="96" width="80" height="16" fill="#304A7F"/>
+  <rect x="64" y="128" width="112" height="16" fill="#304A7F"/>
+  <rect x="160" y="80" width="16" height="48" fill="#63C77D"/>
 </svg>
