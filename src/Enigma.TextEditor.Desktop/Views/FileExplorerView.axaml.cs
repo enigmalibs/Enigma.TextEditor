@@ -110,6 +110,10 @@ public partial class FileExplorerView : UserControl
                 explorer.RenameCommand.ExecuteAsync(null).Forget();
                 break;
 
+            case Key.Delete when explorer.DeleteCommand.CanExecute(null):
+                explorer.DeleteCommand.ExecuteAsync(null).Forget();
+                break;
+
             default:
                 return;
         }

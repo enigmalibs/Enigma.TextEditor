@@ -3,6 +3,7 @@ using Enigma.Avalonia.Desktop.Services;
 using Enigma.Logging.NLog;
 using Enigma.TextEditor.Core;
 using Enigma.TextEditor.Core.Configuration;
+using Enigma.TextEditor.Core.Files;
 using Enigma.TextEditor.Core.Settings;
 using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
@@ -130,6 +131,9 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<EditorPreferences>();
             services.AddSingleton<WorkspaceViewModel>();
             services.AddSingleton<IFileExplorerPrompts, FileExplorerPrompts>();
+
+            // The recycle bin on Windows, the freedesktop trash on Linux, none elsewhere: decided once, here.
+            services.AddSingleton(_ => TrashService.ForCurrentPlatform());
             services.AddSingleton<FileExplorerViewModel>();
             services.AddSingleton<StatusBarViewModel>();
             services.AddSingleton<ToolsViewModel>();

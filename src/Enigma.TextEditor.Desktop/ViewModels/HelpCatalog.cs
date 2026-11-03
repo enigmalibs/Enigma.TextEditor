@@ -138,6 +138,7 @@ public static class HelpCatalog
             Keys("Drop files on a pane's edge", "Split that pane there, the files in the new half"),
             Keys("Double-click or Enter in the explorer", "Open the file; a folder opens or closes"),
             Keys("F2 in the explorer", "Rename the file or folder; its open tabs follow it"),
+            Keys("Delete in the explorer", "Move the file or folder to the trash, after asking"),
         ]),
         Section("Panes", PhosphorIcon.Columns, "Ctrl+W, then the key",
         [

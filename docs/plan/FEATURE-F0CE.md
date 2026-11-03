@@ -1,6 +1,6 @@
 # FEATURE-F0CE — File explorer on the files page
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-f0ce-phase01-folder-tree-model`
 **Branch (PHASE02):** `feature/feature-f0ce-phase02-explorer-panel`
@@ -214,7 +214,7 @@ Give the files page a file explorer, to open the files of a folder quickly:
 
 ## PHASE05 — Delete files and folders
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

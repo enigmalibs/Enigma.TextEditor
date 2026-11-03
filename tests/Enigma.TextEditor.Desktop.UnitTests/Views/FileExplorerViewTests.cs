@@ -395,6 +395,67 @@ public sealed class FileExplorerViewTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
+    public void Delete_InTheTree_DeletesTheSelectedRow_AsTheMenusDeleteDoes()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            string project = Project(harness);
+            MainWindow window = Show(harness);
+            await harness.Explorer.OpenFolderAsync(project);
+            await DrainAsync();
+            harness.Explorer.SelectedNode = harness.Explorer.Roots.Single(row => row.Name == "readme.txt");
+            await DrainAsync();
+
+            ContextMenu menu = ExplorerOf(window).TreeControl.ContextMenu!;
+            RightClick(window, RowOf(window, "readme.txt"));
+            await DrainAsync();
+            MenuItem delete = menu.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "_Delete");
+            Assert.Same(harness.Explorer.DeleteCommand, delete.Command);
+            Assert.Equal(new KeyGesture(Key.Delete), delete.InputGesture);
+            menu.Close();
+            await DrainAsync();
+            ExplorerOf(window).FocusContent();
+            await DrainAsync();
+
+            window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.Delete, null);
+            await UntilAsync(() => Rows(window).Length == 1);
+
+            Assert.Equal(["trash readme.txt"], harness.ExplorerPrompts.Confirmations);
+            Assert.False(File.Exists(Path.Combine(project, "readme.txt")));
+            Assert.Equal(["docs"], Rows(window).Select(row => row.Name));
+            window.Close();
+        });
+
+    [Fact]
+    public void TheTrashQuestion_DefaultsToCancel_AndOnlyDeleteConfirms()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            MainWindow window = Show(harness);
+            ContentDialogService dialogs = new();
+            dialogs.RegisterHost(window.HostDialog);
+            FileExplorerPrompts prompts = new(dialogs);
+
+            Task<bool> asked = prompts.ConfirmMoveToTrashAsync("docs", isFolder: true);
+            await SettleAsync();
+
+            Assert.Equal("Delete 'docs'?", window.HostDialog.Title);
+            Assert.Equal("Delete", window.HostDialog.PrimaryButtonText);
+            Assert.Equal("Cancel", (window.FocusManager?.GetFocusedElement() as Button)?.Content);
+            window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+            await SettleAsync();
+            Assert.False(await asked);
+
+            Task<bool> forGood = prompts.ConfirmPermanentDeleteAsync("readme.txt", isFolder: false);
+            await SettleAsync();
+            Assert.Equal("Delete 'readme.txt' permanently?", window.HostDialog.Title);
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            await SettleAsync();
+            Assert.False(await forGood);
+            window.Close();
+        });
+
+    [Fact]
     public void TheToggle_IsNotOnTheSettingsPage()
         => fixture.Run(() =>
         {

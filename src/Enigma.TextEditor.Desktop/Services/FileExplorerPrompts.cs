@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Media;
 using Enigma.Avalonia.Desktop.Controls.ContentDialog;
 using Enigma.Avalonia.Desktop.Services;
 using Enigma.TextEditor.Core.Files;
@@ -53,6 +55,49 @@ public sealed class FileExplorerPrompts : IFileExplorerPrompts
             isFolder ? "Rename folder" : "Rename file",
             "Rename",
             new FileNamePromptViewModel(parent, isFolder, name, currentName: name));
+    }
+
+    /// <inheritdoc />
+    public Task<bool> ConfirmMoveToTrashAsync(string name, bool isFolder)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return ConfirmAsync(
+            $"Delete '{name}'?",
+            $"The {What(isFolder)} will be moved to the {TrashName}, where it can be restored from.",
+            "Delete");
+    }
+
+    /// <inheritdoc />
+    public Task<bool> ConfirmPermanentDeleteAsync(string name, bool isFolder)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return ConfirmAsync(
+            $"Delete '{name}' permanently?",
+            $"It cannot be moved to the {TrashName}, so the {What(isFolder)} would be deleted outright. This cannot be undone.",
+            "Delete permanently");
+    }
+
+    // What the platform calls the place a deleted entry can be fetched back from: the name the user knows it by.
+    private static string TrashName => OperatingSystem.IsWindows() ? "Recycle Bin" : "trash";
+
+    private static string What(bool isFolder) => isFolder ? "folder and everything in it" : "file";
+
+    // A question about removing something from disk: Cancel is the default button, and only a press of the confirming
+    // one counts — Escape and a click outside answer None.
+    private async Task<bool> ConfirmAsync(string title, string message, string confirmText)
+    {
+        DialogResult result = await _dialogs.ShowAsync(dialog =>
+        {
+            dialog.Title = title;
+            dialog.Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap };
+            dialog.PrimaryButtonText = confirmText;
+            dialog.CloseButtonText = "Cancel";
+            dialog.DefaultButton = DefaultButton.Close;
+        });
+
+        return result == DialogResult.Primary;
     }
 
     private async Task<string?> AskNameAsync(string title, string confirmText, FileNamePromptViewModel prompt)

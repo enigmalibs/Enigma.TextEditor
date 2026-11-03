@@ -168,4 +168,45 @@ public sealed class FileOperationsTests
         await Assert.ThrowsAsync<FileOperationException>(
             () => FileOperations.RenameAsync(folder.Combine("gone.md"), "todo.md", TestContext.Current.CancellationToken));
     }
+
+    [Fact]
+    public async Task ADeletedFile_IsGone()
+    {
+        using TempTreeFolder folder = new();
+        string path = folder.AddFile("notes.md", "text");
+
+        await FileOperations.DeleteAsync(path, TestContext.Current.CancellationToken);
+
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    public async Task ADeletedFolder_TakesEverythingUnderItWithIt()
+    {
+        using TempTreeFolder folder = new();
+        string path = folder.AddDirectory("drafts");
+        folder.AddFile(Path.Combine("drafts", "2024", "notes.md"), "text");
+
+        await FileOperations.DeleteAsync(path, TestContext.Current.CancellationToken);
+
+        Assert.False(Directory.Exists(path));
+        Assert.Empty(Directory.GetFileSystemEntries(folder.Root));
+    }
+
+    [Fact]
+    public async Task DeletingSomethingThatIsAlreadyGone_IsNotAFailure()
+    {
+        using TempTreeFolder folder = new();
+
+        // The caller asked for it not to be there, and it is not there.
+        await FileOperations.DeleteAsync(folder.Combine("gone.md"), TestContext.Current.CancellationToken);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task ANamelessPathToDelete_IsRejected(string? path)
+        => await Assert.ThrowsAnyAsync<ArgumentException>(
+            () => FileOperations.DeleteAsync(path!, TestContext.Current.CancellationToken));
 }

@@ -39,4 +39,24 @@ internal sealed class FakeFileExplorerPrompts : IFileExplorerPrompts
 
         return Task.FromResult(NewNames.Count > 0 ? NewNames.Dequeue() : null);
     }
+
+    public bool ConfirmsTrash { get; set; } = true;
+
+    public bool ConfirmsPermanentDelete { get; set; } = true;
+
+    public List<string> Confirmations { get; } = [];
+
+    public Task<bool> ConfirmMoveToTrashAsync(string name, bool isFolder)
+    {
+        Confirmations.Add($"trash {name}");
+
+        return Task.FromResult(ConfirmsTrash);
+    }
+
+    public Task<bool> ConfirmPermanentDeleteAsync(string name, bool isFolder)
+    {
+        Confirmations.Add($"delete {name}");
+
+        return Task.FromResult(ConfirmsPermanentDelete);
+    }
 }

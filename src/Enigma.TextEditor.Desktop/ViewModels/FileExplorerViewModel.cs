@@ -42,6 +42,7 @@ public sealed class FileExplorerViewModel : ObservableObject
     private readonly IFilePrompts _prompts;
     private readonly IFileExplorerPrompts _questions;
     private readonly IMessageService _messages;
+    private readonly ITrashService _trash;
     private CancellationTokenSource _work = new();
 
     /// <summary>
@@ -51,16 +52,19 @@ public sealed class FileExplorerViewModel : ObservableObject
     /// <param name="prompts">The folder picker.</param>
     /// <param name="questions">Asks for names, and for confirmations.</param>
     /// <param name="messages">Reports an operation that failed.</param>
+    /// <param name="trash">Where a deleted entry goes, when the platform has somewhere to put it.</param>
     public FileExplorerViewModel(
         WorkspaceViewModel workspace,
         IFilePrompts prompts,
         IFileExplorerPrompts questions,
-        IMessageService messages)
+        IMessageService messages,
+        ITrashService trash)
     {
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         _prompts = prompts ?? throw new ArgumentNullException(nameof(prompts));
         _questions = questions ?? throw new ArgumentNullException(nameof(questions));
         _messages = messages ?? throw new ArgumentNullException(nameof(messages));
+        _trash = trash ?? throw new ArgumentNullException(nameof(trash));
 
         ToggleCommand = new RelayCommand(() => IsVisible = !IsVisible);
         OpenFolderCommand = new AsyncRelayCommand(OpenFolderFromPromptAsync);
@@ -70,6 +74,7 @@ public sealed class FileExplorerViewModel : ObservableObject
         NewFileCommand = new AsyncRelayCommand(NewFileAsync, () => HasFolder);
         NewFolderCommand = new AsyncRelayCommand(NewFolderAsync, () => HasFolder);
         RenameCommand = new AsyncRelayCommand(RenameAsync, () => SelectedNode is { IsInformational: false });
+        DeleteCommand = new AsyncRelayCommand(DeleteAsync, () => SelectedNode is { IsInformational: false });
     }
 
     /// <summary>
@@ -135,6 +140,7 @@ public sealed class FileExplorerViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(TargetFolder));
                 RenameCommand.NotifyCanExecuteChanged();
+                DeleteCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -179,6 +185,13 @@ public sealed class FileExplorerViewModel : ObservableObject
     /// files it moves follow them.
     /// </summary>
     public AsyncRelayCommand RenameCommand { get; }
+
+    /// <summary>
+    /// Gets <em>Delete</em> (Delete): after a confirmation, moves the selected file or folder to the trash — or, where
+    /// there is none, deletes it for good after a second one. The tabs of the files it took close, unless they hold
+    /// unsaved changes.
+    /// </summary>
+    public AsyncRelayCommand DeleteCommand { get; }
 
     /// <summary>
     /// Gets the folder something new goes into: the selected folder, the folder of the selected file or of the selected
@@ -319,6 +332,66 @@ public sealed class FileExplorerViewModel : ObservableObject
         }
     }
 
+    // Nothing leaves the disk before the user has said yes to it. With a trash, the entry is asked about once and
+    // trashed; one the trash would not take is asked about again, because agreeing to a delete that can be undone is
+    // not agreeing to one that cannot. Without a trash, that second question is the only one.
+    private async Task DeleteAsync()
+    {
+        if ((SelectedNode is not { IsInformational: false } row) || (Path.GetDirectoryName(row.FullPath) is not { } parent))
+        {
+            return;
+        }
+
+        string failure = row.IsFolder ? "The folder could not be deleted" : "The file could not be deleted";
+        bool gone = false;
+
+        if (_trash.IsAvailable)
+        {
+            if (!await _questions.ConfirmMoveToTrashAsync(row.Name, row.IsFolder))
+            {
+                return;
+            }
+
+            try
+            {
+                gone = await _trash.MoveToTrashAsync(row.FullPath, _work.Token);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                await _messages.ShowErrorAsync(failure, exception.Message);
+                await RevealAsync(parent, null);
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+        }
+
+        if (!gone)
+        {
+            if (!await _questions.ConfirmPermanentDeleteAsync(row.Name, row.IsFolder))
+            {
+                return;
+            }
+
+            if (await RunAsync(failure, () => DeleteForGoodAsync(row.FullPath), parent) is null)
+            {
+                return;
+            }
+        }
+
+        await _workspace.CloseTabsOfDeletedAsync(row.FullPath);
+        await RevealAsync(parent, null);
+    }
+
+    private async Task<string> DeleteForGoodAsync(string path)
+    {
+        await FileOperations.DeleteAsync(path, _work.Token);
+
+        return path;
+    }
+
     // Runs one operation on the file system. A failure is told to the user, in the operation's own words, and the folder
     // it touched is listed again: the operation may have found it changed.
     private async Task<string?> RunAsync(string failure, Func<Task<string>> operation, string folder)
@@ -381,6 +454,10 @@ public sealed class FileExplorerViewModel : ObservableObject
             SelectedNode = rows.FirstOrDefault(row => FilePaths.Comparer.Equals(row.FullPath, entry)) ?? SelectedNode;
         }
     }
+
+    // Whether a row is among the rows listed so far, rows about a folder included.
+    private static bool Holds(IEnumerable<FileTreeNodeViewModel> rows, FileTreeNodeViewModel wanted)
+        => rows.Any(row => ReferenceEquals(row, wanted) || (row.IsLoaded && Holds(row.Children, wanted)));
 
     // A row by its path, among the rows listed so far.
     private static FileTreeNodeViewModel? Find(IEnumerable<FileTreeNodeViewModel> rows, string path)
@@ -460,6 +537,12 @@ public sealed class FileExplorerViewModel : ObservableObject
         }
 
         Merge(rows, RowsFor(folder, listing, rows));
+
+        // A selection whose row left the tree — deleted, renamed outside — selects nothing any more.
+        if ((SelectedNode is { } selected) && !Holds(Roots, selected))
+        {
+            SelectedNode = null;
+        }
 
         foreach (FileTreeNodeViewModel loaded in rows.Where(row => row.IsFolder && row.IsLoaded).ToList())
         {

@@ -757,6 +757,32 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     public int RelocateDocuments(string oldPath, string newPath) => _registry.Relocate(oldPath, newPath);
 
     /// <summary>
+    /// Closes the tabs of a deleted file — or of the files under a deleted folder — that have no unsaved changes. Tabs
+    /// with unsaved changes stay open: their text is the only copy left, and a save writes the file again.
+    /// </summary>
+    /// <param name="path">The file or folder that was deleted.</param>
+    /// <returns>How many tabs closed.</returns>
+    /// <remarks>A pane left without tabs closes, as when its last tab is closed by hand.</remarks>
+    public async Task<int> CloseTabsOfDeletedAsync(string path)
+    {
+        HashSet<DocumentViewModel> gone = [.. _registry.FindUnder(path).Where(document => !document.IsDirty)];
+        int closed = 0;
+
+        foreach (EditorPaneViewModel pane in Panes)
+        {
+            foreach (EditorTabViewModel tab in pane.Tabs.Where(tab => gone.Contains(tab.Document)).ToList())
+            {
+                if (await CloseTabAsync(pane, tab, discard: true))
+                {
+                    closed++;
+                }
+            }
+        }
+
+        return closed;
+    }
+
+    /// <summary>
     /// Puts a new untitled buffer in a tab's place, without asking about the buffer it replaces.
     /// </summary>
     /// <param name="pane">The pane the tab is on.</param>

@@ -88,6 +88,52 @@ public static class FileOperations
         return Task.Run(() => Rename(path, newName), cancellationToken);
     }
 
+    /// <summary>
+    /// Deletes a file, or a folder with everything under it, for good.
+    /// </summary>
+    /// <param name="path">The full path of the entry to delete.</param>
+    /// <param name="cancellationToken">Abandons the operation before it starts.</param>
+    /// <returns>A task that completes once the entry is gone.</returns>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is empty or white-space.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="path"/> is <see langword="null"/>.</exception>
+    /// <exception cref="FileOperationException">The entry is there and could not be deleted.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was signalled.</exception>
+    /// <remarks>
+    /// <para>
+    /// The destructive fallback, not the ordinary delete: deleting from the explorer moves the entry to the platform's
+    /// trash (<see cref="ITrashService"/>). This runs when there is no trash to offer, and only after the user has
+    /// confirmed that nothing will be recoverable.
+    /// </para>
+    /// <para>
+    /// An entry that is already gone is not an error: the caller asked for it not to be there, and it is not.
+    /// </para>
+    /// </remarks>
+    public static Task DeleteAsync(string path, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        return Task.Run(() => Delete(path), cancellationToken);
+    }
+
+    private static void Delete(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+            else if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new FileOperationException($"'{FilePaths.NameOf(path)}' could not be deleted.", exception);
+        }
+    }
+
     private static string CreateFile(string directory, string name)
     {
         if (FileNameValidation.ValidateIn(name, directory, isDirectory: false) is { } problem)

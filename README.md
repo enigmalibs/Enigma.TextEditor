@@ -64,7 +64,10 @@ command line, or from the explorer. The explorer is a panel on the left of the p
 first button of the status bar, **View → Explorer** or Ctrl+Shift+E; drag its edge to widen it. **Open Folder…**, in
 the panel or the **File** menu, shows a folder's files and folders as a tree, folders first; a double-click or Enter
 opens a file in the pane you are in, Esc goes back to the text, **Refresh** reads the folder again after changes made
-outside the editor, and **Close Folder** empties the panel. Dropped near an edge of a pane's text, they split that pane on that side and open in the new half; as for
+outside the editor, and **Close Folder** empties the panel. Its right-click menu creates a file (which opens) or a
+folder, renames one (F2; the tabs of the files it moves follow them) and deletes one (Delete), to the Recycle Bin or
+the trash after asking, or for good after asking again where there is none; the tabs of deleted files close, unless
+they hold unsaved changes. Dropped near an edge of a pane's text, they split that pane on that side and open in the new half; as for
 a tab, the part of the pane they will go to is highlighted while you drag. A name that does not exist yet, in a folder that does, opens an empty document that the first save
 creates. A file opened from the system — a double-click, *Open with* — while the editor is running opens as a tab in
 the window you used last, which comes to the front; started without a file, the editor opens a new window, so
