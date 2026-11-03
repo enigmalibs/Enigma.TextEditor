@@ -118,9 +118,9 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE05    | Delete files and folders             | DONE        | (in FEATURE-F0CE.md)      |
 | FEATURE-6D39 | Release 1.13.0                       | DONE        | docs/plan/FEATURE-6D39.md |
 | FEATURE-3266 | New icon set without the tile        | DONE        | docs/plan/FEATURE-3266.md |
-| FEATURE-37C9 | Windows MSI build script             | IN PROGRESS | docs/plan/FEATURE-37C9.md |
+| FEATURE-37C9 | Windows MSI build script             | DONE        | docs/plan/FEATURE-37C9.md |
 | - PHASE01    | Vendor the Enigma.Msi worker         | DONE        | (in FEATURE-37C9.md)      |
-| - PHASE02    | The buildmsi script                  | TODO        | (in FEATURE-37C9.md)      |
+| - PHASE02    | The buildmsi script                  | DONE        | (in FEATURE-37C9.md)      |
 | FEATURE-5920 | Release 1.14.0                       | TODO        | docs/plan/FEATURE-5920.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

@@ -162,6 +162,29 @@ To run it on a machine without the SDK, publish it for that platform: `packaging
 `publish.bat`) on Windows, `packaging/linux/publish.sh` on Linux. `docs/RELEASE.md` says where the output lands, and how
 to bundle the .NET runtime instead.
 
+## Install on Windows
+
+`packaging\windows\buildmsi.ps1` (or `buildmsi.bat`, from a `cmd` prompt) builds `artifacts\Enigma.TextEditor.X.Y.Z.msi`
+in one step:
+
+1. it runs `git clean -dxf`, which deletes **every file git does not track**: build output, `artifacts\`, IDE folders,
+   and any new file you have not added yet;
+2. it publishes with `publish.ps1`;
+3. it packages the result, uncompressed, with Enigma.Msi. A copy of Enigma.Msi's worker is in
+   `packaging\windows\Enigma.Msi.Worker\`.
+
+```powershell
+.\packaging\windows\buildmsi.ps1
+# Under Windows PowerShell's default execution policy, which refuses local scripts:
+powershell -ExecutionPolicy Bypass -File packaging\windows\buildmsi.ps1
+```
+
+The MSI installs **Enigma Text Editor** for all users in `%ProgramFiles%\Enigma Text Editor`, with a shortcut on the
+desktop and one in the program menu. It replaces an earlier version installed from an MSI, and uninstalling it leaves
+your settings in `%APPDATA%\Enigma.TextEditor` alone. The version is the `<Version>` of the two csprojs. Building it
+needs Windows and the WiX CLI (`dotnet tool install --global wix`) as well as the .NET 10 SDK; the installed
+application needs the .NET 10 runtime.
+
 ## Install on Linux
 
 `packaging/linux/install.sh` builds the application from this repository and installs it for you. It needs no root and
@@ -199,7 +222,7 @@ else. Your settings and the log, in `~/.config/Enigma.TextEditor`, are left as t
 | `tests/Enigma.TextEditor.Desktop.UnitTests` | xUnit v3 tests for the app, including headless Avalonia tests          |
 | `packaging/icon`                            | The application icon's SVG sources                                     |
 | `packaging/linux`                           | Linux install, uninstall and publish scripts, desktop entry, icons     |
-| `packaging/windows`                         | The Windows publish scripts                                            |
+| `packaging/windows`                         | The Windows publish and installer scripts, and Enigma.Msi's worker     |
 | `docs/`                                     | Roadmap, plans, completion records and the release runbook             |
 
 ## License

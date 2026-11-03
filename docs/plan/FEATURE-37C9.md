@@ -1,6 +1,6 @@
 # FEATURE-37C9 — Windows MSI build script
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** one per phase, see below
 **Run:** feature/2026-11-03-icons-msi-release
@@ -119,7 +119,7 @@ The repository carries a copy of Enigma.Msi's worker CLI.
 ## PHASE02 — The buildmsi script
 
 **Branch:** `feature/feature-37c9-phase02-buildmsi-script`
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
