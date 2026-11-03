@@ -32,7 +32,7 @@ Update every place the repository carries the icon:
 - **The new `.ico`** has the same shape as today's: ten 32-bit RGBA PNG frames (16, 20, 24, 32, 40, 48, 64, 96, 128,
   256), 12 835 bytes. Each frame is byte for byte the matching `png/enigma-text-editor-N.png` (checked while
   planning).
-- **The delivered SVGs are LF**, unlike `final2`'s, so the masters should match the source byte for byte.
+- **The delivered SVGs are CRLF**, like `final2`'s (corrected at build time: planning misread them as LF). `.gitattributes` stores them as LF.
 - **Where the icon lives** (unchanged since FEATURE-3266):
   - `src/Enigma.TextEditor.Desktop/Assets/app.ico` is used three ways:
     - the `ApplicationIcon` (the executable and the taskbar on Windows);

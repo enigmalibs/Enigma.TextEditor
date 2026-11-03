@@ -40,8 +40,12 @@ used exactly as delivered.
 
 ## Deviations & follow-ups
 
-- None from the plan. The delivered SVGs are LF this time, so every file is identical to the source, the SVGs
-  included.
+- **Line endings, a correction to the plan:** the plan said the delivered SVGs were LF. They are CRLF, like
+  `final2`'s (24 and 16 CRs). The planning check used `grep -c $'\r'`, which Git Bash's grep does not count.
+  - The working copies were copied byte for byte.
+  - `.gitattributes` (`* text=auto eol=lf`) stores them as LF, so the committed SVGs differ from the source only in
+    line endings.
+  - Recommendation only: have `export.py` write LF.
 - **Manual check, for the user:**
   - in both the light and the dark theme, the larger icon in the About dialog and on the Windows taskbar;
   - after reinstalling, the Linux launcher.
@@ -76,7 +80,9 @@ used exactly as delivered.
   - `dotnet test --solution Enigma.TextEditor.slnx`: 3112 total, 3110 passed, 2 failed (`InstanceServerTests…`,
     `FileDropViewTests.ThePaneWithNoTab_…`), both in the baseline;
   - `AppIconTests` (`--filter-class`): 5 of 5 passed.
-- `cmp`: `app.ico`, `app-256.png`, the two SVGs and the eight Linux PNGs are identical to the delivered files.
+- `cmp`: `app.ico`, `app-256.png` and the eight Linux PNGs are identical to the delivered files. The SVGs are
+  identical in the working tree, and identical once CRs are stripped in the commit (`git show HEAD:… | tr -cd '\r'`
+  counts 0).
 - A script read of `app.ico` found ten 32-bit RGBA PNG frames, 16 to 256. Each of the eight Linux PNGs equals the
   frame of its size, byte for byte.
 - No tests were added, because `AppIconTests` already pins what the replacement had to keep.
