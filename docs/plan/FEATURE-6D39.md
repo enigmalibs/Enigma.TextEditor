@@ -1,6 +1,6 @@
 # FEATURE-6D39 — Release 1.13.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-6d39-release-1-13-0`
 **Run:** feature/2026-11-02-release-1-13-0

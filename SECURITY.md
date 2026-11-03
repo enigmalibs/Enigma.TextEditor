@@ -12,7 +12,8 @@ Security fixes are provided for the latest released version. Enigma.TextEditor f
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.12.x  | :white_check_mark: |
+| 1.13.x  | :white_check_mark: |
+| 1.12.x  | :x:                |
 | 1.11.x  | :x:                |
 | 1.10.x  | :x:                |
 | 1.9.x   | :x:                |
@@ -55,6 +56,9 @@ The following are in scope:
 - the way Enigma.TextEditor reads a file: the binary and size checks, the encoding detection and decoding, and the
   hex viewer;
 - the way it writes a file back, in its encoding and with its line endings;
+- the file explorer: how it lists a folder, the names it accepts for a new or renamed file or folder, how it creates,
+  renames and deletes them, and how it moves them to the Recycle Bin or the trash — on Linux by running `gio trash`,
+  or by writing into the trash under `$XDG_DATA_HOME/Trash`;
 - the syntax highlighting it runs over a file's text;
 - the Vim engine's handling of what is typed into it, including search and substitution patterns;
 - the way it reads and writes its settings file and its log;

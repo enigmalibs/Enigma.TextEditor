@@ -5,10 +5,13 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.12** — drop files from outside the editor near an edge of a pane, and that pane splits on that
-> side with the files in the new half, highlighted while you drag as for a tab; and a font size button on the status
-> bar, listing the sizes to pick from with the current one checked. 1.11 brought splitting a pane by dropping a tab
-> near its edge, its own pane included, with the half it will take highlighted. 1.10 brought moving a tab to
+> **What's new in 1.13** — a file explorer on the left of the panes, shown with the status bar's first button,
+> **View → Explorer** or Ctrl+Shift+E: open a folder, open its files with a double-click, and create, rename and
+> delete files and folders, to the Recycle Bin or the trash after asking. A double-click on the empty part of a tab
+> strip opens a new tab there, and the mouse wheel scrolls a strip too narrow for its tabs. 1.12 brought splitting a
+> pane by dropping files from outside the editor near its edge, with the half they will take highlighted, and a font
+> size button on the status bar. 1.11 brought splitting a pane by dropping a tab near its edge, its own pane
+> included, with the half it will take highlighted. 1.10 brought moving a tab to
 > another pane with `Space mh`, `mj`, `mk`, `ml`, or by dragging it there; and, for a file opened from the system while
 > the editor is running, a tab in the window you used last instead of a second window. 1.9 brought a dialog for an error that nothing else handles, with details to copy for a bug report,
 > while the editor keeps running; the icon beside the executable as `app.ico`; and one script per platform to publish

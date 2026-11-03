@@ -116,6 +116,6 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE03    | New file and new folder              | DONE        | (in FEATURE-F0CE.md)      |
 | - PHASE04    | Rename files and folders             | DONE        | (in FEATURE-F0CE.md)      |
 | - PHASE05    | Delete files and folders             | DONE        | (in FEATURE-F0CE.md)      |
-| FEATURE-6D39 | Release 1.13.0                       | TODO        | docs/plan/FEATURE-6D39.md |
+| FEATURE-6D39 | Release 1.13.0                       | DONE        | docs/plan/FEATURE-6D39.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
