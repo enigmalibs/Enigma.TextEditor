@@ -26,6 +26,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
     /// </summary>
     /// <param name="workspace">The editor area.</param>
+    /// <param name="explorer">The explorer beside the panes.</param>
     /// <param name="statusBar">The status bar.</param>
     /// <param name="tools">The Tools menu.</param>
     /// <param name="settings">The Settings menu and the zoom commands.</param>
@@ -38,6 +39,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <param name="shutdown">Ends the application.</param>
     public MainWindowViewModel(
         WorkspaceViewModel workspace,
+        FileExplorerViewModel explorer,
         StatusBarViewModel statusBar,
         ToolsViewModel tools,
         SettingsMenuViewModel settings,
@@ -50,6 +52,7 @@ public sealed class MainWindowViewModel : ObservableObject
         IAppShutdown shutdown)
     {
         Workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
+        Explorer = explorer ?? throw new ArgumentNullException(nameof(explorer));
         StatusBar = statusBar ?? throw new ArgumentNullException(nameof(statusBar));
         Tools = tools ?? throw new ArgumentNullException(nameof(tools));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -77,6 +80,11 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Gets the editor area.
     /// </summary>
     public WorkspaceViewModel Workspace { get; }
+
+    /// <summary>
+    /// Gets the explorer beside the panes, on the files page.
+    /// </summary>
+    public FileExplorerViewModel Explorer { get; }
 
     /// <summary>
     /// Gets the status bar.

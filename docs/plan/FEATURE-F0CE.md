@@ -1,6 +1,6 @@
 # FEATURE-F0CE — File explorer on the files page
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-f0ce-phase01-folder-tree-model`
 **Branch (PHASE02):** `feature/feature-f0ce-phase02-explorer-panel`
@@ -92,7 +92,7 @@ Give the files page a file explorer, to open the files of a folder quickly:
 
 ## PHASE01 — Folder tree model
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
