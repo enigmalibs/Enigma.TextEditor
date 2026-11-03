@@ -122,5 +122,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Vendor the Enigma.Msi worker         | DONE        | (in FEATURE-37C9.md)      |
 | - PHASE02    | The buildmsi script                  | DONE        | (in FEATURE-37C9.md)      |
 | FEATURE-5920 | Release 1.14.0                       | DONE        | docs/plan/FEATURE-5920.md |
+| FEATURE-FF51 | Icon set filling the frame (final3)  | TODO        | docs/plan/FEATURE-FF51.md |
+| FEATURE-1B68 | Release 1.15.0                       | TODO        | docs/plan/FEATURE-1B68.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
