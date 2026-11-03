@@ -5,10 +5,13 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.13** — a file explorer on the left of the panes, shown with the status bar's first button,
-> **View → Explorer** or Ctrl+Shift+E: open a folder, open its files with a double-click, and create, rename and
-> delete files and folders, to the Recycle Bin or the trash after asking. A double-click on the empty part of a tab
-> strip opens a new tab there, and the mouse wheel scrolls a strip too narrow for its tabs. 1.12 brought splitting a
+> **What's new in 1.14** — the application icon without its dark tile, and a Windows installer:
+> `packaging\windows\buildmsi.ps1` builds an MSI that installs the editor for all users, with a desktop and a
+> program-menu shortcut, and replaces a version installed from an earlier MSI. 1.13 brought a file explorer on the left
+> of the panes, shown with the status bar's first button, **View → Explorer** or Ctrl+Shift+E: open a folder, open its
+> files with a double-click, and create, rename and delete files and folders, to the Recycle Bin or the trash after
+> asking; a new tab on a double-click of the empty part of a tab strip; and the mouse wheel scrolling a strip too
+> narrow for its tabs. 1.12 brought splitting a
 > pane by dropping files from outside the editor near its edge, with the half they will take highlighted, and a font
 > size button on the status bar. 1.11 brought splitting a pane by dropping a tab near its edge, its own pane
 > included, with the half it will take highlighted. 1.10 brought moving a tab to

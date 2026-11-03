@@ -1,6 +1,6 @@
 # FEATURE-5920 — Release 1.14.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-5920-release-1-14-0`
 **Run:** feature/2026-11-03-icons-msi-release
