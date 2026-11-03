@@ -6,6 +6,7 @@
         xmlns:contentDialog="using:Enigma.Avalonia.Desktop.Controls.ContentDialog"
         xmlns:infoBar="using:Enigma.Avalonia.Desktop.Controls.InfoBar"
         xmlns:nav="using:Enigma.Avalonia.Desktop.Controls.Navigation"
+        xmlns:ei="https://github.com/josueclement/Enigma.Icons"
         x:Class="Enigma.TextEditor.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding Title}"
@@ -102,6 +103,26 @@
       <Setter Property="Margin" Value="14,0,0,0" />
       <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundSecondaryBrush}" />
     </Style>
+    <!-- The explorer's toggle, first on the bar, under the rail: flat like the bar's buttons, and marked by the hover
+         wash rather than the theme's accent fill while the explorer is shown. -->
+    <Style Selector="ToggleButton.explorerToggle">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="Margin" Value="-8,0,8,0" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundSecondaryBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.explorerToggle:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource EnigmaHoverBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundBrush}" />
+    </Style>
+    <!-- The explorer's edge: the same hairline as the one between two panes. -->
+    <Style Selector="GridSplitter.explorerSplitter">
+      <Setter Property="Background" Value="{DynamicResource EnigmaBorderSubtleBrush}" />
+      <Setter Property="MinWidth" Value="3" />
+    </Style>
     <!-- The menu bar: separated from the content by the same hairline as the status bar. -->
     <Style Selector="Border.menuBar">
       <Setter Property="Background" Value="{DynamicResource EnigmaSurfaceBrush}" />
@@ -127,6 +148,7 @@
     <KeyBinding Gesture="Ctrl+F4" Command="{Binding Workspace.CloseTabCommand}" />
     <KeyBinding Gesture="Ctrl+Tab" Command="{Binding Workspace.NextTabCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+Tab" Command="{Binding Workspace.PreviousTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+E" Command="{Binding Explorer.ToggleCommand}" />
     <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding Settings.ZoomInCommand}" />
     <KeyBinding Gesture="Ctrl+Add" Command="{Binding Settings.ZoomInCommand}" />
     <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding Settings.ZoomOutCommand}" />
@@ -146,6 +168,8 @@
             <MenuItem Header="_New" Command="{Binding Workspace.NewCommand}" InputGesture="Ctrl+N" views:VimHint.Keys=":enew" />
             <MenuItem Header="_Open…" Command="{Binding Workspace.OpenCommand}" InputGesture="Ctrl+O" views:VimHint.Keys=":e" />
             <MenuItem Header="Open as _Hex…" Command="{Binding Workspace.OpenHexCommand}" />
+            <MenuItem Header="Open _Folder…" Command="{Binding Explorer.OpenFolderCommand}" />
+            <MenuItem Header="Close Fol_der" Command="{Binding Explorer.CloseFolderCommand}" />
             <Separator />
             <MenuItem Header="_Save" Command="{Binding Workspace.SaveCommand}" InputGesture="Ctrl+S" views:VimHint.Keys=":w" />
             <MenuItem Header="Save _As…" Command="{Binding Workspace.SaveAsCommand}" InputGesture="Ctrl+Shift+S" views:VimHint.Keys=":w {file}" />
@@ -166,6 +190,9 @@
             <MenuItem Header="Select _All" Click="OnSelectAllClick" InputGesture="Ctrl+A" views:VimHint.Keys="ggVG" />
           </MenuItem>
           <MenuItem Header="_View">
+            <MenuItem Header="E_xplorer" ToggleType="CheckBox" InputGesture="Ctrl+Shift+E"
+                      IsChecked="{Binding Explorer.IsVisible, Mode=OneWay}" Command="{Binding Explorer.ToggleCommand}" />
+            <Separator />
             <MenuItem Header="Split _Right" Command="{Binding Workspace.SplitRightCommand}" views:VimHint.Keys="Ctrl+W v" />
             <MenuItem Header="Split _Down" Command="{Binding Workspace.SplitDownCommand}" views:VimHint.Keys="Ctrl+W s" />
             <MenuItem Header="_Close Pane" Command="{Binding Workspace.ClosePaneCommand}" views:VimHint.Keys="Ctrl+W c" />
@@ -254,9 +281,20 @@
       </Border>
 
       <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Classes="statusBar">
-        <Grid ColumnDefinitions="Auto,*,Auto">
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+          <!-- On the files page only, which is where the explorer stands. Takes no focus, as the bar's other buttons. -->
+          <ToggleButton x:Name="ExplorerToggle"
+                        Grid.Column="0"
+                        Classes="explorerToggle"
+                        Focusable="False"
+                        IsVisible="{Binding Shell.IsFilesPage}"
+                        IsChecked="{Binding Explorer.IsVisible}"
+                        ToolTip.Tip="Explorer (Ctrl+Shift+E)"
+                        AutomationProperties.Name="Show or hide the explorer">
+            <ei:Icon Kind="SidebarSimple" Size="15" />
+          </ToggleButton>
           <Border x:Name="ModeChip"
-                  Grid.Column="0"
+                  Grid.Column="1"
                   Classes="vimMode"
                   Classes.insert="{Binding StatusBar.IsInsertMode}"
                   Classes.visual="{Binding StatusBar.IsVisualMode}"
@@ -265,7 +303,7 @@
           </Border>
           <!-- One slot, two things that take it in turns: the message line, and the command line
                while ':' or '/' is being typed. -->
-          <Panel Grid.Column="1">
+          <Panel Grid.Column="2">
             <TextBlock x:Name="MessageLine"
                        IsVisible="{Binding !StatusBar.IsCommandLineVisible}"
                        Text="{Binding StatusBar.Messages.Current}"
@@ -277,7 +315,7 @@
           </Panel>
           <!-- The buttons take no focus, so a click leaves the keyboard in the pane; a flyout, which does
                take it, gives it back to the pane as it closes. -->
-          <StackPanel Grid.Column="2"
+          <StackPanel Grid.Column="3"
                       Orientation="Horizontal"
                       IsVisible="{Binding StatusBar.HasActiveTab}">
             <TextBlock x:Name="CaretStatus" Classes="statusItem" Text="{Binding StatusBar.CaretText}" />
@@ -383,9 +421,25 @@
            documents' carets, scroll and highlighting. The settings page is put in the first time it is
            shown (see the code-behind): listing the fonts it offers measures every font installed. -->
       <Panel>
-        <Panel x:Name="FilesPage" IsVisible="{Binding Shell.IsFilesPage}">
-          <views:SplitHost x:Name="Splits" DataContext="{Binding Workspace}" />
-        </Panel>
+        <!-- The explorer, its edge and the panes. The explorer's column is sized in the code-behind: none while it is
+             hidden, and the width it was last dragged to when it comes back. The panes always keep some room. -->
+        <Grid x:Name="FilesPage" IsVisible="{Binding Shell.IsFilesPage}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" MinWidth="240" />
+          </Grid.ColumnDefinitions>
+          <views:FileExplorerView x:Name="Explorer"
+                                  Grid.Column="0"
+                                  DataContext="{Binding Explorer}"
+                                  IsVisible="{Binding IsVisible}" />
+          <GridSplitter x:Name="ExplorerSplitter"
+                        Grid.Column="1"
+                        Classes="explorerSplitter"
+                        ResizeDirection="Columns"
+                        IsVisible="{Binding Explorer.IsVisible}" />
+          <views:SplitHost x:Name="Splits" Grid.Column="2" DataContext="{Binding Workspace}" />
+        </Grid>
         <ContentControl x:Name="SettingsHost" IsVisible="{Binding Shell.IsSettingsPage}" />
       </Panel>
     </DockPanel>

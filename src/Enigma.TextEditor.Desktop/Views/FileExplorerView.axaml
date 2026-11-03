@@ -1,0 +1,169 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Enigma.TextEditor.Desktop.ViewModels"
+             xmlns:ei="https://github.com/josueclement/Enigma.Icons"
+             x:Class="Enigma.TextEditor.Desktop.Views.FileExplorerView"
+             x:DataType="vm:FileExplorerViewModel">
+
+  <UserControl.Styles>
+    <!-- The folder's name: small and quiet, as a caption over what it names. -->
+    <Style Selector="TextBlock.explorerHeader">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundSecondaryBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="Margin" Value="10,0,4,0" />
+    </Style>
+    <Style Selector="Button.explorerAction">
+      <Setter Property="Width" Value="26" />
+      <Setter Property="Height" Value="26" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.placeholder">
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundTertiaryBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- "Reading…", "No access": rows about a folder rather than in it. -->
+    <Style Selector="TextBlock.informational">
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundTertiaryBrush}" />
+      <Setter Property="FontStyle" Value="Italic" />
+    </Style>
+    <Style Selector="ei|Icon.informational">
+      <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundTertiaryBrush}" />
+    </Style>
+    <!-- Two-way: the node's IsExpanded is what lists a folder the first time, and the container is what the user
+         actually clicks. -->
+    <Style Selector="TreeView#Tree TreeViewItem" x:DataType="vm:FileTreeNodeViewModel">
+      <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border Background="{DynamicResource EnigmaSurfaceBrush}">
+    <Grid RowDefinitions="Auto,*">
+
+      <!-- The header: as tall as a pane's tab strip, so the two read as one band across the page. -->
+      <Border Grid.Row="0"
+              MinHeight="37"
+              BorderBrush="{DynamicResource EnigmaBorderSubtleBrush}"
+              BorderThickness="0,0,0,1">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,0,4,0">
+          <TextBlock x:Name="Header"
+                     Grid.Column="0"
+                     Classes="explorerHeader"
+                     Text="{Binding Header}"
+                     ToolTip.Tip="{Binding HeaderToolTip}" />
+          <Button x:Name="OpenFolderButton"
+                  Grid.Column="1"
+                  Classes="explorerAction"
+                  Command="{Binding OpenFolderCommand}"
+                  ToolTip.Tip="Open Folder…"
+                  AutomationProperties.Name="Open folder">
+            <ei:Icon Kind="FolderOpen" Size="15" />
+          </Button>
+          <Button x:Name="RefreshButton"
+                  Grid.Column="2"
+                  Classes="explorerAction"
+                  IsVisible="{Binding HasFolder}"
+                  Command="{Binding RefreshCommand}"
+                  ToolTip.Tip="Refresh"
+                  AutomationProperties.Name="Refresh the folder">
+            <ei:Icon Kind="ArrowClockwise" Size="15" />
+          </Button>
+          <Button x:Name="CloseFolderButton"
+                  Grid.Column="3"
+                  Classes="explorerAction"
+                  IsVisible="{Binding HasFolder}"
+                  Command="{Binding CloseFolderCommand}"
+                  ToolTip.Tip="Close Folder"
+                  AutomationProperties.Name="Close the folder">
+            <ei:Icon Kind="X" Size="13" />
+          </Button>
+        </Grid>
+      </Border>
+
+      <!-- No folder: what the panel is for, and the way to give it one. -->
+      <StackPanel x:Name="Placeholder"
+                  Grid.Row="1"
+                  Margin="16"
+                  Spacing="12"
+                  VerticalAlignment="Center"
+                  IsVisible="{Binding !HasFolder}">
+        <TextBlock Classes="placeholder" Text="No folder is open." />
+        <Button x:Name="PlaceholderOpenFolderButton"
+                HorizontalAlignment="Center"
+                Padding="12,5"
+                Command="{Binding OpenFolderCommand}"
+                Content="Open Folder…" />
+      </StackPanel>
+
+      <!-- Focusable itself, so it can take the keyboard while its folder is still being listed: Down then selects the
+           first row. -->
+      <TreeView x:Name="Tree"
+                Grid.Row="1"
+                Focusable="True"
+                IsVisible="{Binding HasFolder}"
+                ItemsSource="{Binding Roots}"
+                SelectedItem="{Binding SelectedNode, Mode=TwoWay}"
+                Background="Transparent"
+                Padding="2,4,2,8"
+                AutomationProperties.Name="Files of the folder">
+        <!-- One menu for the whole tree: it acts on the selection, which the code-behind sets to the row the menu was
+             asked for over — or clears, over the empty part, so that it acts on the folder itself. -->
+        <TreeView.ContextMenu>
+          <ContextMenu x:Name="TreeMenu">
+            <MenuItem Header="New _File…" Command="{Binding NewFileCommand}">
+              <MenuItem.Icon>
+                <ei:Icon Kind="FilePlus" Size="14" />
+              </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="New F_older…" Command="{Binding NewFolderCommand}">
+              <MenuItem.Icon>
+                <ei:Icon Kind="FolderPlus" Size="14" />
+              </MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="_Rename…" InputGesture="F2" Command="{Binding RenameCommand}">
+              <MenuItem.Icon>
+                <ei:Icon Kind="PencilSimple" Size="14" />
+              </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="_Delete" InputGesture="Delete" Command="{Binding DeleteCommand}">
+              <MenuItem.Icon>
+                <ei:Icon Kind="Trash" Size="14" />
+              </MenuItem.Icon>
+            </MenuItem>
+          </ContextMenu>
+        </TreeView.ContextMenu>
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate ItemsSource="{Binding Children}" x:DataType="vm:FileTreeNodeViewModel">
+            <!-- Background="Transparent" so the whole row answers the double-click, not just the glyphs. -->
+            <Grid ColumnDefinitions="Auto,*"
+                  Background="Transparent"
+                  MinHeight="22"
+                  DoubleTapped="OnRowDoubleTapped"
+                  ToolTip.Tip="{Binding ToolTip}">
+              <ei:Icon Grid.Column="0"
+                       Kind="{Binding IconKind}"
+                       Size="14"
+                       Margin="0,0,6,0"
+                       VerticalAlignment="Center"
+                       Classes.informational="{Binding IsInformational}" />
+              <TextBlock Grid.Column="1"
+                         Text="{Binding Name}"
+                         VerticalAlignment="Center"
+                         TextTrimming="CharacterEllipsis"
+                         Classes.informational="{Binding IsInformational}" />
+            </Grid>
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+      </TreeView>
+    </Grid>
+  </Border>
+</UserControl>

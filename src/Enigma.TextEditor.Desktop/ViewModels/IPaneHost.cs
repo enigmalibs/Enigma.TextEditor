@@ -55,6 +55,13 @@ public interface IPaneHost
     Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths);
 
     /// <summary>
+    /// Creates an untitled buffer in a new tab at the end of a pane, which takes the keyboard.
+    /// </summary>
+    /// <param name="pane">The pane.</param>
+    /// <returns>The new tab, or <see langword="null"/> when the pane is not in this editor area.</returns>
+    EditorTabViewModel? NewDocument(EditorPaneViewModel pane);
+
+    /// <summary>
     /// Whether a tab could be moved to a pane: it is on another pane of this editor area.
     /// </summary>
     /// <param name="target">The pane it would move to.</param>

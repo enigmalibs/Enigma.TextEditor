@@ -4,10 +4,17 @@ using System.Threading.Tasks;
 namespace Enigma.TextEditor.Desktop.Services;
 
 /// <summary>
-/// Asks the user which files to open and where to save one.
+/// Asks the user which files to open, which folder to show and where to save a file.
 /// </summary>
 public interface IFilePrompts
 {
+    /// <summary>
+    /// Asks for a folder to show in the explorer.
+    /// </summary>
+    /// <param name="startDirectory">Where the picker starts, or <see langword="null"/> for the platform's choice.</param>
+    /// <returns>The chosen folder, or <see langword="null"/> when the user cancelled.</returns>
+    Task<string?> AskFolderToOpenAsync(string? startDirectory);
+
     /// <summary>
     /// Asks for files to open.
     /// </summary>

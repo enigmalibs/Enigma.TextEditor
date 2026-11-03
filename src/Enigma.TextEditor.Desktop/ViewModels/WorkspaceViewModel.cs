@@ -732,6 +732,56 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// <returns>Its tab.</returns>
     public EditorTabViewModel NewDocument() => Show(_documents.CreateUntitled());
 
+    /// <inheritdoc />
+    public EditorTabViewModel? NewDocument(EditorPaneViewModel pane)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+
+        if (IdOf(pane) is null)
+        {
+            return null;
+        }
+
+        Activate(pane);
+
+        return NewDocument();
+    }
+
+    /// <summary>
+    /// Has the open buffers of a file renamed outside a save — or of the files under a renamed folder — follow it, so
+    /// that their tabs show the new name and a save writes there rather than bringing the old name back.
+    /// </summary>
+    /// <param name="oldPath">Where the file or folder was.</param>
+    /// <param name="newPath">Where it is now.</param>
+    /// <returns>How many buffers followed.</returns>
+    public int RelocateDocuments(string oldPath, string newPath) => _registry.Relocate(oldPath, newPath);
+
+    /// <summary>
+    /// Closes the tabs of a deleted file — or of the files under a deleted folder — that have no unsaved changes. Tabs
+    /// with unsaved changes stay open: their text is the only copy left, and a save writes the file again.
+    /// </summary>
+    /// <param name="path">The file or folder that was deleted.</param>
+    /// <returns>How many tabs closed.</returns>
+    /// <remarks>A pane left without tabs closes, as when its last tab is closed by hand.</remarks>
+    public async Task<int> CloseTabsOfDeletedAsync(string path)
+    {
+        HashSet<DocumentViewModel> gone = [.. _registry.FindUnder(path).Where(document => !document.IsDirty)];
+        int closed = 0;
+
+        foreach (EditorPaneViewModel pane in Panes)
+        {
+            foreach (EditorTabViewModel tab in pane.Tabs.Where(tab => gone.Contains(tab.Document)).ToList())
+            {
+                if (await CloseTabAsync(pane, tab, discard: true))
+                {
+                    closed++;
+                }
+            }
+        }
+
+        return closed;
+    }
+
     /// <summary>
     /// Puts a new untitled buffer in a tab's place, without asking about the buffer it replaces.
     /// </summary>

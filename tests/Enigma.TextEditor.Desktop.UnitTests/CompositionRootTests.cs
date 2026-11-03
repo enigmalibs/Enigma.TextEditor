@@ -131,6 +131,7 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
             using IHost host = BuildHost(folder);
             MainWindowViewModel viewModel = new(
                 host.Services.GetRequiredService<WorkspaceViewModel>(),
+                host.Services.GetRequiredService<FileExplorerViewModel>(),
                 host.Services.GetRequiredService<StatusBarViewModel>(),
                 host.Services.GetRequiredService<ToolsViewModel>(),
                 host.Services.GetRequiredService<SettingsMenuViewModel>(),
