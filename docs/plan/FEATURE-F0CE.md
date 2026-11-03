@@ -127,7 +127,7 @@ Give the files page a file explorer, to open the files of a folder quickly:
 
 ## PHASE02 — Explorer panel and its toggle
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

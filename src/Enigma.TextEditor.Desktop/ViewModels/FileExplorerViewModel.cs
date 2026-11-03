@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Enigma.TextEditor.Core.Files;
 using Enigma.TextEditor.Desktop.Extensions;
+using Enigma.TextEditor.Desktop.Services;
 
 namespace Enigma.TextEditor.Desktop.ViewModels;
 
@@ -38,21 +39,30 @@ public sealed class FileExplorerViewModel : ObservableObject
     public const string DefaultHeader = "Explorer";
 
     private readonly WorkspaceViewModel _workspace;
+    private readonly IFilePrompts _prompts;
     private CancellationTokenSource _work = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileExplorerViewModel"/> class, hidden and with no folder.
     /// </summary>
     /// <param name="workspace">The editor area, where files open.</param>
-    public FileExplorerViewModel(WorkspaceViewModel workspace)
+    /// <param name="prompts">The folder picker.</param>
+    public FileExplorerViewModel(WorkspaceViewModel workspace, IFilePrompts prompts)
     {
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
+        _prompts = prompts ?? throw new ArgumentNullException(nameof(prompts));
 
         ToggleCommand = new RelayCommand(() => IsVisible = !IsVisible);
+        OpenFolderCommand = new AsyncRelayCommand(OpenFolderFromPromptAsync);
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, () => HasFolder);
         CloseFolderCommand = new RelayCommand(CloseFolder, () => HasFolder);
         OpenCommand = new AsyncRelayCommand<FileTreeNodeViewModel?>(OpenAsync);
     }
+
+    /// <summary>
+    /// Raised once a file opened from the explorer has been opened or refused, dialogs included.
+    /// </summary>
+    public event EventHandler? FileOpened;
 
     /// <summary>
     /// Gets or sets a value indicating whether the explorer is shown beside the panes.
@@ -109,6 +119,11 @@ public sealed class FileExplorerViewModel : ObservableObject
     /// Gets the command that shows the explorer when it is hidden, and hides it when it is shown.
     /// </summary>
     public RelayCommand ToggleCommand { get; }
+
+    /// <summary>
+    /// Gets <em>Open Folder…</em>: asks which folder to show, starting in the one shown, else the active file's.
+    /// </summary>
+    public AsyncRelayCommand OpenFolderCommand { get; }
 
     /// <summary>
     /// Gets the command that lists every folder listed so far again.
@@ -179,12 +194,29 @@ public sealed class FileExplorerViewModel : ObservableObject
         switch (node)
         {
             case { IsFile: true }:
-                await _workspace.OpenAsync(node.FullPath);
+                await OpenFileAsync(node.FullPath);
                 break;
 
             case { IsFolder: true }:
                 node.IsExpanded = !node.IsExpanded;
                 break;
+        }
+    }
+
+    private async Task OpenFileAsync(string path)
+    {
+        await _workspace.OpenAsync(path);
+        FileOpened?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task OpenFolderFromPromptAsync()
+    {
+        string? start = FolderPath
+            ?? (_workspace.ActiveDocument?.FilePath is { } file ? Path.GetDirectoryName(file) : null);
+
+        if (await _prompts.AskFolderToOpenAsync(start) is { Length: > 0 } folder)
+        {
+            await OpenFolderAsync(folder);
         }
     }
 

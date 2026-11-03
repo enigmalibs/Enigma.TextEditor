@@ -21,6 +21,20 @@ internal sealed class FakeFilePrompts : IFilePrompts
 
     public string? LastOpenDirectory { get; private set; }
 
+    public Queue<string?> FoldersToOpen { get; } = new();
+
+    public int FolderQuestions { get; private set; }
+
+    public string? LastFolderDirectory { get; private set; }
+
+    public Task<string?> AskFolderToOpenAsync(string? startDirectory)
+    {
+        FolderQuestions++;
+        LastFolderDirectory = startDirectory;
+
+        return Task.FromResult(FoldersToOpen.Count > 0 ? FoldersToOpen.Dequeue() : null);
+    }
+
     public Task<IReadOnlyList<string>> AskFilesToOpenAsync(string? startDirectory)
     {
         OpenQuestions++;

@@ -136,6 +136,7 @@ public static class HelpCatalog
             Keys("Double-click the tab strip", "New untitled buffer in a new tab of that pane"),
             Keys("Drop files on a pane", "Open them in that pane"),
             Keys("Drop files on a pane's edge", "Split that pane there, the files in the new half"),
+            Keys("Double-click or Enter in the explorer", "Open the file; a folder opens or closes"),
         ]),
         Section("Panes", PhosphorIcon.Columns, "Ctrl+W, then the key",
         [
@@ -187,6 +188,8 @@ public static class HelpCatalog
             Keys("Ctrl+Shift+S", "Save as"),
             Keys("Ctrl+F4", "Close the tab"),
             Keys("Ctrl+=, Ctrl+-, Ctrl+0", "Zoom in, out, back to the default"),
+            Keys("Ctrl+Shift+E", "Show or hide the explorer"),
+            Keys("Esc", "Back to the text, from the explorer"),
             Keys("Ctrl+,", "Settings"),
             Keys("Esc", "Back to the files, from the settings"),
         ]),

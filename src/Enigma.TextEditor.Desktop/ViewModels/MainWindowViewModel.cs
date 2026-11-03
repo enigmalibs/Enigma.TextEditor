@@ -73,6 +73,16 @@ public sealed class MainWindowViewModel : ObservableObject
         Workspace.PropertyChanged += OnWorkspacePropertyChanged;
         Workspace.DocumentShown += (_, _) => Shell.ShowFiles();
         Workspace.LayoutChanged += (_, _) => Shell.ShowFiles();
+
+        // The explorer stands on the files page: shown, or given a folder, from the settings, it brings them back.
+        Explorer.PropertyChanged += (_, e) =>
+        {
+            if (((e.PropertyName == nameof(FileExplorerViewModel.IsVisible)) && Explorer.IsVisible)
+                || ((e.PropertyName == nameof(FileExplorerViewModel.FolderPath)) && Explorer.HasFolder))
+            {
+                Shell.ShowFiles();
+            }
+        };
         Follow(Workspace.ActiveDocument);
     }
 

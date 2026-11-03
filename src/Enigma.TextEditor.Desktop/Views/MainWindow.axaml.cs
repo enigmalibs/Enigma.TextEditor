@@ -19,6 +19,19 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// </summary>
 public partial class MainWindow : Window
 {
+    /// <summary>
+    /// The explorer's width the first time it is shown.
+    /// </summary>
+    internal const double ExplorerDefaultWidth = 260;
+
+    /// <summary>
+    /// The narrowest the explorer may be dragged to.
+    /// </summary>
+    internal const double ExplorerMinWidth = 160;
+
+    // The explorer's width while it is hidden: the one it was last shown at, for when it comes back.
+    private double _explorerWidth = ExplorerDefaultWidth;
+
     // Set once the user has answered every unsaved-changes question, so the Close() that follows the
     // answers is let through rather than asked about again.
     private bool _closeConfirmed;
@@ -36,6 +49,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         DialogKeyboard.Attach(HostDialog, FocusCurrentPage);
         SettingsHost.KeyDown += OnSettingsKeyDown;
+        Explorer.LeaveRequested += (_, _) => FocusActivePane();
     }
 
     /// <summary>
@@ -99,6 +113,8 @@ public partial class MainWindow : Window
         if (_viewModel is not null)
         {
             _viewModel.Shell.PropertyChanged -= OnShellPropertyChanged;
+            _viewModel.Explorer.PropertyChanged -= OnExplorerPropertyChanged;
+            _viewModel.Explorer.FileOpened -= OnExplorerFileOpened;
         }
 
         _viewModel = DataContext as MainWindowViewModel;
@@ -106,11 +122,87 @@ public partial class MainWindow : Window
         if (_viewModel is not null)
         {
             _viewModel.Shell.PropertyChanged += OnShellPropertyChanged;
+            _viewModel.Explorer.PropertyChanged += OnExplorerPropertyChanged;
+            _viewModel.Explorer.FileOpened += OnExplorerFileOpened;
             ShowPage(_viewModel);
+            SizeExplorer(_viewModel.Explorer.IsVisible);
         }
 
         base.OnDataContextChanged(e);
     }
+
+    /// <summary>
+    /// Gets the explorer's column on the files page.
+    /// </summary>
+    internal ColumnDefinition ExplorerColumn => FilesPage.ColumnDefinitions[0];
+
+    // Shown, the explorer takes the keyboard — the way in to the tree from the keys — once it is laid out. Hidden, it
+    // gives the keyboard back to the pane when it had it, rather than leaving it nowhere.
+    private void OnExplorerPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if ((e.PropertyName != nameof(FileExplorerViewModel.IsVisible)) || (_viewModel is null))
+        {
+            return;
+        }
+
+        bool shown = _viewModel.Explorer.IsVisible;
+        bool hadKeyboard = !shown && Explorer.IsKeyboardFocusWithin;
+        SizeExplorer(shown);
+
+        if (shown)
+        {
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (!HostDialog.IsOpen && (_viewModel?.Shell.IsFilesPage == true) && Explorer.IsVisible)
+                    {
+                        Explorer.FocusContent();
+                    }
+                },
+                DispatcherPriority.Background);
+        }
+        else if (hadKeyboard)
+        {
+            PostFocusActivePane();
+        }
+    }
+
+    // The column is the explorer's width while it is shown, nothing while it is hidden: a GridSplitter writes the
+    // width it was dragged to into the column, which is where it is read back from before the column is emptied.
+    private void SizeExplorer(bool shown)
+    {
+        ColumnDefinition column = ExplorerColumn;
+
+        if (shown)
+        {
+            column.MinWidth = ExplorerMinWidth;
+            column.Width = new GridLength(_explorerWidth, GridUnitType.Pixel);
+            return;
+        }
+
+        if (column.ActualWidth >= ExplorerMinWidth)
+        {
+            _explorerWidth = column.ActualWidth;
+        }
+
+        column.MinWidth = 0;
+        column.Width = new GridLength(0, GridUnitType.Pixel);
+    }
+
+    private void OnExplorerFileOpened(object? sender, EventArgs e) => PostFocusActivePane();
+
+    // Posted: after a file opens, the pane shows it before it can take the keyboard. Not while a dialog is open, which
+    // hands the keyboard back itself when it closes.
+    private void PostFocusActivePane()
+        => Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (!HostDialog.IsOpen && (_viewModel?.Shell.IsFilesPage == true))
+                {
+                    FocusActivePane();
+                }
+            },
+            DispatcherPriority.Background);
 
     private void OnShellPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
