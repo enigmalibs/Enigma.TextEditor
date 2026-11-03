@@ -10,6 +10,8 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Enigma.Avalonia.Desktop.Services;
+using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
@@ -251,6 +253,91 @@ public sealed class FileExplorerViewTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
+    public void RightClickingARow_SelectsIt_AndRightClickingBelowTheRows_SelectsNothing()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            string project = Project(harness);
+            MainWindow window = Show(harness);
+            await harness.Explorer.OpenFolderAsync(project);
+            await DrainAsync();
+            ContextMenu menu = ExplorerOf(window).TreeControl.ContextMenu!;
+
+            RightClick(window, RowOf(window, "readme.txt"));
+            await DrainAsync();
+            Assert.Equal("readme.txt", harness.Explorer.SelectedNode?.Name);
+            Assert.True(menu.IsOpen);
+            menu.Close();
+
+            TreeView tree = ExplorerOf(window).TreeControl;
+            RightClick(window, tree, new Point(tree.Bounds.Width / 2, tree.Bounds.Height - 10));
+            await DrainAsync();
+            Assert.Null(harness.Explorer.SelectedNode);
+            Assert.Equal(project, harness.Explorer.TargetFolder);
+            menu.Close();
+
+            MenuItem[] items = [.. menu.Items.OfType<MenuItem>()];
+            Assert.Same(harness.Explorer.NewFileCommand, items.Single(item => (string?)item.Header == "New _File…").Command);
+            Assert.Same(harness.Explorer.NewFolderCommand, items.Single(item => (string?)item.Header == "New F_older…").Command);
+            window.Close();
+        });
+
+    [Fact]
+    public void TheNameDialog_ChecksTheNameAsItIsTyped_AndEnterAnswersWithIt()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            string project = Project(harness);
+            MainWindow window = Show(harness);
+            ContentDialogService dialogs = new();
+            dialogs.RegisterHost(window.HostDialog);
+
+            Task<string?> asked = new FileExplorerPrompts(dialogs).AskNewFileNameAsync(project);
+            await SettleAsync();
+            TextBox box = Assert.IsType<FileNamePromptView>(window.HostDialog.Content).FindControl<TextBox>("NameBox")!;
+
+            Assert.Equal("New file", window.HostDialog.Title);
+            Assert.True(box.IsFocused);
+            Assert.False(window.HostDialog.IsPrimaryButtonEnabled);
+
+            window.KeyTextInput("readme.txt");
+            await SettleAsync();
+            Assert.False(window.HostDialog.IsPrimaryButtonEnabled);
+
+            box.Text = " notes.txt";
+            await SettleAsync();
+            Assert.True(window.HostDialog.IsPrimaryButtonEnabled);
+
+            window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+            await SettleAsync();
+            Assert.Equal("notes.txt", await asked);
+            window.Close();
+        });
+
+    [Fact]
+    public void TheNameDialog_AnswersNothing_WhenEscaped()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            string project = Project(harness);
+            MainWindow window = Show(harness);
+            ContentDialogService dialogs = new();
+            dialogs.RegisterHost(window.HostDialog);
+
+            Task<string?> asked = new FileExplorerPrompts(dialogs).AskNewFolderNameAsync(project);
+            await SettleAsync();
+            Assert.Equal("New folder", window.HostDialog.Title);
+            window.KeyTextInput("assets");
+            await SettleAsync();
+
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            await SettleAsync();
+
+            Assert.Null(await asked);
+            window.Close();
+        });
+
+    [Fact]
     public void TheToggle_IsNotOnTheSettingsPage()
         => fixture.Run(() =>
         {
@@ -320,6 +407,23 @@ public sealed class FileExplorerViewTests(HeadlessAvaloniaFixture fixture)
         Point middle = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
         window.MouseDown(middle, MouseButton.Left);
         window.MouseUp(middle, MouseButton.Left);
+    }
+
+    private static void RightClick(MainWindow window, Control control, Point? at = null)
+    {
+        Point point = control.TranslatePoint(at ?? new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(point, MouseButton.Right);
+        window.MouseUp(point, MouseButton.Right);
+    }
+
+    // A dialog opens over several dispatcher rounds, and puts its focus where it wants after them.
+    private static async Task SettleAsync()
+    {
+        for (int round = 0; round < 5; round++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(10);
+        }
     }
 
     private static async Task DrainAsync()

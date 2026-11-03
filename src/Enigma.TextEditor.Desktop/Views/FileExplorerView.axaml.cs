@@ -1,7 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Enigma.TextEditor.Desktop.Extensions;
 using Enigma.TextEditor.Desktop.ViewModels;
 
@@ -11,9 +14,10 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// The explorer on the files page: the folder's name and its buttons, and the folder's tree.
 /// </summary>
 /// <remarks>
-/// The handlers here are the ones a binding cannot express: a double-click and Enter both mean "open this", and Escape
-/// means "back to the text". Everything else — the rows, their expansion, the selection, the buttons — is bound. Where
-/// the keyboard goes once a file opens is the window's to say, through <see cref="FileExplorerViewModel.FileOpened"/>.
+/// The handlers here are the ones a binding cannot express: a double-click and Enter both mean "open this", Escape
+/// means "back to the text", and the context menu needs the row it was asked for over selected. Everything else — the
+/// rows, their expansion, the selection, the buttons, the menu's commands — is bound. Where the keyboard goes once a
+/// file opens is the window's to say, through <see cref="FileExplorerViewModel.FileOpened"/>.
 /// </remarks>
 public partial class FileExplorerView : UserControl
 {
@@ -27,6 +31,8 @@ public partial class FileExplorerView : UserControl
         // Bubbling, after the rows have had their say: a folder's row takes Enter itself, to expand or collapse.
         Tree.KeyDown += OnTreeKeyDown;
         Tree.SelectionChanged += OnTreeSelectionChanged;
+        // Tunnelling: the tree's menu takes the request as it opens, and must find the selection already set.
+        Tree.AddHandler(ContextRequestedEvent, OnTreeContextRequested, RoutingStrategies.Tunnel, handledEventsToo: true);
     }
 
     /// <summary>
@@ -109,4 +115,14 @@ public partial class FileExplorerView : UserControl
 
     private Task OpenAsync(FileTreeNodeViewModel row)
         => DataContext is FileExplorerViewModel explorer ? explorer.OpenAsync(row) : Task.CompletedTask;
+
+    // The menu acts on the selection, so the row it was asked for over becomes the selection first; asked for over the
+    // tree's empty part, it acts on the folder itself, so nothing is selected.
+    private void OnTreeContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if (DataContext is FileExplorerViewModel explorer)
+        {
+            explorer.SelectedNode = ((e.Source as Visual)?.FindAncestorOfType<TreeViewItem>(includeSelf: true))?.DataContext as FileTreeNodeViewModel;
+        }
+    }
 }

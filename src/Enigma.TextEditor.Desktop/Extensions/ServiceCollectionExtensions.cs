@@ -129,6 +129,7 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<IDocumentService, DocumentService>();
             services.AddSingleton<EditorPreferences>();
             services.AddSingleton<WorkspaceViewModel>();
+            services.AddSingleton<IFileExplorerPrompts, FileExplorerPrompts>();
             services.AddSingleton<FileExplorerViewModel>();
             services.AddSingleton<StatusBarViewModel>();
             services.AddSingleton<ToolsViewModel>();

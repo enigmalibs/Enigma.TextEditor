@@ -40,6 +40,8 @@ public sealed class FileExplorerViewModel : ObservableObject
 
     private readonly WorkspaceViewModel _workspace;
     private readonly IFilePrompts _prompts;
+    private readonly IFileExplorerPrompts _questions;
+    private readonly IMessageService _messages;
     private CancellationTokenSource _work = new();
 
     /// <summary>
@@ -47,20 +49,30 @@ public sealed class FileExplorerViewModel : ObservableObject
     /// </summary>
     /// <param name="workspace">The editor area, where files open.</param>
     /// <param name="prompts">The folder picker.</param>
-    public FileExplorerViewModel(WorkspaceViewModel workspace, IFilePrompts prompts)
+    /// <param name="questions">Asks for names, and for confirmations.</param>
+    /// <param name="messages">Reports an operation that failed.</param>
+    public FileExplorerViewModel(
+        WorkspaceViewModel workspace,
+        IFilePrompts prompts,
+        IFileExplorerPrompts questions,
+        IMessageService messages)
     {
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         _prompts = prompts ?? throw new ArgumentNullException(nameof(prompts));
+        _questions = questions ?? throw new ArgumentNullException(nameof(questions));
+        _messages = messages ?? throw new ArgumentNullException(nameof(messages));
 
         ToggleCommand = new RelayCommand(() => IsVisible = !IsVisible);
         OpenFolderCommand = new AsyncRelayCommand(OpenFolderFromPromptAsync);
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, () => HasFolder);
         CloseFolderCommand = new RelayCommand(CloseFolder, () => HasFolder);
         OpenCommand = new AsyncRelayCommand<FileTreeNodeViewModel?>(OpenAsync);
+        NewFileCommand = new AsyncRelayCommand(NewFileAsync, () => HasFolder);
+        NewFolderCommand = new AsyncRelayCommand(NewFolderAsync, () => HasFolder);
     }
 
     /// <summary>
-    /// Raised once a file opened from the explorer has been opened or refused, dialogs included.
+    /// Raised once a file opened from the explorer — or created there — has been opened or refused, dialogs included.
     /// </summary>
     public event EventHandler? FileOpened;
 
@@ -84,6 +96,8 @@ public sealed class FileExplorerViewModel : ObservableObject
                 OnPropertyChanged(nameof(HeaderToolTip));
                 RefreshCommand.NotifyCanExecuteChanged();
                 CloseFolderCommand.NotifyCanExecuteChanged();
+                NewFileCommand.NotifyCanExecuteChanged();
+                NewFolderCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -96,9 +110,7 @@ public sealed class FileExplorerViewModel : ObservableObject
     /// <summary>
     /// Gets what the explorer's header says: the folder's name, or <see cref="DefaultHeader"/> with none open.
     /// </summary>
-    public string Header => FolderPath is null
-        ? DefaultHeader
-        : (Path.GetFileName(FolderPath) is { Length: > 0 } name ? name : FolderPath);
+    public string Header => FolderPath is null ? DefaultHeader : FilePaths.NameOf(FolderPath);
 
     /// <summary>
     /// Gets what hovering the header shows: the folder's full path, or <see cref="DefaultHeader"/>.
@@ -113,7 +125,17 @@ public sealed class FileExplorerViewModel : ObservableObject
     /// <summary>
     /// Gets or sets the row selected in the tree.
     /// </summary>
-    public FileTreeNodeViewModel? SelectedNode { get; set => SetProperty(ref field, value); }
+    public FileTreeNodeViewModel? SelectedNode
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value))
+            {
+                OnPropertyChanged(nameof(TargetFolder));
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the command that shows the explorer when it is hidden, and hides it when it is shown.
@@ -139,6 +161,27 @@ public sealed class FileExplorerViewModel : ObservableObject
     /// Gets the command behind a double-click or Enter on a row: a file opens, a folder expands or collapses.
     /// </summary>
     public AsyncRelayCommand<FileTreeNodeViewModel?> OpenCommand { get; }
+
+    /// <summary>
+    /// Gets <em>New File…</em>: asks for a name and creates an empty file in the <see cref="TargetFolder"/>, then opens it.
+    /// </summary>
+    public AsyncRelayCommand NewFileCommand { get; }
+
+    /// <summary>
+    /// Gets <em>New Folder…</em>: asks for a name and creates a folder in the <see cref="TargetFolder"/>.
+    /// </summary>
+    public AsyncRelayCommand NewFolderCommand { get; }
+
+    /// <summary>
+    /// Gets the folder something new goes into: the selected folder, the folder of the selected file or of the selected
+    /// row about a folder, else the folder shown; <see langword="null"/> with none open.
+    /// </summary>
+    public string? TargetFolder => SelectedNode switch
+    {
+        null => FolderPath,
+        { IsFile: true } file => Path.GetDirectoryName(file.FullPath) ?? FolderPath,
+        { } row => row.FullPath,
+    };
 
     /// <summary>
     /// Shows a folder in place of the one shown, and shows the explorer.
@@ -207,6 +250,115 @@ public sealed class FileExplorerViewModel : ObservableObject
     {
         await _workspace.OpenAsync(path);
         FileOpened?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task NewFileAsync()
+    {
+        if ((TargetFolder is not { } folder) || (await _questions.AskNewFileNameAsync(folder) is not { } name))
+        {
+            return;
+        }
+
+        if (await RunAsync("The file could not be created", () => FileOperations.CreateFileAsync(folder, name, _work.Token), folder) is { } created)
+        {
+            await RevealAsync(folder, created);
+            await OpenFileAsync(created);
+        }
+    }
+
+    private async Task NewFolderAsync()
+    {
+        if ((TargetFolder is not { } folder) || (await _questions.AskNewFolderNameAsync(folder) is not { } name))
+        {
+            return;
+        }
+
+        if (await RunAsync("The folder could not be created", () => FileOperations.CreateDirectoryAsync(folder, name, _work.Token), folder) is { } created)
+        {
+            await RevealAsync(folder, created);
+        }
+    }
+
+    // Runs one operation on the file system. A failure is told to the user, in the operation's own words, and the folder
+    // it touched is listed again: the operation may have found it changed.
+    private async Task<string?> RunAsync(string failure, Func<Task<string>> operation, string folder)
+    {
+        try
+        {
+            return await operation();
+        }
+        catch (FileOperationException exception)
+        {
+            await _messages.ShowErrorAsync(failure, exception.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            // The folder closed or changed while the operation was starting: there is nothing left to show it in.
+            return null;
+        }
+
+        await RevealAsync(folder, null);
+
+        return null;
+    }
+
+    // Lists a folder again — expanding it, listing it the first time if need be — and selects the entry, when one is
+    // named. A folder no longer in the tree is not revealed: the whole tree is listed again instead.
+    private async Task RevealAsync(string folder, string? entry)
+    {
+        CancellationToken token = _work.Token;
+        ObservableCollection<FileTreeNodeViewModel> rows;
+
+        if (FilePaths.Comparer.Equals(folder, FolderPath))
+        {
+            await ListAsync(folder, Roots, token);
+            rows = Roots;
+        }
+        else if (Find(Roots, folder) is { IsFolder: true } node)
+        {
+            if (node.IsLoaded)
+            {
+                await ListAsync(folder, node.Children, token);
+            }
+
+            node.IsExpanded = true;
+
+            if (node.Loading is { } first)
+            {
+                await first;
+            }
+
+            rows = node.Children;
+        }
+        else
+        {
+            await RefreshAsync();
+            return;
+        }
+
+        if (entry is not null)
+        {
+            SelectedNode = rows.FirstOrDefault(row => FilePaths.Comparer.Equals(row.FullPath, entry)) ?? SelectedNode;
+        }
+    }
+
+    // A row by its path, among the rows listed so far.
+    private static FileTreeNodeViewModel? Find(IEnumerable<FileTreeNodeViewModel> rows, string path)
+    {
+        foreach (FileTreeNodeViewModel row in rows.Where(row => !row.IsInformational))
+        {
+            if (FilePaths.Comparer.Equals(row.FullPath, path))
+            {
+                return row;
+            }
+
+            if (row.IsFolder && row.IsLoaded && (Find(row.Children, path) is { } found))
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private async Task OpenFolderFromPromptAsync()

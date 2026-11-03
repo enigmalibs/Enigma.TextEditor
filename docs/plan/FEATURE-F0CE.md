@@ -163,7 +163,7 @@ Give the files page a file explorer, to open the files of a folder quickly:
 
 ## PHASE03 — New file and new folder
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
