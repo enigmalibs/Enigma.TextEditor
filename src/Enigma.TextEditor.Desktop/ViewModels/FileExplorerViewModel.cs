@@ -69,6 +69,7 @@ public sealed class FileExplorerViewModel : ObservableObject
         OpenCommand = new AsyncRelayCommand<FileTreeNodeViewModel?>(OpenAsync);
         NewFileCommand = new AsyncRelayCommand(NewFileAsync, () => HasFolder);
         NewFolderCommand = new AsyncRelayCommand(NewFolderAsync, () => HasFolder);
+        RenameCommand = new AsyncRelayCommand(RenameAsync, () => SelectedNode is { IsInformational: false });
     }
 
     /// <summary>
@@ -133,6 +134,7 @@ public sealed class FileExplorerViewModel : ObservableObject
             if (SetProperty(ref field, value))
             {
                 OnPropertyChanged(nameof(TargetFolder));
+                RenameCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -171,6 +173,12 @@ public sealed class FileExplorerViewModel : ObservableObject
     /// Gets <em>New Folder…</em>: asks for a name and creates a folder in the <see cref="TargetFolder"/>.
     /// </summary>
     public AsyncRelayCommand NewFolderCommand { get; }
+
+    /// <summary>
+    /// Gets <em>Rename…</em> (F2): asks for the selected file's or folder's new name and renames it; the tabs of the
+    /// files it moves follow them.
+    /// </summary>
+    public AsyncRelayCommand RenameCommand { get; }
 
     /// <summary>
     /// Gets the folder something new goes into: the selected folder, the folder of the selected file or of the selected
@@ -276,6 +284,38 @@ public sealed class FileExplorerViewModel : ObservableObject
         if (await RunAsync("The folder could not be created", () => FileOperations.CreateDirectoryAsync(folder, name, _work.Token), folder) is { } created)
         {
             await RevealAsync(folder, created);
+        }
+    }
+
+    // A renamed folder that was open stays open under its new name, listed again.
+    private async Task RenameAsync()
+    {
+        if ((SelectedNode is not { IsInformational: false } row) || (Path.GetDirectoryName(row.FullPath) is not { } parent)
+            || (await _questions.AskNewNameAsync(row.FullPath, row.IsFolder) is not { } name))
+        {
+            return;
+        }
+
+        string failure = row.IsFolder ? "The folder could not be renamed" : "The file could not be renamed";
+        string? renamed = await RunAsync(failure, () => FileOperations.RenameAsync(row.FullPath, name, _work.Token), parent);
+
+        if ((renamed is null) || string.Equals(renamed, row.FullPath, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _workspace.RelocateDocuments(row.FullPath, renamed);
+        await RevealAsync(parent, renamed);
+
+        if (row is { IsFolder: true, IsExpanded: true } && (SelectedNode is { IsFolder: true } moved)
+            && FilePaths.Comparer.Equals(moved.FullPath, renamed))
+        {
+            moved.IsExpanded = true;
+
+            if (moved.Loading is { } listing)
+            {
+                await listing;
+            }
         }
     }
 

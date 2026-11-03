@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Enigma.TextEditor.Core.Files;
 using Xunit;
@@ -86,4 +87,85 @@ public sealed class FileOperationsTests
     public async Task ANamelessFolderToCreateIn_IsRejected(string? directory)
         => await Assert.ThrowsAnyAsync<ArgumentException>(
             () => FileOperations.CreateFileAsync(directory!, "notes.md", TestContext.Current.CancellationToken));
+
+    [Fact]
+    public async Task ARename_GivesTheEntryItsNewName()
+    {
+        using TempTreeFolder folder = new();
+        string path = folder.AddFile("notes.md", "text");
+
+        string renamed = await FileOperations.RenameAsync(path, "todo.md", TestContext.Current.CancellationToken);
+
+        Assert.Equal(folder.Combine("todo.md"), renamed);
+        Assert.False(File.Exists(path));
+        Assert.Equal("text", File.ReadAllText(renamed));
+    }
+
+    [Fact]
+    public async Task ARenameToTheNameItAlreadyHas_ChangesNothing()
+    {
+        using TempTreeFolder folder = new();
+        string path = folder.AddFile("notes.md", "text");
+
+        string renamed = await FileOperations.RenameAsync(path, "notes.md", TestContext.Current.CancellationToken);
+
+        Assert.Equal(path, renamed);
+        Assert.Equal("text", File.ReadAllText(renamed));
+    }
+
+    [Fact]
+    public async Task ARenameThatOnlyChangesTheCase_IsCarriedOut()
+    {
+        using TempTreeFolder folder = new();
+        string path = folder.AddFile("notes.md", "text");
+
+        string renamed = await FileOperations.RenameAsync(path, "Notes.md", TestContext.Current.CancellationToken);
+
+        // Read back from the folder itself: File.Exists would answer yes to either spelling on
+        // Windows, so only the entry the file system lists proves the rename happened.
+        string listed = Path.GetFileName(Directory.GetFiles(folder.Root).Single());
+
+        Assert.Equal(folder.Combine("Notes.md"), renamed);
+        Assert.Equal("Notes.md", listed);
+        Assert.Equal("text", File.ReadAllText(renamed));
+    }
+
+    [Fact]
+    public async Task AFolderRenameThatOnlyChangesTheCase_IsCarriedOut()
+    {
+        using TempTreeFolder folder = new();
+        string path = folder.AddDirectory("drafts");
+        folder.AddFile(Path.Combine("drafts", "notes.md"), "text");
+
+        string renamed = await FileOperations.RenameAsync(path, "Drafts", TestContext.Current.CancellationToken);
+
+        string listed = Path.GetFileName(Directory.GetDirectories(folder.Root).Single());
+
+        Assert.Equal(folder.Combine("Drafts"), renamed);
+        Assert.Equal("Drafts", listed);
+        Assert.Equal("text", File.ReadAllText(Path.Combine(renamed, "notes.md")));
+    }
+
+    [Fact]
+    public async Task ARenameOntoANameSomethingElseHas_IsRefused()
+    {
+        using TempTreeFolder folder = new();
+        string path = folder.AddFile("notes.md", "mine");
+        folder.AddFile("todo.md", "yours");
+
+        FileOperationException failure = await Assert.ThrowsAsync<FileOperationException>(
+            () => FileOperations.RenameAsync(path, "todo.md", TestContext.Current.CancellationToken));
+
+        Assert.Equal("There is already a file called 'todo.md' here.", failure.Message);
+        Assert.Equal("yours", File.ReadAllText(folder.Combine("todo.md")));
+    }
+
+    [Fact]
+    public async Task ARenameOfSomethingThatIsGone_IsRefused()
+    {
+        using TempTreeFolder folder = new();
+
+        await Assert.ThrowsAsync<FileOperationException>(
+            () => FileOperations.RenameAsync(folder.Combine("gone.md"), "todo.md", TestContext.Current.CancellationToken));
+    }
 }

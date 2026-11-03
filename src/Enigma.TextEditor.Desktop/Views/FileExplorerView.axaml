@@ -128,6 +128,12 @@
                 <ei:Icon Kind="FolderPlus" Size="14" />
               </MenuItem.Icon>
             </MenuItem>
+            <Separator />
+            <MenuItem Header="_Rename…" InputGesture="F2" Command="{Binding RenameCommand}">
+              <MenuItem.Icon>
+                <ei:Icon Kind="PencilSimple" Size="14" />
+              </MenuItem.Icon>
+            </MenuItem>
           </ContextMenu>
         </TreeView.ContextMenu>
         <TreeView.ItemTemplate>

@@ -66,6 +66,28 @@ public static class FileOperations
         return Task.Run(() => CreateDirectory(directory, name), cancellationToken);
     }
 
+    /// <summary>
+    /// Renames a file or a folder in place.
+    /// </summary>
+    /// <param name="path">The full path of the entry to rename.</param>
+    /// <param name="newName">The name it should have, as the user typed it.</param>
+    /// <param name="cancellationToken">Abandons the operation before it starts.</param>
+    /// <returns>The full path the entry now has.</returns>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is empty or white-space.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="path"/> is <see langword="null"/>.</exception>
+    /// <exception cref="FileOperationException">The entry is gone, the name breaks a rule or is already taken, or the rename failed.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was signalled.</exception>
+    /// <remarks>
+    /// Renaming an entry to the name it already has is a no-op rather than an error: a user who opens the rename box
+    /// and presses Enter has asked for nothing. Changing only the case of a name is a rename, on every platform.
+    /// </remarks>
+    public static Task<string> RenameAsync(string path, string newName, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        return Task.Run(() => Rename(path, newName), cancellationToken);
+    }
+
     private static string CreateFile(string directory, string name)
     {
         if (FileNameValidation.ValidateIn(name, directory, isDirectory: false) is { } problem)
@@ -120,5 +142,117 @@ public static class FileOperations
         }
 
         return path;
+    }
+
+    private static string Rename(string path, string newName)
+    {
+        string full = Normalize(path);
+        bool isDirectory = Directory.Exists(full);
+        string currentName = FilePaths.NameOf(full);
+
+        if (!isDirectory && !File.Exists(full))
+        {
+            throw new FileOperationException($"'{currentName}' is no longer there.");
+        }
+
+        string parent = Path.GetDirectoryName(full)
+            ?? throw new FileOperationException($"'{currentName}' is not somewhere anything can be renamed.");
+
+        if (string.Equals(newName, currentName, StringComparison.Ordinal))
+        {
+            return full;
+        }
+
+        if (FileNameValidation.ValidateIn(newName, parent, isDirectory, currentName) is { } problem)
+        {
+            throw new FileOperationException(problem);
+        }
+
+        string destination = Path.Combine(parent, newName);
+
+        // Changing only the case of a name is a real rename that a case-insensitive file system reads as a move onto
+        // the entry itself, and refuses. Going out to a name nothing else can have and back in is how "notes.txt"
+        // becomes "Notes.txt" on Windows; elsewhere the two names differ already and the move is the ordinary one.
+        bool caseOnly = FilePaths.Comparer.Equals(currentName, newName);
+        string staging = caseOnly ? StagingPath(parent) : string.Empty;
+
+        try
+        {
+            if (caseOnly)
+            {
+                MoveEntry(full, staging, isDirectory);
+                MoveEntry(staging, destination, isDirectory);
+            }
+            else
+            {
+                MoveEntry(full, destination, isDirectory);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            if (caseOnly)
+            {
+                Restore(staging, full, isDirectory);
+            }
+
+            throw new FileOperationException($"'{currentName}' could not be renamed to '{newName}'.", exception);
+        }
+
+        return destination;
+    }
+
+    private static void MoveEntry(string source, string destination, bool isDirectory)
+    {
+        if (isDirectory)
+        {
+            Directory.Move(source, destination);
+        }
+        else
+        {
+            File.Move(source, destination);
+        }
+    }
+
+    // A name nothing else can be holding, for the middle of a case-only rename.
+    private static string StagingPath(string parent)
+    {
+        string path;
+
+        do
+        {
+            path = Path.Combine(parent, $".rename-{Guid.NewGuid():N}");
+        }
+        while (File.Exists(path) || Directory.Exists(path));
+
+        return path;
+    }
+
+    // Only reached when the second half of a two-step rename failed: the entry is sitting under a name the user never
+    // chose and cannot find, so putting it back is worth one attempt.
+    private static void Restore(string staging, string original, bool isDirectory)
+    {
+        try
+        {
+            if (isDirectory ? Directory.Exists(staging) : File.Exists(staging))
+            {
+                MoveEntry(staging, original, isDirectory);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // Nothing further to try. The failure the caller is told about is the rename's own.
+        }
+    }
+
+    private static string Normalize(string path)
+    {
+        try
+        {
+            return Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        }
+        catch (Exception exception) when (exception is ArgumentException or PathTooLongException or NotSupportedException)
+        {
+            throw new FileOperationException($"'{path}' is not a usable path.", exception);
+        }
     }
 }

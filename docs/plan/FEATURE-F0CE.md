@@ -190,7 +190,7 @@ Give the files page a file explorer, to open the files of a folder quickly:
 
 ## PHASE04 — Rename files and folders
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

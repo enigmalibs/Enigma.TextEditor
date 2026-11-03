@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using Enigma.Avalonia.Desktop.Controls.ContentDialog;
 using Enigma.Avalonia.Desktop.Services;
+using Enigma.TextEditor.Core.Files;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
 
@@ -36,6 +38,21 @@ public sealed class FileExplorerPrompts : IFileExplorerPrompts
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
 
         return AskNameAsync("New folder", "Create", new FileNamePromptViewModel(directory, isDirectory: true, string.Empty));
+    }
+
+    /// <inheritdoc />
+    public Task<string?> AskNewNameAsync(string path, bool isFolder)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        string full = Path.TrimEndingDirectorySeparator(path);
+        string name = FilePaths.NameOf(full);
+        string parent = Path.GetDirectoryName(full) ?? full;
+
+        return AskNameAsync(
+            isFolder ? "Rename folder" : "Rename file",
+            "Rename",
+            new FileNamePromptViewModel(parent, isFolder, name, currentName: name));
     }
 
     private async Task<string?> AskNameAsync(string title, string confirmText, FileNamePromptViewModel prompt)

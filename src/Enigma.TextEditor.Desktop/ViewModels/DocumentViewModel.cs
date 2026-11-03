@@ -201,6 +201,23 @@ public sealed class DocumentViewModel : ObservableObject
     public void ChangeLineEndings(LineEndingStyle lineEndings) => ChangeFormat(Format.With(lineEndings));
 
     /// <summary>
+    /// Follows its file to where it was renamed or moved: the path changes, the text and its unsaved changes do not.
+    /// </summary>
+    /// <param name="filePath">The file's new path.</param>
+    /// <exception cref="InvalidOperationException">The buffer has no file.</exception>
+    public void Relocate(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        if (FilePath is null)
+        {
+            throw new InvalidOperationException("An untitled buffer has no file to follow.");
+        }
+
+        FilePath = Path.GetFullPath(filePath);
+    }
+
+    /// <summary>
     /// Records that the buffer was written to a file.
     /// </summary>
     /// <param name="filePath">Where it was written, which becomes its file.</param>

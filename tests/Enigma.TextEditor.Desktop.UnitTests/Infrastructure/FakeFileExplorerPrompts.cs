@@ -28,4 +28,15 @@ internal sealed class FakeFileExplorerPrompts : IFileExplorerPrompts
 
         return Task.FromResult(NewFolderNames.Count > 0 ? NewFolderNames.Dequeue() : null);
     }
+
+    public Queue<string?> NewNames { get; } = new();
+
+    public List<(string Path, bool IsFolder)> RenamesAsked { get; } = [];
+
+    public Task<string?> AskNewNameAsync(string path, bool isFolder)
+    {
+        RenamesAsked.Add((path, isFolder));
+
+        return Task.FromResult(NewNames.Count > 0 ? NewNames.Dequeue() : null);
+    }
 }

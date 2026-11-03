@@ -338,6 +338,63 @@ public sealed class FileExplorerViewTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
+    public void F2_InTheTree_RenamesTheSelectedRow_AsTheMenusRenameDoes()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            string project = Project(harness);
+            MainWindow window = Show(harness);
+            await harness.Explorer.OpenFolderAsync(project);
+            await DrainAsync();
+            harness.Explorer.SelectedNode = harness.Explorer.Roots.Single(row => row.Name == "readme.txt");
+            await DrainAsync();
+            harness.ExplorerPrompts.NewNames.Enqueue("about.txt");
+
+            window.KeyPress(Key.F2, RawInputModifiers.None, PhysicalKey.F2, null);
+            await UntilAsync(() => harness.Explorer.SelectedNode?.Name == "about.txt");
+
+            Assert.True(File.Exists(Path.Combine(project, "about.txt")));
+
+            // The menu's items bind once it has opened.
+            ContextMenu menu = ExplorerOf(window).TreeControl.ContextMenu!;
+            RightClick(window, RowOf(window, "about.txt"));
+            await DrainAsync();
+            MenuItem rename = menu.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "_Rename…");
+            Assert.Same(harness.Explorer.RenameCommand, rename.Command);
+            Assert.Equal(new KeyGesture(Key.F2), rename.InputGesture);
+            menu.Close();
+            window.Close();
+        });
+
+    [Fact]
+    public void TheRenameDialog_StartsOnTheName_WithItsStemSelected()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            string project = Project(harness);
+            MainWindow window = Show(harness);
+            ContentDialogService dialogs = new();
+            dialogs.RegisterHost(window.HostDialog);
+
+            Task<string?> asked = new FileExplorerPrompts(dialogs).AskNewNameAsync(Path.Combine(project, "readme.txt"), isFolder: false);
+            await SettleAsync();
+            TextBox box = Assert.IsType<FileNamePromptView>(window.HostDialog.Content).FindControl<TextBox>("NameBox")!;
+
+            Assert.Equal("Rename file", window.HostDialog.Title);
+            Assert.Equal("readme.txt", box.Text);
+            Assert.Equal("readme", box.SelectedText);
+            Assert.True(window.HostDialog.IsPrimaryButtonEnabled);
+
+            window.KeyTextInput("about");
+            await SettleAsync();
+            window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+            await SettleAsync();
+
+            Assert.Equal("about.txt", await asked);
+            window.Close();
+        });
+
+    [Fact]
     public void TheToggle_IsNotOnTheSettingsPage()
         => fixture.Run(() =>
         {

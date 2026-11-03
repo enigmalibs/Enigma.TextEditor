@@ -20,4 +20,12 @@ public interface IFileExplorerPrompts
     /// <param name="directory">The folder the new one will be created in.</param>
     /// <returns>The name, trimmed, or <see langword="null"/> when the user cancelled.</returns>
     Task<string?> AskNewFolderNameAsync(string directory);
+
+    /// <summary>
+    /// Asks for the new name of a file or folder, starting from its current one, checked as it is typed.
+    /// </summary>
+    /// <param name="path">The entry to rename.</param>
+    /// <param name="isFolder">Whether it is a folder.</param>
+    /// <returns>The name, trimmed — its own name when it was left as it was — or <see langword="null"/> when the user cancelled.</returns>
+    Task<string?> AskNewNameAsync(string path, bool isFolder);
 }

@@ -106,6 +106,10 @@ public partial class FileExplorerView : UserControl
                 LeaveRequested?.Invoke(this, EventArgs.Empty);
                 break;
 
+            case Key.F2 when explorer.RenameCommand.CanExecute(null):
+                explorer.RenameCommand.ExecuteAsync(null).Forget();
+                break;
+
             default:
                 return;
         }

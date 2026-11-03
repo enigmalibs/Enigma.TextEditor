@@ -748,6 +748,15 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     }
 
     /// <summary>
+    /// Has the open buffers of a file renamed outside a save — or of the files under a renamed folder — follow it, so
+    /// that their tabs show the new name and a save writes there rather than bringing the old name back.
+    /// </summary>
+    /// <param name="oldPath">Where the file or folder was.</param>
+    /// <param name="newPath">Where it is now.</param>
+    /// <returns>How many buffers followed.</returns>
+    public int RelocateDocuments(string oldPath, string newPath) => _registry.Relocate(oldPath, newPath);
+
+    /// <summary>
     /// Puts a new untitled buffer in a tab's place, without asking about the buffer it replaces.
     /// </summary>
     /// <param name="pane">The pane the tab is on.</param>
