@@ -1,6 +1,6 @@
 # FEATURE-1B68 — Release 1.15.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-1b68-release-1-15-0`
 **Run:** feature/2026-11-03-final3-icons-release
