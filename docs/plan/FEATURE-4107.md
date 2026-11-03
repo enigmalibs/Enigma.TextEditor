@@ -1,6 +1,6 @@
 # FEATURE-4107 — New tab on a tab strip double-click
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-4107-new-tab-double-click`
 **Run:** feature/2026-11-02-tab-strip-file-explorer

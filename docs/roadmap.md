@@ -108,7 +108,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Split a pane for dropped files       | DONE        | (in FEATURE-B751.md)      |
 | - PHASE02    | File drop zones and their hint       | DONE        | (in FEATURE-B751.md)      |
 | FEATURE-C188 | Release 1.12.0                       | DONE        | docs/plan/FEATURE-C188.md |
-| FEATURE-4107 | New tab on a tab strip double-click  | TODO        | docs/plan/FEATURE-4107.md |
+| FEATURE-4107 | New tab on a tab strip double-click  | DONE        | docs/plan/FEATURE-4107.md |
 | BUG-74B6     | Wheel does not scroll the tab strip  | TODO        | docs/plan/BUG-74B6.md     |
 | FEATURE-F0CE | File explorer on the files page      | TODO        | docs/plan/FEATURE-F0CE.md |
 | - PHASE01    | Folder tree model                    | TODO        | (in FEATURE-F0CE.md)      |

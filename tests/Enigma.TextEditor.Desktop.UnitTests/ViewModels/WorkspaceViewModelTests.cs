@@ -1,4 +1,5 @@
 using System.IO;
+using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Xunit;
@@ -49,6 +50,41 @@ public sealed class WorkspaceViewModelTests(HeadlessAvaloniaFixture fixture)
 
             Assert.Equal("Untitled-2", harness.Workspace.ActiveDocument?.Title);
             Assert.Equal(2, harness.Registry.Documents.Count);
+        });
+
+    [Fact]
+    public void NewDocument_InAPaneWithoutTheKeyboard_AddsTheTabAtItsEnd_AndGivesItTheKeyboard()
+        => fixture.Run(() =>
+        {
+            using EditorHarness harness = new();
+            EditorPaneViewModel left = harness.Workspace.ActivePane;
+            harness.Workspace.NewDocument();
+            EditorPaneViewModel right = harness.Workspace.Split(SplitAxis.Columns);
+
+            EditorTabViewModel? tab = harness.Workspace.NewDocument(left);
+
+            Assert.NotNull(tab);
+            Assert.Equal(2, left.Tabs.Count);
+            Assert.Same(tab, left.Tabs[^1]);
+            Assert.Same(tab, left.ActiveTab);
+            Assert.True(tab.Document.IsUntitled);
+            Assert.Same(left, harness.Workspace.ActivePane);
+            Assert.Single(right.Tabs);
+        });
+
+    [Fact]
+    public void NewDocument_InAPaneNotInTheWorkspace_ChangesNothing()
+        => fixture.Run(() =>
+        {
+            using EditorHarness harness = new();
+            EditorPaneViewModel active = harness.Workspace.ActivePane;
+            EditorPaneViewModel stranger = new(harness.Preferences, harness.Workspace);
+
+            Assert.Null(harness.Workspace.NewDocument(stranger));
+
+            Assert.Empty(stranger.Tabs);
+            Assert.Empty(harness.Registry.Documents);
+            Assert.Same(active, harness.Workspace.ActivePane);
         });
 
     [Fact]

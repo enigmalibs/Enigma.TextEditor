@@ -732,6 +732,21 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// <returns>Its tab.</returns>
     public EditorTabViewModel NewDocument() => Show(_documents.CreateUntitled());
 
+    /// <inheritdoc />
+    public EditorTabViewModel? NewDocument(EditorPaneViewModel pane)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+
+        if (IdOf(pane) is null)
+        {
+            return null;
+        }
+
+        Activate(pane);
+
+        return NewDocument();
+    }
+
     /// <summary>
     /// Puts a new untitled buffer in a tab's place, without asking about the buffer it replaces.
     /// </summary>

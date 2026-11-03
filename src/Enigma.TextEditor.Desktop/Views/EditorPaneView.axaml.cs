@@ -134,6 +134,10 @@ public partial class EditorPaneView : UserControl
 
         // Direct, the only route a lost capture travels: a handler listening on any other is never called.
         Tabs.AddHandler(PointerCaptureLostEvent, OnTabsPointerCaptureLost, RoutingStrategies.Direct, handledEventsToo: true);
+
+        // A double-click on the strip's empty part opens a new tab there. Handled events too: the list takes the press
+        // the double-click is made of.
+        Strip.AddHandler(DoubleTappedEvent, OnStripDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
     }
 
     /// <summary>
@@ -372,6 +376,26 @@ public partial class EditorPaneView : UserControl
 
         e.Handled = true;
         _pane?.CloseTabCommand.Execute(tab);
+    }
+
+    // Right of the last tab, or under the tabs: not on a tab — its close button is part of it — and not on the scrollbar,
+    // where two quick clicks are scrolling. Focused once the editor shows the new buffer.
+    private void OnStripDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if ((_pane is not { } pane)
+            || (e.Source is not Visual source)
+            || (source.FindAncestorOfType<ListBoxItem>(includeSelf: true) is not null)
+            || (source.FindAncestorOfType<ScrollBar>(includeSelf: true) is not null))
+        {
+            return;
+        }
+
+        e.Handled = true;
+
+        if (pane.NewTab() is not null)
+        {
+            Dispatcher.UIThread.Post(FocusEditor, DispatcherPriority.Loaded);
+        }
     }
 
     // Not from the close button, whose press is a click on it, and only with the left button, the one that drags.

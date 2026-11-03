@@ -26,7 +26,7 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 > [RELEASENOTES.md](RELEASENOTES.md).
 
 **Tabs and panes.** Each pane holds its documents as tabs. A dot marks unsaved changes, and a tab closes with its **×**,
-a middle click or Ctrl+F4. Ctrl+Tab and Ctrl+Shift+Tab, or `gt` and `gT`, move between tabs. Panes split any way you
+a middle click or Ctrl+F4. A double-click on the empty part of a pane's tab strip opens a new untitled tab there. Ctrl+Tab and Ctrl+Shift+Tab, or `gt` and `gT`, move between tabs. Panes split any way you
 like: right or down from the **View** menu, `Ctrl+W v` and `Ctrl+W s`, or `:vs` and `:sp`, each opening a new untitled
 document in the new pane, or the file you name (`:sp notes.txt`). The View menu and `Ctrl+W` also close a pane, keep
 only this one, make them all the same size (`g=` too), and move to the next one. With several panes, the one with the
