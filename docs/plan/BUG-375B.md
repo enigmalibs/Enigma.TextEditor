@@ -1,6 +1,6 @@
 # BUG-375B — Ctrl+Z in insert mode crashes the editor
 
-**Status:** TODO
+**Status:** DONE
 **Type:** BUG
 **Branch:** `bugfix/bug-375b-insert-mode-undo`
 **Run:** bugfix/2026-11-04-bug-375b

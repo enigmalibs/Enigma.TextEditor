@@ -242,6 +242,37 @@ public partial class EditorPaneView : UserControl
     public AvaloniaTextEditor EditorControl => Editor;
 
     /// <summary>
+    /// Takes back the last change for the Edit menu and the editor's own menu: through vim while it is
+    /// on (<see cref="VimEditorBehavior.Undo"/>), straight to the editor otherwise.
+    /// </summary>
+    internal void Undo()
+    {
+        if (_vim is { } vim)
+        {
+            vim.Undo();
+        }
+        else
+        {
+            Editor.Undo();
+        }
+    }
+
+    /// <summary>
+    /// Puts back what <see cref="Undo"/> took, on the same terms.
+    /// </summary>
+    internal void Redo()
+    {
+        if (_vim is { } vim)
+        {
+            vim.Redo();
+        }
+        else
+        {
+            Editor.Redo();
+        }
+    }
+
+    /// <summary>
     /// Gets the editor's appearance, once the pane is loaded.
     /// </summary>
     internal EditorAppearance? Appearance => _appearance;
@@ -637,9 +668,9 @@ public partial class EditorPaneView : UserControl
         MenuSelectAll.IsEnabled = Editor.CanSelectAll;
     }
 
-    private void OnMenuUndoClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Undo());
+    private void OnMenuUndoClick(object? sender, RoutedEventArgs e) => EditFromMenu(_ => Undo());
 
-    private void OnMenuRedoClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Redo());
+    private void OnMenuRedoClick(object? sender, RoutedEventArgs e) => EditFromMenu(_ => Redo());
 
     private void OnMenuCutClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Cut());
 
@@ -867,12 +898,14 @@ public partial class EditorPaneView : UserControl
     }
 
     // The editor's indentation options are per control, the indentation is per buffer: they are put in
-    // step on every swap, and again whenever the buffer's indentation changes.
+    // step on every swap, and again whenever the buffer's indentation changes. The buffer followed is
+    // also the one whose reload has to put vim back in normal mode first (OnDocumentReloading).
     private void FollowIndentation(DocumentViewModel? document)
     {
         if (_indented is not null)
         {
             _indented.PropertyChanged -= OnDocumentPropertyChanged;
+            _indented.Reloading -= OnDocumentReloading;
         }
 
         _indented = document;
@@ -880,11 +913,17 @@ public partial class EditorPaneView : UserControl
         if (_indented is not null)
         {
             _indented.PropertyChanged += OnDocumentPropertyChanged;
+            _indented.Reloading += OnDocumentReloading;
             ApplyIndentation(_indented);
         }
 
         ApplyLanguage();
     }
+
+    // A reload clears the undo history, which the editor's stack refuses to do while an insert
+    // session's group is open (BUG-375B). The text is about to be replaced wholesale, as a tab switch
+    // replaces it, so the engine starts again the same way — closing the group — before it is.
+    private void OnDocumentReloading(object? sender, EventArgs e) => _vim?.OnDocumentChanged();
 
     private void ApplyLanguage()
         => _appearance?.SetLanguage(_indented?.Language ?? Services.LanguageInfo.PlainText);

@@ -189,7 +189,9 @@ public sealed class AvaloniaEditVimBuffer : IVimBuffer
     /// <remarks>
     /// The editor's own stack, not one the engine keeps: <c>u</c> and <c>Ctrl+Z</c> have to take back
     /// the same step, or a file edited half in normal mode and half with the menu would have two
-    /// histories that disagree.
+    /// histories that disagree. AvaloniaEdit's stack throws when asked for a step with a group open —
+    /// and forgets the group as it does — so the engine closes its insert group before it calls this,
+    /// and every route to an undo goes through the engine while vim is on.
     /// </remarks>
     public void Undo() => _editor.Undo();
 

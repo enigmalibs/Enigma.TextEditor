@@ -304,7 +304,11 @@ public partial class MainWindow : Window
     /// Gets the editor of the active pane — what the Edit menu acts on — or <see langword="null"/> while
     /// the settings page hides it.
     /// </summary>
-    internal AvaloniaTextEditor? ActiveEditor
+    internal AvaloniaTextEditor? ActiveEditor => ActiveEditorView?.EditorControl;
+
+    // The pane whose editor the Edit menu acts on, or null while the settings page hides it or the
+    // active tab is a hex view.
+    private EditorPaneView? ActiveEditorView
     {
         get
         {
@@ -317,15 +321,16 @@ public partial class MainWindow : Window
                 .OfType<EditorPaneView>()
                 .FirstOrDefault(candidate => ReferenceEquals(candidate.DataContext, pane));
 
-            return view is { CurrentTab.Document.IsHex: false } ? view.EditorControl : null;
+            return view is { CurrentTab.Document.IsHex: false } ? view : null;
         }
     }
 
     // The editing commands are methods on the control rather than anything bindable, so the menu reaches
-    // them here. Each hands the focus back to the text, which the menu took.
-    private void OnUndoClick(object? sender, RoutedEventArgs e) => Edit(editor => editor.Undo());
+    // them here. Each hands the focus back to the text, which the menu took. Undo and redo go through
+    // the pane, which sends them through vim while it is on (BUG-375B).
+    private void OnUndoClick(object? sender, RoutedEventArgs e) => EditPane(view => view.Undo());
 
-    private void OnRedoClick(object? sender, RoutedEventArgs e) => Edit(editor => editor.Redo());
+    private void OnRedoClick(object? sender, RoutedEventArgs e) => EditPane(view => view.Redo());
 
     private void OnCutClick(object? sender, RoutedEventArgs e) => Edit(editor => editor.Cut());
 
@@ -335,14 +340,16 @@ public partial class MainWindow : Window
 
     private void OnSelectAllClick(object? sender, RoutedEventArgs e) => Edit(editor => editor.SelectAll());
 
-    private void Edit(Action<AvaloniaTextEditor> action)
+    private void Edit(Action<AvaloniaTextEditor> action) => EditPane(view => action(view.EditorControl));
+
+    private void EditPane(Action<EditorPaneView> action)
     {
-        if (ActiveEditor is not { } editor)
+        if (ActiveEditorView is not { } view)
         {
             return;
         }
 
-        action(editor);
-        editor.TextArea.Focus();
+        action(view);
+        view.EditorControl.TextArea.Focus();
     }
 }

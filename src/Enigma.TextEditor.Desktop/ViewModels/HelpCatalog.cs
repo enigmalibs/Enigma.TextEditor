@@ -62,6 +62,7 @@ public static class HelpCatalog
             Keys("i, a", "Insert before, after the caret"),
             Keys("I, A", "Insert at the first non-blank, at the end of the line"),
             Keys("o, O", "Open a line below, above, with this line's indentation"),
+            Keys("Ctrl+Z, Ctrl+Y", "Undo, redo without leaving insert mode"),
             Keys("Esc", "Back to normal mode"),
         ]),
         Section("Editing", PhosphorIcon.PencilSimple, "A count in front repeats: 3x, 2p",
