@@ -3,9 +3,12 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
+using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
 using Xunit;
 
@@ -126,6 +129,149 @@ public sealed class VimEditingTests(HeadlessAvaloniaFixture fixture)
             Assert.False(window.FindControl<Border>("ModeChip")?.IsVisible);
             window.Close();
         });
+
+    // BUG-375B: an insert session holds an undo group open until Esc, and AvaloniaEdit's undo throws
+    // inside one — then forgets the group, so that the Esc after it threw too. Every route to an undo
+    // goes through the engine now, and each one is driven here as the user drives it.
+    [Fact]
+    public void CtrlZInInsertMode_TakesBackWhatWasTyped_StaysInInsertMode_AndEscStillLeaves()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
+            MainWindow window = Show(harness);
+
+            // The 'x' gives the undo stack something before the session: the crash needed a step to take.
+            window.KeyTextInput("x");
+            window.KeyTextInput("i");
+            window.KeyTextInput("hello");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("hellobc", Editor(window).Document.Text);
+
+            window.KeyPressQwerty(PhysicalKey.Z, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("bc", Editor(window).Document.Text);
+            Assert.Equal("INSERT", ModeText(window));
+
+            window.KeyPressQwerty(PhysicalKey.Z, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("abc", Editor(window).Document.Text);
+
+            window.KeyTextInput("Q");
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("Qabc", Editor(window).Document.Text);
+            Assert.Equal("NORMAL", ModeText(window));
+
+            // 'u' takes back only what was typed after the last Ctrl+Z.
+            window.KeyTextInput("u");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("abc", Editor(window).Document.Text);
+            window.Close();
+        });
+
+    [Fact]
+    public void TheRedoKeysInInsertMode_PutBackWhatWasTaken_AndStayInInsertMode()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
+            MainWindow window = Show(harness);
+
+            window.KeyTextInput("xu");
+            window.KeyTextInput("i");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("abc", Editor(window).Document.Text);
+
+            window.KeyPressQwerty(PhysicalKey.Y, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("bc", Editor(window).Document.Text);
+
+            window.KeyPressQwerty(PhysicalKey.Z, RawInputModifiers.Control);
+            window.KeyPressQwerty(PhysicalKey.Z, RawInputModifiers.Control | RawInputModifiers.Shift);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("bc", Editor(window).Document.Text);
+            Assert.Equal("INSERT", ModeText(window));
+            window.Close();
+        });
+
+    [Theory]
+    [InlineData("UndoItem")]
+    [InlineData("MenuUndo")]
+    public void UndoFromAMenuInInsertMode_TakesBackWhatWasTyped_AndStaysInInsertMode(string item)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
+            MainWindow window = Show(harness);
+
+            window.KeyTextInput("i");
+            window.KeyTextInput("hello");
+            Dispatcher.UIThread.RunJobs();
+
+            // The Edit menu's item is the window's, the editor's own menu's is the pane's.
+            MenuItem menu = window.FindControl<MenuItem>(item)
+                ?? window.GetVisualDescendants().OfType<EditorPaneView>().Single().FindControl<MenuItem>(item)
+                ?? throw new Xunit.Sdk.XunitException($"No menu item {item}.");
+            menu.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("abc", Editor(window).Document.Text);
+            Assert.Equal("INSERT", ModeText(window));
+
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("NORMAL", ModeText(window));
+            window.Close();
+        });
+
+    [Fact]
+    public void ReopeningWithAnotherEncodingInInsertMode_GoesBackToNormalMode_AndReloads()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
+            MainWindow window = Show(harness);
+
+            window.KeyTextInput("i");
+            window.KeyTextInput("X");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("Xabc", Editor(window).Document.Text);
+
+            DocumentViewModel document = harness.Workspace.ActivePane.ActiveTab!.Document;
+            Assert.True(await harness.Documents.ReopenWithEncodingAsync(document, TextEncodings.Windows1252));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("abc", Editor(window).Document.Text);
+            Assert.Equal("NORMAL", ModeText(window));
+            Assert.False(document.Document.UndoStack.CanUndo);
+
+            // The group was closed before the reload, not lost under it: Esc has nothing left to throw on.
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("NORMAL", ModeText(window));
+            window.Close();
+        });
+
+    [Fact]
+    public void WithVimOff_CtrlZIsTheEditorsUndo()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new(settings => settings.VimEnabled = false);
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
+            MainWindow window = Show(harness);
+
+            window.KeyTextInput("x");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("xabc", Editor(window).Document.Text);
+
+            window.KeyPressQwerty(PhysicalKey.Z, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("abc", Editor(window).Document.Text);
+            window.Close();
+        });
+
+    private static string? ModeText(MainWindow window) => window.FindControl<TextBlock>("ModeText")?.Text;
 
     private static AvaloniaEdit.TextEditor Editor(MainWindow window)
         => window.GetVisualDescendants().OfType<EditorPaneView>().Single().EditorControl;

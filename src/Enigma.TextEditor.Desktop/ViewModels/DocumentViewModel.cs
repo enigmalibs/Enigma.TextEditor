@@ -60,6 +60,16 @@ public sealed class DocumentViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Raised by <see cref="ApplyReload"/> before it replaces the text and clears the undo history.
+    /// </summary>
+    /// <remarks>
+    /// For the view showing the buffer: vim's insert session holds an undo group open on this
+    /// document, and the undo stack refuses to be cleared inside one, so the session has to be closed
+    /// before the reload goes ahead.
+    /// </remarks>
+    public event EventHandler? Reloading;
+
+    /// <summary>
     /// Gets the text.
     /// </summary>
     public TextDocument Document { get; }
@@ -261,6 +271,8 @@ public sealed class DocumentViewModel : ObservableObject
     public void ApplyReload(DocumentContent content)
     {
         ArgumentNullException.ThrowIfNull(content);
+
+        Reloading?.Invoke(this, EventArgs.Empty);
 
         Format = content.Format;
         _replacing = true;

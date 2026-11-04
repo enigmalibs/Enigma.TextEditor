@@ -41,6 +41,10 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// Insert mode touches neither event. That is what "insert mode is ordinary typing" has to mean in a
 /// real editor: an input method composes a character over several keystrokes and delivers it as text,
 /// and a handler that took those keys apart would break every composed character in the language.
+/// The exceptions are <c>Esc</c> and the undo keys — <c>Ctrl+Z</c>, <c>Ctrl+Shift+Z</c> and, in
+/// insert mode, <c>Ctrl+Y</c> — which the engine takes in place of the editor, because the editor's
+/// own undo cannot run inside the undo group an insert session holds open. The Edit menu and the
+/// editor's own menu reach the same undo through <see cref="Undo"/> and <see cref="Redo"/>.
 /// </para>
 /// <para>
 /// Both handlers tunnel: Enter, Tab and the arrows already belong to AvaloniaEdit's own input
@@ -320,6 +324,39 @@ public sealed class VimEditorBehavior
     /// another pane whose mode the status bar was showing.
     /// </summary>
     public void Announce() => ApplyMode();
+
+    /// <summary>
+    /// Takes back the last change for a menu — through the engine while vim is on, exactly as
+    /// <c>Ctrl+Z</c> would.
+    /// </summary>
+    /// <remarks>
+    /// Never straight to the editor while the engine is attached: an insert session holds an undo
+    /// group open until <c>Esc</c>, and the editor's undo throws inside one (BUG-375B). The editor's own
+    /// undo runs when vim is off, and when the engine turns the request down — while its command
+    /// line is open, which is outside insert mode and so outside any group.
+    /// </remarks>
+    public void Undo()
+    {
+        if (!Routed() || !_engine.Undo())
+        {
+            _editor.Undo();
+        }
+    }
+
+    /// <summary>
+    /// Puts back what <see cref="Undo"/> took, for a menu, on the same terms.
+    /// </summary>
+    public void Redo()
+    {
+        if (!Routed() || !_engine.Redo())
+        {
+            _editor.Redo();
+        }
+    }
+
+    // The same test OnKeyDown makes before offering the engine a key: a menu's undo goes where the
+    // key would have gone.
+    private bool Routed() => _attached && !_editor.IsReadOnly && (_editor.Document is not null);
 
     private void ApplyMode()
     {
