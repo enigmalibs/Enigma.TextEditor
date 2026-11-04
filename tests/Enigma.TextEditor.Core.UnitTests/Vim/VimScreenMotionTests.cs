@@ -461,7 +461,6 @@ public sealed class VimScreenMotionTests
     [InlineData("i<C-f>")]
     [InlineData("i<C-b>")]
     [InlineData("i<C-e>")]
-    [InlineData("i<C-y>")]
     [InlineData("i<PageDown>")]
     [InlineData("i<PageUp>")]
     public void InInsertMode_TheScrollKeysAreTheEditors(string keys)
@@ -477,6 +476,22 @@ public sealed class VimScreenMotionTests
         VimKey key = VimKeyNotation.Parse(keys)[1];
 
         Assert.False(engine.HandleKey(key));
+        Assert.Equal(VimMode.Insert, engine.Mode);
+        Assert.Empty(buffer.Scrolls);
+    }
+
+    [Fact]
+    public void InInsertMode_CtrlYIsTheRedo_NotTheScroll()
+    {
+        // Taken rather than left to the editor (BUG-375B): Ctrl+Y is the editor's redo in insert mode,
+        // and the editor's redo cannot run inside the session's open undo group. Still no scroll.
+        FakeVimBuffer buffer = VimScript.NewBuffer(Numbered(Lines, caretLine: 15));
+        buffer.ViewportLines = Window;
+        VimEngine engine = new(buffer);
+
+        engine.HandleKey(VimKey.Typed('i'));
+
+        Assert.True(engine.HandleKey(VimKey.Typed('y', VimModifiers.Control)));
         Assert.Equal(VimMode.Insert, engine.Mode);
         Assert.Empty(buffer.Scrolls);
     }

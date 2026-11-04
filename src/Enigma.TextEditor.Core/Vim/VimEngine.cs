@@ -107,6 +107,11 @@ public sealed class VimEngine
     // any recursion that is doing work rather than looping.
     private const int MaxMacroDepth = 100;
 
+    // The undo keys as a recording writes them. Redo is the capital: Ctrl+Shift+Z arrives as a 'z'
+    // held with Shift, and the notation writes Shift into a character rather than beside it.
+    private static readonly VimKey UndoKey = VimKey.Typed('z', VimModifiers.Control);
+    private static readonly VimKey RedoKey = VimKey.Typed('Z', VimModifiers.Control);
+
     private readonly IVimBuffer _buffer;
     private readonly VimSharedState _shared;
     private readonly KeySequenceParser _parser = new();
@@ -308,14 +313,20 @@ public sealed class VimEngine
     /// <remarks>
     /// <para>
     /// The two answers are the whole contract with the view. Insert mode says <see langword="false"/>
-    /// to everything but <c>Esc</c>, which is what "insert mode is ordinary typing" means in practice
-    /// — including for input methods, which compose their text through the editor without the engine
-    /// ever seeing the keys. Normal mode says <see langword="true"/> to every bare key, even one it
-    /// has no meaning for, because a key that fell through would type a character into a document that
-    /// is not being typed into; keys held with Control or Alt are the exception, and belong to the
-    /// window — all but the seven the contract claims, <c>Ctrl+R</c> and the six scroll commands
-    /// <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+F</c> <c>Ctrl+B</c> <c>Ctrl+E</c> <c>Ctrl+Y</c>, which are
-    /// taken in the command modes only.
+    /// to everything but <c>Esc</c> and the undo keys, which is what "insert mode is ordinary typing"
+    /// means in practice — including for input methods, which compose their text through the editor
+    /// without the engine ever seeing the keys. Normal mode says <see langword="true"/> to every bare
+    /// key, even one it has no meaning for, because a key that fell through would type a character into
+    /// a document that is not being typed into; keys held with Control or Alt are the exception, and
+    /// belong to the window — all but the ones the contract claims: <c>Ctrl+R</c> and the six scroll
+    /// commands <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+F</c> <c>Ctrl+B</c> <c>Ctrl+E</c> <c>Ctrl+Y</c>, taken
+    /// in the command modes only, and the undo keys, taken in every mode.
+    /// </para>
+    /// <para>
+    /// The undo keys are <c>Ctrl+Z</c> and <c>Ctrl+Shift+Z</c>, and in insert mode <c>Ctrl+Y</c> as
+    /// well, which is the editor's redo there and vim's scroll everywhere else. They are the engine's
+    /// in insert mode because the session holds an undo group open until <c>Esc</c>, and the editor's
+    /// own undo refuses to run inside one — see <see cref="Undo"/>.
     /// </para>
     /// <para>
     /// While a recording is open every key the engine takes goes into it, after it has done its work:
@@ -327,6 +338,8 @@ public sealed class VimEngine
     /// </remarks>
     public bool HandleKey(VimKey key)
     {
+        key = FoldRedoKey(key);
+
         bool wasRecording = _recording is not null;
         bool taken = Dispatch(key);
 
@@ -338,6 +351,61 @@ public sealed class VimEngine
         return taken;
     }
 
+    /// <summary>
+    /// Takes back the last change — what <c>Ctrl+Z</c> does, for the routes that are not a key: the
+    /// Edit menu and the editor's own menu.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> when the engine did it; <see langword="false"/> when the command line is
+    /// open, which turns the undo keys down as it does every key held with Control, and the editor's
+    /// own undo is the one to run — no group is open then, since the line only opens outside insert
+    /// mode.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// Every undo goes through here or through the keys while vim is on, because an insert session
+    /// holds an undo group open until <c>Esc</c> and the editor's undo stack refuses — by throwing,
+    /// and losing the group as it does — to take a step back inside one.
+    /// </para>
+    /// <para>
+    /// In insert mode the session is cut in two: what was typed so far is closed into a step of its
+    /// own and taken back, and a new group opens for what is typed next, without leaving the mode —
+    /// gVim's own <c>Ctrl+Z</c> there. <c>.</c> then repeats only what is typed after the undo. In
+    /// normal mode it is <c>u</c>, caret rule and all; in a visual mode the selection is left first,
+    /// since <c>u</c> over one is the lowercase operator. A recording takes it down as the key.
+    /// </para>
+    /// </remarks>
+    public bool Undo() => StepFromMenu(UndoKey);
+
+    /// <summary>
+    /// Puts back what <see cref="Undo"/> took — what <c>Ctrl+Shift+Z</c> does, for the menus.
+    /// </summary>
+    /// <returns>As for <see cref="Undo"/>.</returns>
+    /// <remarks>
+    /// <c>Ctrl+R</c> in normal mode, and the same cut in two as <see cref="Undo"/> in insert mode.
+    /// </remarks>
+    public bool Redo() => StepFromMenu(RedoKey);
+
+    private bool StepFromMenu(VimKey key)
+    {
+        if (_commandLine is not null)
+        {
+            return false;
+        }
+
+        bool wasRecording = _recording is not null;
+
+        _windowPending = false;
+        Step(forward: key == RedoKey);
+
+        if (wasRecording && (_recording is not null) && (_macroDepth == 0))
+        {
+            _macro.Append(VimKeyNotation.Format(key));
+        }
+
+        return true;
+    }
+
     private bool Dispatch(VimKey key)
     {
         if (Mode == VimMode.Insert)
@@ -345,6 +413,13 @@ public sealed class VimEngine
             if (key.Special == VimSpecialKey.Escape)
             {
                 LeaveInsert();
+
+                return true;
+            }
+
+            if (IsUndoKey(key) || IsRedoKey(key) || IsInsertRedoKey(key))
+            {
+                Step(forward: !IsUndoKey(key));
 
                 return true;
             }
@@ -382,11 +457,18 @@ public sealed class VimEngine
             return true;
         }
 
-        // A key held with Control or Alt belongs to the window, with seven exceptions: redo, read
-        // here, and the six scroll commands, which go through the grammar like any other key so that
-        // a count in front of one reaches it — '5<C-d>' scrolls five lines.
+        // A key held with Control or Alt belongs to the window, with these exceptions: the undo keys
+        // and redo, read here, and the six scroll commands, which go through the grammar like any
+        // other key so that a count in front of one reaches it — '5<C-d>' scrolls five lines.
         if (key.HasCommandModifier && !KeySequenceParser.IsControlCommand(key))
         {
+            if (IsUndoKey(key) || IsRedoKey(key))
+            {
+                Step(forward: IsRedoKey(key));
+
+                return true;
+            }
+
             if (!IsRedo(key))
             {
                 return false;
@@ -511,6 +593,36 @@ public sealed class VimEngine
         => key.IsCharacter
             && ((key.Character == 'r') || (key.Character == 'R'))
             && ((key.Modifiers & VimModifiers.Alt) == VimModifiers.None);
+
+    // Ctrl+Z, the editor's undo in every mode.
+    private static bool IsUndoKey(VimKey key) => IsControlLetter(key, 'z');
+
+    // Ctrl+Shift+Z, the editor's redo in every mode — folded into RedoKey on the way in.
+    private static bool IsRedoKey(VimKey key) => IsControlLetter(key, 'Z');
+
+    // Ctrl+Y, the editor's redo too, but only in insert mode: in the command modes it is vim's scroll.
+    private static bool IsInsertRedoKey(VimKey key)
+        => IsControlLetter(key, 'y') || IsControlLetter(key, 'Y');
+
+    private static bool IsControlLetter(VimKey key, char letter)
+        => key.IsCharacter
+            && (key.Character == letter)
+            && ((key.Modifiers & VimModifiers.Control) != VimModifiers.None)
+            && ((key.Modifiers & VimModifiers.Alt) == VimModifiers.None);
+
+    /// <summary>
+    /// Writes <c>Ctrl+Shift+Z</c> as <see cref="RedoKey"/>, the capital the notation keeps.
+    /// </summary>
+    /// <remarks>
+    /// The view builds a key held with Control from its key code — a lowercase letter, with Shift
+    /// beside it — and the notation drops Shift from a character, so a recording would otherwise read
+    /// the redo back as an undo. Only this key: every other key held with Control means the same with
+    /// or without Shift.
+    /// </remarks>
+    private static VimKey FoldRedoKey(VimKey key)
+        => IsControlLetter(key, 'z') && ((key.Modifiers & VimModifiers.Shift) != VimModifiers.None)
+            ? key with { Character = 'Z', Modifiers = key.Modifiers & ~VimModifiers.Shift }
+            : key;
 
     /// <summary>
     /// Which way <c>&lt;Space&gt;r</c> and a letter moves the bar between two panes.
@@ -2872,6 +2984,61 @@ public sealed class VimEngine
         // The undo stack puts the caret back where the change was, which is a position insert mode
         // allowed and normal mode may not.
         SetCaret(_buffer.CaretOffset);
+    }
+
+    /// <summary>
+    /// One step back or forward from an undo key or a menu, in whatever mode the engine is in.
+    /// </summary>
+    private void Step(bool forward)
+    {
+        if (Mode == VimMode.Insert)
+        {
+            StepInInsert(forward);
+
+            return;
+        }
+
+        _parser.Reset();
+
+        // 'u' over a selection is the lowercase operator, so the selection goes first and what is
+        // left is the 'u' of normal mode.
+        LeaveVisual();
+        Execute(new VimCommand(forward ? VimAction.Redo : VimAction.Undo));
+    }
+
+    /// <summary>
+    /// Undoes or redoes without leaving insert mode, by cutting the session's undo group in two.
+    /// </summary>
+    /// <remarks>
+    /// The group has to be closed first: the buffer's undo cannot run inside one. What was typed so
+    /// far becomes its own step — the one an undo then takes back — and a new group opens for what
+    /// comes next, so that <c>Esc</c> and <c>u</c> take back only that. The record of the session
+    /// starts again from the caret, because text that has just been undone is not what <c>.</c> should
+    /// type; an open recording is given what was typed so far first, ahead of the key, so that a replay
+    /// types it and takes it back exactly as the user did.
+    /// </remarks>
+    private void StepInInsert(bool forward)
+    {
+        // The same test the Esc that closes the record makes before writing the text into a recording.
+        if ((_insertCommand is not null) && !_replaying && (_recording is not null) && (_macroDepth == 0))
+        {
+            _macro.Append(VimKeyNotation.Format(TypedKeys(_typed.Text)));
+        }
+
+        EndInsertGroup();
+
+        if (forward)
+        {
+            _buffer.Redo();
+        }
+        else
+        {
+            _buffer.Undo();
+        }
+
+        BeginInsertGroup();
+        _typed.Begin(_buffer.CaretOffset);
+        _buffer.ScrollToCaret();
     }
 
     private void LeaveInsert()

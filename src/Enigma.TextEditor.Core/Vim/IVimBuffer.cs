@@ -151,7 +151,9 @@ public interface IVimBuffer
     /// <remarks>
     /// <c>u</c>. The engine keeps no history of its own: what a change costs to undo is decided by
     /// where the undo groups were opened, which is the whole reason
-    /// <see cref="BeginUndoGroup"/> exists.
+    /// <see cref="BeginUndoGroup"/> exists. Never called with a group open — the editor's own stack
+    /// refuses that, so <c>Ctrl+Z</c> in insert mode closes the session's group first and opens a
+    /// new one after. The same holds for <see cref="Redo"/>.
     /// </remarks>
     void Undo();
 

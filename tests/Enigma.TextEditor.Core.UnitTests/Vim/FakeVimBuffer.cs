@@ -223,6 +223,8 @@ internal sealed class FakeVimBuffer : IVimBuffer
     /// <inheritdoc />
     public void Undo()
     {
+        ThrowIfUndoGroupOpen();
+
         if (_undo.Count == 0)
         {
             return;
@@ -238,6 +240,8 @@ internal sealed class FakeVimBuffer : IVimBuffer
     /// <inheritdoc />
     public void Redo()
     {
+        ThrowIfUndoGroupOpen();
+
         if (_redo.Count == 0)
         {
             return;
@@ -315,6 +319,17 @@ internal sealed class FakeVimBuffer : IVimBuffer
     }
 
     private Snapshot Current() => new(Text, CaretOffset);
+
+    // What AvaloniaEdit's own stack does — it refuses an undo or a redo while a group is open, even
+    // one that is empty — so that a route which reaches the buffer inside an insert session fails
+    // here as it would in the application, rather than quietly taking back half a session.
+    private void ThrowIfUndoGroupOpen()
+    {
+        if (OpenUndoGroups > 0)
+        {
+            throw new InvalidOperationException("No undo group should be open at this point");
+        }
+    }
 
     private void Restore(Snapshot snapshot)
     {
