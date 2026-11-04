@@ -1,5 +1,57 @@
 # Release notes
 
+## 1.16.0 — 2026-11-04
+
+A minor release that fixes undo with vim on. `Ctrl+Z` in insert mode no longer opens the *Something went wrong*
+dialog: it takes back what you typed and leaves you in insert mode. Every other way to undo or redo now works the same
+way, from the keys, the menus and *Reopen with encoding*.
+
+### Undo and redo with vim on
+
+- **`Ctrl+Z` in insert mode undoes, and you stay in insert mode.** In 1.15 it showed an error, and the next `Esc`
+  showed a second one and left the editor in insert mode.
+  - The first `Ctrl+Z` takes back what you typed since you entered insert mode. Another one goes further back.
+  - What you type after it is a step of its own: `Esc` then `u` takes back only that.
+  - `.` repeats only what you typed after the undo, and a recording replays the undo as you made it.
+- **`Ctrl+Y` and `Ctrl+Shift+Z` in insert mode redo**, the same way, without leaving insert mode.
+- **In normal mode, `Ctrl+Z` is `u` and `Ctrl+Shift+Z` is `Ctrl+R`**, so the caret lands where `u` puts it.
+  `Ctrl+Y` still scrolls the view up a line.
+- **In a visual mode, `Ctrl+Z` and `Ctrl+Shift+Z` leave the selection**, then undo or redo.
+- **Edit → Undo and Redo, and the editor's right-click Undo and Redo,** take the same path, and no longer fail in
+  insert mode.
+- **Reopen with encoding in insert mode** no longer fails: the editor goes back to normal mode before the file is read
+  again.
+- **Help → Key Bindings** lists `Ctrl+Z, Ctrl+Y` under *Inserting*.
+- **With vim off, nothing changes.**
+
+### Upgrading from 1.15
+
+- **Your settings carry over** unchanged. 1.16 adds no settings key and no file, and going back to 1.15 reads the same
+  file.
+- **On Windows, an MSI built from 1.16 upgrades the installed version** in place, 1.15.0 included.
+  `packaging\windows\buildmsi.ps1` names it `Enigma.TextEditor.1.16.0.msi`.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- **No change.** The Avalonia set is held back at **12.1.4**, with Enigma.Avalonia.Desktop 1.3.0. Avalonia 12.1.5
+  is out, but the set moves as a whole, and Enigma.Avalonia.Desktop has not moved.
+- Nothing else has an update.
+
+### Compatibility
+
+- Unchanged from 1.15.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.16.0** is a minor release under Semantic Versioning. It fixes undo and redo with vim on, gives `Ctrl+Z` and
+  `Ctrl+Shift+Z` vim's undo and redo, and keeps every stored format and every default.
+
 ## 1.15.0 — 2026-11-03
 
 A minor release that makes the icon bigger. Its editor window, still without a tile, is drawn larger so it fills its

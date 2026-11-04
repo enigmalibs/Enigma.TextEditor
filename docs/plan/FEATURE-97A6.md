@@ -1,6 +1,6 @@
 # FEATURE-97A6 — Release 1.16.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-97a6-release-1-16-0`
 **Run:** bugfix/2026-11-04-bug-375b
