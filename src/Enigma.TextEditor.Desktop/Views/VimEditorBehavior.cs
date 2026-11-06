@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Avalonia;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
 using AvaloniaTextEditor = AvaloniaEdit.TextEditor;
@@ -36,6 +38,13 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// is given up for it — <c>Page Down</c> still does that. Once the panel is open the engine is
 /// interrupted (<see cref="VimEngine.Interrupt"/>), so that a half-typed command or a visual
 /// selection is not still waiting when the keyboard comes back.
+/// </para>
+/// <para>
+/// The panel lives inside the text area, so every key typed into it tunnels through the editor and
+/// past these handlers first. Neither of them acts on a key raised from inside the panel: its text
+/// boxes type, <c>Enter</c> finds the next match and <c>Esc</c> closes it, in every mode, exactly as
+/// with vim off. From the text, <c>Esc</c> closes the open panel only when vim would do nothing with
+/// it — in normal mode with nothing half typed; anywhere else it is vim's first.
 /// </para>
 /// <para>
 /// The engine's options are seeded from the editor's own on every attach — the indentation size and
@@ -386,9 +395,34 @@ public sealed class VimEditorBehavior
         => (e.Key is Key.F or Key.H)
             && (e.KeyModifiers is KeyModifiers.Control or KeyModifiers.Meta);
 
+    /// <summary>
+    /// Whether an event was raised from inside AvaloniaEdit's find panel — one of its text boxes or
+    /// buttons — rather than from the text.
+    /// </summary>
+    /// <param name="source">The event's source.</param>
+    /// <returns><see langword="true"/> when the source is the panel or anything in it.</returns>
+    private bool IsInSearchPanel(object? source)
+        => (_editor.SearchPanel is { } panel)
+            && (source is Visual visual)
+            && (ReferenceEquals(visual, panel) || panel.IsVisualAncestorOf(visual));
+
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (_editor.IsReadOnly || (_editor.Document is null))
+        // A key typed into the find panel is the panel's, whatever the mode: the panel is a text field
+        // of its own, and the engine's keys are for the text.
+        if (_editor.IsReadOnly || (_editor.Document is null) || IsInSearchPanel(e.Source))
+        {
+            return;
+        }
+
+        // Esc from the text while the find panel is open, when vim would do nothing with it: left to
+        // the text area, which closes the panel, as it does with vim off. In insert mode, in a visual
+        // mode or with a command half typed, Esc is vim's first, and the next one closes the panel.
+        if ((e.Key == Key.Escape)
+            && (e.KeyModifiers == KeyModifiers.None)
+            && (_editor.SearchPanel is { IsOpened: true })
+            && (_engine.Mode == VimMode.Normal)
+            && !_engine.HasPendingSequence)
         {
             return;
         }
@@ -419,7 +453,7 @@ public sealed class VimEditorBehavior
     // takes a one-line selection as what to look for, and leaving a visual mode would clear it first.
     private void OnKeyDownAfterEditor(object? sender, KeyEventArgs e)
     {
-        if (IsSearchShortcut(e) && (_editor.SearchPanel is { IsOpened: true }))
+        if (IsSearchShortcut(e) && !IsInSearchPanel(e.Source) && (_editor.SearchPanel is { IsOpened: true }))
         {
             _engine.Interrupt();
         }
@@ -427,7 +461,7 @@ public sealed class VimEditorBehavior
 
     private void OnTextInput(object? sender, TextInputEventArgs e)
     {
-        if (_editor.IsReadOnly || (_editor.Document is null) || (_engine.Mode == VimMode.Insert))
+        if (_editor.IsReadOnly || (_editor.Document is null) || (_engine.Mode == VimMode.Insert) || IsInSearchPanel(e.Source))
         {
             return;
         }

@@ -161,11 +161,173 @@ public sealed class SearchPanelTests(HeadlessAvaloniaFixture fixture)
             window.Close();
         });
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("i")]
+    public void TypingInTheFindField_WritesThePattern_AndLeavesTheTextAndTheModeAlone(string keysFirst)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Text));
+            MainWindow window = Show(harness);
+            window.KeyTextInput(keysFirst);
+            string mode = ModeText(window)!;
+
+            PressCtrl(window, PhysicalKey.F);
+            window.KeyTextInput("betx");
+            Press(window, Key.Back, PhysicalKey.Backspace);
+
+            Assert.Equal("bet", Editor(window).SearchPanel.SearchPattern);
+            Assert.Equal(Text, Editor(window).Document.Text);
+            Assert.Equal(mode, ModeText(window));
+            window.Close();
+        });
+
+    [Fact]
+    public void EnterInTheFindField_SelectsTheNextMatch()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "one two one two\n"));
+            MainWindow window = Show(harness);
+
+            PressCtrl(window, PhysicalKey.F);
+            window.KeyTextInput("two");
+            Dispatcher.UIThread.RunJobs();
+            int first = Editor(window).SelectionStart;
+
+            Press(window, Key.Enter, PhysicalKey.Enter);
+
+            Assert.Equal("two", Editor(window).SelectedText);
+            Assert.NotEqual(first, Editor(window).SelectionStart);
+            Assert.Equal("one two one two\n", Editor(window).Document.Text);
+            window.Close();
+        });
+
+    [Theory]
+    [InlineData("", "NORMAL")]
+    [InlineData("i", "INSERT")]
+    [InlineData("v", "NORMAL")]
+    public void EscInThePanel_ClosesIt_AndOnlyThat(string keysFirst, string mode)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Text));
+            MainWindow window = Show(harness);
+            window.KeyTextInput(keysFirst);
+
+            PressCtrl(window, PhysicalKey.F);
+            window.KeyTextInput("beta");
+            Press(window, Key.Escape, PhysicalKey.Escape);
+
+            Assert.False(Editor(window).SearchPanel.IsOpened);
+            Assert.Equal(mode, ModeText(window));
+            Assert.Equal(Text, Editor(window).Document.Text);
+            window.Close();
+        });
+
+    [Fact]
+    public void TypingInTheReplaceField_WritesTheReplacement_InNormalMode()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Text));
+            MainWindow window = Show(harness);
+
+            PressCtrl(window, PhysicalKey.H);
+            window.KeyTextInput("beta");
+            TextBox replace = Fields(window)[1];
+            replace.Focus();
+            Dispatcher.UIThread.RunJobs();
+            window.KeyTextInput("delta");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("beta", Editor(window).SearchPanel.SearchPattern);
+            Assert.Equal("delta", Editor(window).SearchPanel.ReplacePattern);
+            Assert.Equal(Text, Editor(window).Document.Text);
+            Assert.Equal("NORMAL", ModeText(window));
+            window.Close();
+        });
+
+    [Fact]
+    public void EscFromTheText_InNormalMode_ClosesTheOpenPanel()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Text));
+            MainWindow window = Show(harness);
+
+            PressCtrl(window, PhysicalKey.F);
+            FocusText(window);
+            Press(window, Key.Escape, PhysicalKey.Escape);
+
+            Assert.False(Editor(window).SearchPanel.IsOpened);
+            Assert.Equal("NORMAL", ModeText(window));
+            window.Close();
+        });
+
+    [Fact]
+    public void EscFromTheText_InInsertMode_LeavesInsertFirst_ThenClosesThePanel()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Text));
+            MainWindow window = Show(harness);
+
+            window.KeyTextInput("i");
+            PressCtrl(window, PhysicalKey.F);
+            FocusText(window);
+
+            Press(window, Key.Escape, PhysicalKey.Escape);
+            Assert.True(Editor(window).SearchPanel.IsOpened);
+            Assert.Equal("NORMAL", ModeText(window));
+
+            Press(window, Key.Escape, PhysicalKey.Escape);
+            Assert.False(Editor(window).SearchPanel.IsOpened);
+            Assert.Equal("NORMAL", ModeText(window));
+            window.Close();
+        });
+
+    [Fact]
+    public void VimKeysInTheText_StillWork_WhileThePanelIsOpen()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Text));
+            MainWindow window = Show(harness);
+
+            PressCtrl(window, PhysicalKey.F);
+            FocusText(window);
+            Editor(window).CaretOffset = 0;
+            window.KeyTextInput("x");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("lpha\nbeta\ngamma\n", Editor(window).Document.Text);
+            Assert.True(Editor(window).SearchPanel.IsOpened);
+            window.Close();
+        });
+
     private static void PressCtrl(MainWindow window, PhysicalKey key)
     {
         window.KeyPressQwerty(key, RawInputModifiers.Control);
         Dispatcher.UIThread.RunJobs();
     }
+
+    private static void Press(MainWindow window, Key key, PhysicalKey physical)
+    {
+        window.KeyPress(key, RawInputModifiers.None, physical, null);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void FocusText(MainWindow window)
+    {
+        window.GetVisualDescendants().OfType<EditorPaneView>().Single().FocusEditor();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    // The panel's two fields, the find field first.
+    private static TextBox[] Fields(MainWindow window)
+        => [.. Editor(window).SearchPanel.GetVisualDescendants().OfType<TextBox>()];
 
     private static string? ModeText(MainWindow window) => window.FindControl<TextBlock>("ModeText")?.Text;
 

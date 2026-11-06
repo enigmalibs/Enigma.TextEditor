@@ -92,7 +92,7 @@ work whatever the vim mode:
 
 ## PHASE02 — The panel's keys are its own
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
