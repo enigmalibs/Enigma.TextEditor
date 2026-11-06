@@ -1,6 +1,6 @@
 # FEATURE-8AEF — Release 1.17.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-8aef-release-1-17-0`
 **Run:** feature/2026-11-06-release-1-17-0

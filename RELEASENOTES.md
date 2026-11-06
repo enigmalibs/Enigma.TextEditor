@@ -1,5 +1,71 @@
 # Release notes
 
+## 1.17.0 — 2026-11-06
+
+A minor release that makes find and replace and the mouse work with vim on. `Ctrl+F` and `Ctrl+H` open the find and
+replace panel in every mode, and you can type in it in every mode. A click past the end of a line puts the block on
+the line's last character, and a double-click selects a word in visual mode.
+
+### Find and replace with vim on
+
+- **`Ctrl+F` and `Ctrl+H` open the panel in every mode,** not only in insert mode. In 1.16, `Ctrl+F` paged down in
+  normal and visual mode, and `Ctrl+H` opened a panel you could not type in. `PgDn` still pages down.
+  - Opening the panel drops a half-typed command, cancels an open `:` or `/` line and leaves a visual mode. Insert
+    mode stays as it is.
+  - From visual mode, the panel takes the selected word as what to find.
+- **The panel's fields take the keyboard in every mode.** Typing, `Backspace`, the arrows, `Ctrl+Z` and `Enter` (the
+  next match) work as they do with vim off, and `Esc` closes the panel. In 1.16, typing did nothing outside insert
+  mode, and `Esc` went to vim, so the panel stayed open.
+- **`Esc` in the text closes the panel** in normal mode when nothing is half typed. In insert mode, in a visual mode
+  or with a command half typed, the first `Esc` is vim's and a second one closes the panel.
+- **In find and replace, `Tab` in the find field goes to the replace field,** and `Shift+Tab` comes back, with vim on
+  or off. It used to stop on the panel's toggles and buttons first. The find-only panel keeps the usual order.
+- **Help → Key Bindings** lists `Ctrl+F, Ctrl+H` under *Search & replace*, and `PgDn, Ctrl+B, PgUp` under
+  *Scrolling*.
+
+### The mouse with vim on
+
+- **A click past the end of a line puts the block on the line's last character** in normal mode, so `x` deletes the
+  character under the block. In 1.16 the block sat after the line, and `x` deleted the character to its left.
+  - A click also ends a visual mode.
+  - `j` and `k` after a click start from the column you clicked.
+- **A double-click on a word selects it in visual mode.** The status bar shows VISUAL, `d`, `y`, `c` and the other
+  operators act on the word, and `Esc` or a click ends it. In 1.16 the word was selected but the editor stayed in
+  normal mode, so `d` started a delete instead of deleting the word.
+  - A drag after the double-click extends the selection a word at a time.
+  - A triple-click selects the line, in V-LINE mode.
+- **Help → Key Bindings** lists the double-click under *Visual mode*.
+- **In insert mode, and with vim off, the mouse works as before.**
+
+### Upgrading from 1.16
+
+- **Your settings carry over** unchanged. 1.17 adds no settings key and no file, and going back to 1.16 reads the same
+  file.
+- **`Ctrl+F` no longer pages down** in normal and visual mode: use `PgDn`.
+- **On Windows, an MSI built from 1.17 upgrades the installed version** in place, 1.16.0 included.
+  `packaging\windows\buildmsi.ps1` names it `Enigma.TextEditor.1.17.0.msi`.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- **No change.** The Avalonia set is held back at **12.1.4**, with Enigma.Avalonia.Desktop 1.3.0. Avalonia 12.1.5
+  is out, but the set moves as a whole, and Enigma.Avalonia.Desktop has not moved.
+- Nothing else has an update.
+
+### Compatibility
+
+- Unchanged from 1.16.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.17.0** is a minor release under Semantic Versioning. It makes the find and replace panel and the mouse work
+  with vim on, gives `Ctrl+F` to the find panel, and keeps every stored format and every default setting.
+
 ## 1.16.0 — 2026-11-04
 
 A minor release that fixes undo with vim on. `Ctrl+Z` in insert mode no longer opens the *Something went wrong*
