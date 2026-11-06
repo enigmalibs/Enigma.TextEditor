@@ -585,6 +585,40 @@ public sealed class VimEngine
         _lastVisual = null;
     }
 
+    /// <summary>
+    /// Lets go of whatever the keys had under way, because something outside vim has just taken the
+    /// keyboard — the editor's own find panel.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// What is half typed is dropped, an open <c>:</c> or <c>/</c> line is cancelled as <c>Esc</c>
+    /// would cancel it, and a visual mode is left, its selection remembered for <c>gv</c>. The keys
+    /// that come back after the panel has gone start from a clean normal mode rather than finishing a
+    /// command nobody remembers starting, and an operator can no longer reach back to an anchor the
+    /// panel's own selection has moved away from.
+    /// </para>
+    /// <para>
+    /// Insert mode is kept as it is, its undo group included: the session goes on when the keyboard
+    /// comes back. Nothing is written into an open recording, since no key was pressed for vim.
+    /// </para>
+    /// </remarks>
+    public void Interrupt()
+    {
+        if (Mode == VimMode.Insert)
+        {
+            return;
+        }
+
+        CancelCommandLine();
+        _parser.Reset();
+        _windowPending = false;
+
+        if (IsVisual)
+        {
+            LeaveVisual();
+        }
+    }
+
     private bool IsVisual => Mode is VimMode.Visual or VimMode.VisualLine;
 
     private VimLine CurrentLine => _buffer.GetLineByOffset(_buffer.CaretOffset);
@@ -2354,6 +2388,22 @@ public sealed class VimEngine
     }
 
     /// <summary>
+    /// Closes the command line without running it — <c>Esc</c> in it.
+    /// </summary>
+    private void CancelCommandLine()
+    {
+        bool searching = _commandLine is { Length: > 0 } line && (line[0] is '/' or '?');
+
+        CloseCommandLine();
+
+        // A cancelled search leaves the view where it was before it was typed.
+        if (searching)
+        {
+            _buffer.ScrollToLine(_incSearchViewTop, VimScrollAlignment.Top);
+        }
+    }
+
+    /// <summary>
     /// incsearch: shows the matches of the pattern typed so far, and brings the one Enter would land
     /// on into view — without moving the caret, which only moves on Enter.
     /// </summary>
@@ -2446,14 +2496,7 @@ public sealed class VimEngine
         switch (key.Special)
         {
             case VimSpecialKey.Escape:
-                bool searching = line[0] is '/' or '?';
-                CloseCommandLine();
-
-                // A cancelled search leaves the view where it was before it was typed.
-                if (searching)
-                {
-                    _buffer.ScrollToLine(_incSearchViewTop, VimScrollAlignment.Top);
-                }
+                CancelCommandLine();
 
                 return true;
 

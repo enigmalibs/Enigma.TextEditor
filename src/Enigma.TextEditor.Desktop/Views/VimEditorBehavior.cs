@@ -26,10 +26,16 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// "The command modes" is every mode but insert, which is the only test this class ever makes about
 /// which one the engine is in. A visual mode types nothing either, so what is true of normal mode
 /// here is true of both of them: the text input is swallowed and fed to the engine, and Enter, Tab,
-/// Home, End and the page keys are taken away from the editor and offered to it. So are the six
-/// scroll keys vim spells with Control — <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+F</c> <c>Ctrl+B</c>
-/// <c>Ctrl+E</c> <c>Ctrl+Y</c> — which the engine takes in the command modes and turns down in
-/// insert mode.
+/// Home, End and the page keys are taken away from the editor and offered to it. So are the scroll
+/// keys vim spells with Control — <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+B</c> <c>Ctrl+E</c>
+/// <c>Ctrl+Y</c> — which the engine takes in the command modes and turns down in insert mode.
+/// </para>
+/// <para>
+/// <c>Ctrl+F</c> and <c>Ctrl+H</c> are the editor's in every mode and never reach the engine: they
+/// open AvaloniaEdit's find panel, and find and replace (BUG-B026). Vim's <c>Ctrl+F</c>, a page down,
+/// is given up for it — <c>Page Down</c> still does that. Once the panel is open the engine is
+/// interrupted (<see cref="VimEngine.Interrupt"/>), so that a half-typed command or a visual
+/// selection is not still waiting when the keyboard comes back.
 /// </para>
 /// <para>
 /// The engine's options are seeded from the editor's own on every attach — the indentation size and
@@ -206,11 +212,13 @@ public sealed class VimEditorBehavior
         {
             _editor.AddHandler(InputElement.KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
             _editor.AddHandler(InputElement.TextInputEvent, OnTextInput, RoutingStrategies.Tunnel);
+            _editor.AddHandler(InputElement.KeyDownEvent, OnKeyDownAfterEditor, RoutingStrategies.Bubble, handledEventsToo: true);
         }
         else
         {
             _editor.RemoveHandler(InputElement.KeyDownEvent, OnKeyDown);
             _editor.RemoveHandler(InputElement.TextInputEvent, OnTextInput);
+            _editor.RemoveHandler(InputElement.KeyDownEvent, OnKeyDownAfterEditor);
         }
 
         // Reset either way: switching off has to close an insert session's undo group, and switching
@@ -368,9 +376,26 @@ public sealed class VimEditorBehavior
         _editor.TextArea.OverstrikeMode = _attached && (_engine.Mode != VimMode.Insert);
     }
 
+    /// <summary>
+    /// Whether a key is one of the editor's find shortcuts — <c>Ctrl+F</c> or <c>Ctrl+H</c>, with nothing
+    /// else held — which open AvaloniaEdit's find panel in every mode and are never offered to the engine.
+    /// </summary>
+    /// <param name="e">The key event.</param>
+    /// <returns><see langword="true"/> for <c>Ctrl+F</c> and <c>Ctrl+H</c> (<c>Cmd</c> on macOS).</returns>
+    internal static bool IsSearchShortcut(KeyEventArgs e)
+        => (e.Key is Key.F or Key.H)
+            && (e.KeyModifiers is KeyModifiers.Control or KeyModifiers.Meta);
+
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (_editor.IsReadOnly || (_editor.Document is null))
+        {
+            return;
+        }
+
+        // The editor's, in every mode: left unhandled for the text area, which opens its find panel.
+        // Vim's own Ctrl+F — a page down — is given up for it; Page Down still does that.
+        if (IsSearchShortcut(e))
         {
             return;
         }
@@ -388,6 +413,16 @@ public sealed class VimEditorBehavior
         e.Handled = (_engine.Mode != VimMode.Insert)
             && !HasCommandModifier(e.KeyModifiers)
             && EditorKeys.Contains(e.Key);
+    }
+
+    // Once the text area has acted on a find shortcut. After it rather than before, because the panel
+    // takes a one-line selection as what to look for, and leaving a visual mode would clear it first.
+    private void OnKeyDownAfterEditor(object? sender, KeyEventArgs e)
+    {
+        if (IsSearchShortcut(e) && (_editor.SearchPanel is { IsOpened: true }))
+        {
+            _engine.Interrupt();
+        }
     }
 
     private void OnTextInput(object? sender, TextInputEventArgs e)

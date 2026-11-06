@@ -126,8 +126,8 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-1B68 | Release 1.15.0                       | DONE        | docs/plan/FEATURE-1B68.md |
 | BUG-375B     | Ctrl+Z in insert mode crashes        | DONE        | docs/plan/BUG-375B.md     |
 | FEATURE-97A6 | Release 1.16.0                       | DONE        | docs/plan/FEATURE-97A6.md |
-| BUG-B026     | Find and replace panel with vim on   | TODO        | docs/plan/BUG-B026.md     |
-| - PHASE01    | Ctrl+F and Ctrl+H open in every mode | TODO        | (in BUG-B026.md)          |
+| BUG-B026     | Find and replace panel with vim on   | IN PROGRESS | docs/plan/BUG-B026.md     |
+| - PHASE01    | Ctrl+F and Ctrl+H open in every mode | DONE        | (in BUG-B026.md)          |
 | - PHASE02    | The panel's keys are its own         | TODO        | (in BUG-B026.md)          |
 | - PHASE03    | Tab from find to replace field       | TODO        | (in BUG-B026.md)          |
 | BUG-47C2     | Mouse clicks in vim normal mode      | TODO        | docs/plan/BUG-47C2.md     |

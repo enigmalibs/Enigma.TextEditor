@@ -52,7 +52,7 @@ public static class HelpCatalog
         Section("Scrolling", PhosphorIcon.ArrowsDownUp, null,
         [
             Keys("Ctrl+D, Ctrl+U", "Half a page down, up"),
-            Keys("Ctrl+F, Ctrl+B, PgDn, PgUp", "A page down, up"),
+            Keys("PgDn, Ctrl+B, PgUp", "A page down, a page up"),
             Keys("Ctrl+E, Ctrl+Y", "One line down, up; the caret stays on its line"),
             Keys("zt, zz, zb", "The caret's line to the top, middle, bottom of the screen"),
             Keys("z Enter, z., z-", "The same, the caret to the first non-blank"),
@@ -108,6 +108,7 @@ public static class HelpCatalog
             Keys("/{pattern}, ?{pattern}", "Search forwards, backwards; Enter runs it"),
             Keys("n, N", "Next, previous match"),
             Keys("*, #", "Next, previous occurrence of the word under the caret"),
+            Keys("Ctrl+F, Ctrl+H", "The editor's find, find and replace panel, in every mode; Esc closes it"),
             Text("", "Replace on the line or the range; g every match, i ignoring case", ":[range]s/{pattern}/{text}/[g][i]"),
             Text("", "Hide the highlighted matches until the next search", ":noh[lsearch]"),
         ]),

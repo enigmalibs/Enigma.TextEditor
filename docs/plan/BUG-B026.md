@@ -1,6 +1,6 @@
 # BUG-B026 — Find and replace panel with vim on
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** BUG
 **Branch (PHASE01):** `bugfix/bug-b026-phase01-open-panel`
 **Branch (PHASE02):** `bugfix/bug-b026-phase02-panel-keys`
@@ -61,7 +61,7 @@ work whatever the vim mode:
 
 ## PHASE01 — Ctrl+F and Ctrl+H open in every mode
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
