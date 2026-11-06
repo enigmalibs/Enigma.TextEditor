@@ -307,6 +307,51 @@ public sealed class SearchPanelTests(HeadlessAvaloniaFixture fixture)
             window.Close();
         });
 
+    [Theory]
+    [InlineData(true, "")]
+    [InlineData(true, "i")]
+    [InlineData(false, "")]
+    public void TabInTheFindField_GoesToTheReplaceField_AndShiftTabComesBack(bool vim, string keysFirst)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new(settings => settings.VimEnabled = vim);
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Text));
+            MainWindow window = Show(harness);
+            window.KeyTextInput(keysFirst);
+
+            PressCtrl(window, PhysicalKey.H);
+            Assert.Equal(SearchPanelTabOrder.FindFieldName, FocusedName(window));
+
+            Press(window, Key.Tab, PhysicalKey.Tab);
+            Assert.Equal(SearchPanelTabOrder.ReplaceFieldName, FocusedName(window));
+
+            window.KeyPress(Key.Tab, RawInputModifiers.Shift, PhysicalKey.Tab, null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(SearchPanelTabOrder.FindFieldName, FocusedName(window));
+
+            Assert.Equal(Text, Editor(window).Document.Text);
+            window.Close();
+        });
+
+    [Fact]
+    public void TabInTheFindOnlyPanel_KeepsThePlatformsOrder()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Text));
+            MainWindow window = Show(harness);
+
+            PressCtrl(window, PhysicalKey.F);
+            Press(window, Key.Tab, PhysicalKey.Tab);
+
+            Control? focused = window.FocusManager?.GetFocusedElement() as Control;
+            Assert.NotNull(focused);
+            Assert.NotEqual(SearchPanelTabOrder.FindFieldName, focused.Name);
+            Assert.NotEqual(SearchPanelTabOrder.ReplaceFieldName, focused.Name);
+            Assert.True(Editor(window).SearchPanel.IsVisualAncestorOf(focused));
+            window.Close();
+        });
+
     private static void PressCtrl(MainWindow window, PhysicalKey key)
     {
         window.KeyPressQwerty(key, RawInputModifiers.Control);
@@ -328,6 +373,9 @@ public sealed class SearchPanelTests(HeadlessAvaloniaFixture fixture)
     // The panel's two fields, the find field first.
     private static TextBox[] Fields(MainWindow window)
         => [.. Editor(window).SearchPanel.GetVisualDescendants().OfType<TextBox>()];
+
+    private static string? FocusedName(MainWindow window)
+        => (window.FocusManager?.GetFocusedElement() as Control)?.Name;
 
     private static string? ModeText(MainWindow window) => window.FindControl<TextBlock>("ModeText")?.Text;
 
