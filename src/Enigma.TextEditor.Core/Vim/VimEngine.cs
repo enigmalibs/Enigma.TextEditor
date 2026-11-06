@@ -585,6 +585,124 @@ public sealed class VimEngine
         _lastVisual = null;
     }
 
+    /// <summary>
+    /// Lets go of whatever the keys had under way, because something outside vim has just taken the
+    /// keyboard — the editor's own find panel.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// What is half typed is dropped, an open <c>:</c> or <c>/</c> line is cancelled as <c>Esc</c>
+    /// would cancel it, and a visual mode is left, its selection remembered for <c>gv</c>. The keys
+    /// that come back after the panel has gone start from a clean normal mode rather than finishing a
+    /// command nobody remembers starting, and an operator can no longer reach back to an anchor the
+    /// panel's own selection has moved away from.
+    /// </para>
+    /// <para>
+    /// Insert mode is kept as it is, its undo group included: the session goes on when the keyboard
+    /// comes back. Nothing is written into an open recording, since no key was pressed for vim.
+    /// </para>
+    /// </remarks>
+    public void Interrupt()
+    {
+        if (Mode == VimMode.Insert)
+        {
+            return;
+        }
+
+        CancelCommandLine();
+        _parser.Reset();
+        _windowPending = false;
+
+        if (IsVisual)
+        {
+            LeaveVisual();
+        }
+    }
+
+    /// <summary>
+    /// Takes over a caret the pointer has just put down — a click on the text that left nothing
+    /// selected.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A click past the end of a line puts the editor's caret after its last character, a place
+    /// normal mode does not have: the block would be drawn over nothing, and the next command — which
+    /// starts by bringing the caret back onto the line — would act on the character to its left
+    /// without the user ever having seen the block there (BUG-47C2). The caret is put on the last
+    /// character as soon as the click lands, as vim does.
+    /// </para>
+    /// <para>
+    /// A click also ends a visual mode, the selection remembered for <c>gv</c>, and makes the clicked
+    /// column the one <c>j</c> and <c>k</c> keep to. Insert mode and an open command line leave the
+    /// caret where the click put it: insert mode has a place after the last character, and the command
+    /// line is not about the text.
+    /// </para>
+    /// </remarks>
+    public void PlaceCaret()
+    {
+        if ((Mode == VimMode.Insert) || (_commandLine is not null))
+        {
+            return;
+        }
+
+        if (IsVisual)
+        {
+            LeaveVisual();
+        }
+
+        SetCaret(_buffer.CaretOffset);
+        _desiredColumn = NoDesiredColumn;
+    }
+
+    /// <summary>
+    /// Takes over a selection the pointer has just made — a double-click on a word, a triple-click on
+    /// a line — as a visual selection (BUG-47C2).
+    /// </summary>
+    /// <param name="anchor">Where the selection was started, as the editor counts it.</param>
+    /// <param name="active">Where it reaches to: one past its last character when it runs forwards.</param>
+    /// <param name="linewise">
+    /// <see langword="true"/> for whole lines, which becomes linewise visual — <c>V</c>; otherwise
+    /// charwise — <c>v</c>.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// The editor's selection runs between two edges and its caret sits on the far one; a visual
+    /// selection runs between two characters and its caret sits on the last one it covers, which is
+    /// what an operator then acts up to. So a word selected forwards becomes an anchor on its first
+    /// character and a caret on its last — exactly where <c>viw</c> leaves them — and one selected
+    /// backwards an anchor on its last character and a caret on its first.
+    /// </para>
+    /// <para>
+    /// What was half typed is dropped: the selection is what the next key acts on. Insert mode, an open
+    /// command line and an empty selection are left as they are.
+    /// </para>
+    /// </remarks>
+    public void AdoptSelection(int anchor, int active, bool linewise)
+    {
+        if ((Mode == VimMode.Insert) || (_commandLine is not null))
+        {
+            return;
+        }
+
+        int from = Math.Clamp(anchor, 0, _buffer.TextLength);
+        int to = Math.Clamp(active, 0, _buffer.TextLength);
+
+        if (from == to)
+        {
+            return;
+        }
+
+        _parser.Reset();
+        _windowPending = false;
+
+        _visualAnchor = OnTheLine(to > from ? from : from - 1);
+        SetCaret(to > from ? to - 1 : to);
+        _desiredColumn = NoDesiredColumn;
+
+        SetMode(linewise ? VimMode.VisualLine : VimMode.Visual);
+        ShowSelection();
+    }
+
     private bool IsVisual => Mode is VimMode.Visual or VimMode.VisualLine;
 
     private VimLine CurrentLine => _buffer.GetLineByOffset(_buffer.CaretOffset);
@@ -677,9 +795,9 @@ public sealed class VimEngine
         ClearStatus();
 
         // Every command starts from a caret normal mode would allow. Nothing the engine does can
-        // leave one past the last character of a line, but a mouse click in the empty space beyond
-        // the end of a line can, and a command that ran from there would be acting on a position the
-        // buffer does not have.
+        // leave one past the last character of a line, and a click there is brought back as it lands
+        // (PlaceCaret), but anything else that moves the editor's caret behind the engine's back can,
+        // and a command that ran from there would be acting on a position the buffer does not have.
         SetCaret(_buffer.CaretOffset);
 
         _activeRegister = command.Register;
@@ -2354,6 +2472,22 @@ public sealed class VimEngine
     }
 
     /// <summary>
+    /// Closes the command line without running it — <c>Esc</c> in it.
+    /// </summary>
+    private void CancelCommandLine()
+    {
+        bool searching = _commandLine is { Length: > 0 } line && (line[0] is '/' or '?');
+
+        CloseCommandLine();
+
+        // A cancelled search leaves the view where it was before it was typed.
+        if (searching)
+        {
+            _buffer.ScrollToLine(_incSearchViewTop, VimScrollAlignment.Top);
+        }
+    }
+
+    /// <summary>
     /// incsearch: shows the matches of the pattern typed so far, and brings the one Enter would land
     /// on into view — without moving the caret, which only moves on Enter.
     /// </summary>
@@ -2446,14 +2580,7 @@ public sealed class VimEngine
         switch (key.Special)
         {
             case VimSpecialKey.Escape:
-                bool searching = line[0] is '/' or '?';
-                CloseCommandLine();
-
-                // A cancelled search leaves the view where it was before it was typed.
-                if (searching)
-                {
-                    _buffer.ScrollToLine(_incSearchViewTop, VimScrollAlignment.Top);
-                }
+                CancelCommandLine();
 
                 return true;
 
@@ -3539,12 +3666,15 @@ public sealed class VimEngine
         ModeChanged?.Invoke(this, mode);
     }
 
-    private void SetCaret(int offset)
+    private void SetCaret(int offset) => _buffer.CaretOffset = OnTheLine(offset);
+
+    // The nearest place normal mode allows: on a character of the line, never past its last one.
+    private int OnTheLine(int offset)
     {
         int clamped = Math.Clamp(offset, 0, _buffer.TextLength);
         VimLine line = _buffer.GetLineByOffset(clamped);
 
-        _buffer.CaretOffset = Math.Clamp(clamped, line.Offset, line.LastCaretOffset);
+        return Math.Clamp(clamped, line.Offset, line.LastCaretOffset);
     }
 
     private int Walk(int caret, int count, Func<IVimBuffer, int, int> step)

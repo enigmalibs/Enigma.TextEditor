@@ -121,6 +121,7 @@ public partial class EditorPaneView : UserControl
         Editor.TextArea.TextView.ScrollOffsetChanged += OnScrollOffsetChanged;
 
         Editor.TemplateApplied += OnEditorTemplateApplied;
+        SearchPanelTabOrder.Attach(Editor);
         Minimap.ScrollRequested += OnMinimapScrollRequested;
         Minimap.PointerWheelChanged += OnMinimapPointerWheelChanged;
 

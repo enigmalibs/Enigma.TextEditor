@@ -5,9 +5,12 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.16** — undo with vim on: `Ctrl+Z` in insert mode takes back what you typed and keeps you in
-> insert mode, `Ctrl+Y` redoes, and the menus' Undo and Redo work in every mode. 1.15 brought the application icon
-> filling its frame: the same editor window, drawn larger, everywhere the icon shows. 1.14 brought the icon without
+> **What's new in 1.17** — find and replace and the mouse with vim on: `Ctrl+F` and `Ctrl+H` open the find and
+> replace panel in every mode, and you can type in it in every mode; a click past the end of a line puts the block on
+> its last character, and a double-click selects a word in visual mode. 1.16 brought undo with vim on: `Ctrl+Z` in
+> insert mode takes back what you typed and keeps you in insert mode, `Ctrl+Y` redoes, and the menus' Undo and Redo
+> work in every mode. 1.15 brought the application icon filling its frame: the same editor window, drawn larger,
+> everywhere the icon shows. 1.14 brought the icon without
 > its dark tile, and a Windows installer: `packaging\windows\buildmsi.ps1`
 > builds an MSI that installs the editor for all users, with a desktop and a program-menu shortcut, and replaces a
 > version installed from an earlier MSI. 1.13 brought a file explorer on the left

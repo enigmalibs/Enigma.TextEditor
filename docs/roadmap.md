@@ -126,5 +126,13 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-1B68 | Release 1.15.0                       | DONE        | docs/plan/FEATURE-1B68.md |
 | BUG-375B     | Ctrl+Z in insert mode crashes        | DONE        | docs/plan/BUG-375B.md     |
 | FEATURE-97A6 | Release 1.16.0                       | DONE        | docs/plan/FEATURE-97A6.md |
+| BUG-B026     | Find and replace panel with vim on   | DONE        | docs/plan/BUG-B026.md     |
+| - PHASE01    | Ctrl+F and Ctrl+H open in every mode | DONE        | (in BUG-B026.md)          |
+| - PHASE02    | The panel's keys are its own         | DONE        | (in BUG-B026.md)          |
+| - PHASE03    | Tab from find to replace field       | DONE        | (in BUG-B026.md)          |
+| BUG-47C2     | Mouse clicks in vim normal mode      | DONE        | docs/plan/BUG-47C2.md     |
+| - PHASE01    | Click past a line end in normal mode | DONE        | (in BUG-47C2.md)          |
+| - PHASE02    | Double-click selects in visual mode  | DONE        | (in BUG-47C2.md)          |
+| FEATURE-8AEF | Release 1.17.0                       | DONE        | docs/plan/FEATURE-8AEF.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
