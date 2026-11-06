@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Avalonia;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
 using AvaloniaTextEditor = AvaloniaEdit.TextEditor;
@@ -26,10 +28,32 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// "The command modes" is every mode but insert, which is the only test this class ever makes about
 /// which one the engine is in. A visual mode types nothing either, so what is true of normal mode
 /// here is true of both of them: the text input is swallowed and fed to the engine, and Enter, Tab,
-/// Home, End and the page keys are taken away from the editor and offered to it. So are the six
-/// scroll keys vim spells with Control — <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+F</c> <c>Ctrl+B</c>
-/// <c>Ctrl+E</c> <c>Ctrl+Y</c> — which the engine takes in the command modes and turns down in
-/// insert mode.
+/// Home, End and the page keys are taken away from the editor and offered to it. So are the scroll
+/// keys vim spells with Control — <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+B</c> <c>Ctrl+E</c>
+/// <c>Ctrl+Y</c> — which the engine takes in the command modes and turns down in insert mode.
+/// </para>
+/// <para>
+/// <c>Ctrl+F</c> and <c>Ctrl+H</c> are the editor's in every mode and never reach the engine: they
+/// open AvaloniaEdit's find panel, and find and replace (BUG-B026). Vim's <c>Ctrl+F</c>, a page down,
+/// is given up for it — <c>Page Down</c> still does that. Once the panel is open the engine is
+/// interrupted (<see cref="VimEngine.Interrupt"/>), so that a half-typed command or a visual
+/// selection is not still waiting when the keyboard comes back.
+/// </para>
+/// <para>
+/// The panel lives inside the text area, so every key typed into it tunnels through the editor and
+/// past these handlers first. Neither of them acts on a key raised from inside the panel: its text
+/// boxes type, <c>Enter</c> finds the next match and <c>Esc</c> closes it, in every mode, exactly as
+/// with vim off. From the text, <c>Esc</c> closes the open panel only when vim would do nothing with
+/// it — in normal mode with nothing half typed; anywhere else it is vim's first.
+/// </para>
+/// <para>
+/// Pointer gestures on the text are AvaloniaEdit's, and the engine is told what they did once they
+/// are done (BUG-47C2): a plain click that left nothing selected put the caret down
+/// (<see cref="VimEngine.PlaceCaret"/>), which in the command modes brings it back onto the line's
+/// last character and ends a visual mode; a double-click selected a word, which becomes a visual
+/// selection, and a triple-click whole lines, which become a linewise one
+/// (<see cref="VimEngine.AdoptSelection"/>). Insert mode keeps the caret and the selection as the
+/// pointer left them.
 /// </para>
 /// <para>
 /// The engine's options are seeded from the editor's own on every attach — the indentation size and
@@ -79,6 +103,12 @@ public sealed class VimEditorBehavior
 
     private bool _attached;
     private bool _highlightConnected;
+
+    // The click count of the left-button press on the text the pointer is still holding down, or 0 when
+    // none is — what the release is told the gesture was. And whether Shift was held with it, which
+    // extends the selection rather than placing the caret.
+    private int _pressClicks;
+    private bool _pressExtends;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VimEditorBehavior"/> class.
@@ -206,11 +236,21 @@ public sealed class VimEditorBehavior
         {
             _editor.AddHandler(InputElement.KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
             _editor.AddHandler(InputElement.TextInputEvent, OnTextInput, RoutingStrategies.Tunnel);
+            _editor.AddHandler(InputElement.KeyDownEvent, OnKeyDownAfterEditor, RoutingStrategies.Bubble, handledEventsToo: true);
+
+            // After the text area's own handlers, which place the caret and make the selection the
+            // engine is then told about — and which handle the press, hence handled events too.
+            _editor.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Bubble, handledEventsToo: true);
+            _editor.AddHandler(InputElement.PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Bubble, handledEventsToo: true);
         }
         else
         {
             _editor.RemoveHandler(InputElement.KeyDownEvent, OnKeyDown);
             _editor.RemoveHandler(InputElement.TextInputEvent, OnTextInput);
+            _editor.RemoveHandler(InputElement.KeyDownEvent, OnKeyDownAfterEditor);
+            _editor.RemoveHandler(InputElement.PointerPressedEvent, OnPointerPressed);
+            _editor.RemoveHandler(InputElement.PointerReleasedEvent, OnPointerReleased);
+            _pressClicks = 0;
         }
 
         // Reset either way: switching off has to close an insert session's undo group, and switching
@@ -368,9 +408,51 @@ public sealed class VimEditorBehavior
         _editor.TextArea.OverstrikeMode = _attached && (_engine.Mode != VimMode.Insert);
     }
 
+    /// <summary>
+    /// Whether a key is one of the editor's find shortcuts — <c>Ctrl+F</c> or <c>Ctrl+H</c>, with nothing
+    /// else held — which open AvaloniaEdit's find panel in every mode and are never offered to the engine.
+    /// </summary>
+    /// <param name="e">The key event.</param>
+    /// <returns><see langword="true"/> for <c>Ctrl+F</c> and <c>Ctrl+H</c> (<c>Cmd</c> on macOS).</returns>
+    internal static bool IsSearchShortcut(KeyEventArgs e)
+        => (e.Key is Key.F or Key.H)
+            && (e.KeyModifiers is KeyModifiers.Control or KeyModifiers.Meta);
+
+    /// <summary>
+    /// Whether an event was raised from inside AvaloniaEdit's find panel — one of its text boxes or
+    /// buttons — rather than from the text.
+    /// </summary>
+    /// <param name="source">The event's source.</param>
+    /// <returns><see langword="true"/> when the source is the panel or anything in it.</returns>
+    private bool IsInSearchPanel(object? source)
+        => (_editor.SearchPanel is { } panel)
+            && (source is Visual visual)
+            && (ReferenceEquals(visual, panel) || panel.IsVisualAncestorOf(visual));
+
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (_editor.IsReadOnly || (_editor.Document is null))
+        // A key typed into the find panel is the panel's, whatever the mode: the panel is a text field
+        // of its own, and the engine's keys are for the text.
+        if (_editor.IsReadOnly || (_editor.Document is null) || IsInSearchPanel(e.Source))
+        {
+            return;
+        }
+
+        // Esc from the text while the find panel is open, when vim would do nothing with it: left to
+        // the text area, which closes the panel, as it does with vim off. In insert mode, in a visual
+        // mode or with a command half typed, Esc is vim's first, and the next one closes the panel.
+        if ((e.Key == Key.Escape)
+            && (e.KeyModifiers == KeyModifiers.None)
+            && (_editor.SearchPanel is { IsOpened: true })
+            && (_engine.Mode == VimMode.Normal)
+            && !_engine.HasPendingSequence)
+        {
+            return;
+        }
+
+        // The editor's, in every mode: left unhandled for the text area, which opens its find panel.
+        // Vim's own Ctrl+F — a page down — is given up for it; Page Down still does that.
+        if (IsSearchShortcut(e))
         {
             return;
         }
@@ -390,9 +472,120 @@ public sealed class VimEditorBehavior
             && EditorKeys.Contains(e.Key);
     }
 
+    // Once the text area has acted on a find shortcut. After it rather than before, because the panel
+    // takes a one-line selection as what to look for, and leaving a visual mode would clear it first.
+    private void OnKeyDownAfterEditor(object? sender, KeyEventArgs e)
+    {
+        if (IsSearchShortcut(e) && !IsInSearchPanel(e.Source) && (_editor.SearchPanel is { IsOpened: true }))
+        {
+            _engine.Interrupt();
+        }
+    }
+
+    /// <summary>
+    /// Whether a pointer event was raised over the text itself — not over the line numbers, the
+    /// scrollbars or the find panel, which have pointer gestures of their own.
+    /// </summary>
+    private bool IsOnText(object? source)
+    {
+        AvaloniaEdit.Rendering.TextView view = _editor.TextArea.TextView;
+
+        return (source is Visual visual) && (ReferenceEquals(visual, view) || view.IsVisualAncestorOf(visual));
+    }
+
+    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        _pressClicks = 0;
+
+        if (_editor.IsReadOnly
+            || (_editor.Document is null)
+            || !IsOnText(e.Source)
+            || !e.GetCurrentPoint(_editor).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        _pressClicks = e.ClickCount;
+        _pressExtends = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+
+        // A double-click has selected its word by now: visual mode from the moment it lands, so the
+        // mode the status bar shows is right while the button is still down.
+        if (_pressClicks >= 2)
+        {
+            AdoptPointerSelection(_pressClicks);
+        }
+    }
+
+    // On the release rather than the press: a press that goes on to drag starts its selection where it
+    // landed, and bringing the caret back onto the line first would move that start.
+    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        int clicks = _pressClicks;
+        _pressClicks = 0;
+
+        if ((clicks == 0) || (e.InitialPressMouseButton != MouseButton.Left) || _editor.IsReadOnly || (_editor.Document is null))
+        {
+            return;
+        }
+
+        // A plain click that left nothing selected put the caret down. A drag, or a click with Shift,
+        // made a selection, which stays a selection made with the mouse. A double-click is taken over
+        // again as it ends: dragging after it reaches further a word at a time.
+        if ((clicks == 1) && !_pressExtends && _editor.TextArea.Selection.IsEmpty)
+        {
+            _engine.PlaceCaret();
+        }
+        else if (clicks >= 2)
+        {
+            AdoptPointerSelection(clicks);
+        }
+    }
+
+    /// <summary>
+    /// Hands the engine the selection a double- or triple-click has made, as a visual selection.
+    /// </summary>
+    /// <param name="clicks">The gesture's click count.</param>
+    private void AdoptPointerSelection(int clicks)
+    {
+        AvaloniaEdit.Editing.Selection selection = _editor.TextArea.Selection;
+
+        if (selection.IsEmpty)
+        {
+            // A double-click on nothing selectable — past the end of the text — is a click.
+            _engine.PlaceCaret();
+
+            return;
+        }
+
+        AvaloniaEdit.Document.ISegment segment = selection.SurroundingSegment;
+
+        // The caret is on the far edge: at the start of a selection dragged backwards.
+        bool backwards = (_editor.CaretOffset == segment.Offset) && (segment.Length > 1);
+        int anchor = backwards ? segment.EndOffset : segment.Offset;
+        int active = backwards ? segment.Offset : segment.EndOffset;
+
+        _engine.AdoptSelection(anchor, active, linewise: (clicks >= 3) && CoversWholeLines(segment));
+    }
+
+    // From the start of a line to the end of one — its last character or its line break: what a
+    // triple-click selects (AvaloniaEdit leaves the line break out).
+    private bool CoversWholeLines(AvaloniaEdit.Document.ISegment segment)
+    {
+        if (_editor.Document is not { } document)
+        {
+            return false;
+        }
+
+        AvaloniaEdit.Document.DocumentLine last = document.GetLineByOffset(segment.EndOffset);
+        bool startsALine = document.GetLineByOffset(segment.Offset).Offset == segment.Offset;
+        bool endsALine = (last.Offset == segment.EndOffset) || (last.EndOffset == segment.EndOffset);
+
+        return startsALine && endsALine;
+    }
+
     private void OnTextInput(object? sender, TextInputEventArgs e)
     {
-        if (_editor.IsReadOnly || (_editor.Document is null) || (_engine.Mode == VimMode.Insert))
+        if (_editor.IsReadOnly || (_editor.Document is null) || (_engine.Mode == VimMode.Insert) || IsInSearchPanel(e.Source))
         {
             return;
         }
