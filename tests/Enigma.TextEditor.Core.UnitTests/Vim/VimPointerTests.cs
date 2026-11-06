@@ -5,7 +5,8 @@ namespace Enigma.TextEditor.Core.UnitTests.Vim;
 
 /// <summary>
 /// What the engine makes of a pointer gesture the view reports once the editor has carried it out
-/// (BUG-47C2): <see cref="VimEngine.PlaceCaret"/> for a click.
+/// (BUG-47C2): <see cref="VimEngine.PlaceCaret"/> for a click, <see cref="VimEngine.AdoptSelection"/>
+/// for a double-click.
 /// </summary>
 public sealed class VimPointerTests
 {
@@ -105,6 +106,79 @@ public sealed class VimPointerTests
 
         Assert.Equal(3, run.Buffer.CaretOffset);
         Assert.Equal(":", run.Engine.CommandLine);
+    }
+
+    [Fact]
+    public void ADoubleClickedWord_BecomesAVisualSelection_ThatOperatorsActOn()
+    {
+        VimRun run = VimScript.Run("|foo bar baz", "");
+
+        run.Engine.AdoptSelection(4, 7, linewise: false);
+
+        Assert.Equal(VimMode.Visual, run.Engine.Mode);
+        Assert.Equal("foo [ba|r] baz", VimScript.RenderSelection(run.Buffer));
+
+        Feed(run, "d");
+        Assert.Equal("foo | baz", VimScript.Render(run.Buffer));
+        Assert.Equal(VimMode.Normal, run.Engine.Mode);
+    }
+
+    [Fact]
+    public void ASelectionMadeBackwards_PutsTheCaretOnItsFirstCharacter()
+    {
+        VimRun run = VimScript.Run("|foo bar baz", "");
+
+        run.Engine.AdoptSelection(7, 4, linewise: false);
+
+        Assert.Equal("foo [|bar] baz", VimScript.RenderSelection(run.Buffer));
+        Assert.Equal(VimMode.Visual, run.Engine.Mode);
+    }
+
+    [Fact]
+    public void WholeLines_BecomeALinewiseSelection()
+    {
+        VimRun run = VimScript.Run("|abc\ndef\nghi", "");
+
+        run.Engine.AdoptSelection(4, 8, linewise: true);
+
+        Assert.Equal(VimMode.VisualLine, run.Engine.Mode);
+
+        Feed(run, "d");
+        Assert.Equal("abc\nghi", run.Buffer.Text);
+    }
+
+    [Fact]
+    public void AHalfTypedCommand_IsDropped_ForTheSelection()
+    {
+        VimRun run = VimScript.Run("|foo bar baz", "d");
+
+        run.Engine.AdoptSelection(4, 7, linewise: false);
+        Feed(run, "y");
+
+        Assert.Equal("foo bar baz", run.Buffer.Text);
+        Assert.Equal("bar", run.Engine.Registers.Get('"')?.Text);
+    }
+
+    [Fact]
+    public void AnEmptySelection_ChangesNothing()
+    {
+        VimRun run = VimScript.Run("foo |bar", "");
+
+        run.Engine.AdoptSelection(4, 4, linewise: false);
+
+        Assert.Equal(VimMode.Normal, run.Engine.Mode);
+        Assert.Null(run.Buffer.Selection);
+    }
+
+    [Fact]
+    public void InInsertMode_TheSelectionIsLeftToTheEditor()
+    {
+        VimRun run = VimScript.Run("|foo bar", "i");
+
+        run.Engine.AdoptSelection(4, 7, linewise: false);
+
+        Assert.Equal(VimMode.Insert, run.Engine.Mode);
+        Assert.Null(run.Buffer.Selection);
     }
 
     private static void Feed(VimRun run, string keys)

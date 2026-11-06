@@ -92,6 +92,7 @@ public static class HelpCatalog
         Section("Visual mode", PhosphorIcon.Selection, "Over the selection",
         [
             Keys("v, V", "Select characters, whole lines; the same key again stops"),
+            Keys("Double-click", "Select the word; a triple-click selects the line"),
             Keys("o", "Go to the other end of the selection"),
             Keys("gv", "Select the last selection again"),
             Keys("d, x, c, s, y", "Delete, change, yank the selection"),

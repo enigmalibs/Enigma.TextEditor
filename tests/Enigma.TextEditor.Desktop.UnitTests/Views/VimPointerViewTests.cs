@@ -21,6 +21,8 @@ public sealed class VimPointerViewTests(HeadlessAvaloniaFixture fixture)
 {
     private const string Text = "abc\ndefgh\n";
 
+    private const string Words = "foo bar baz\n";
+
     [Fact]
     public void AClickPastTheEndOfALine_InNormalMode_PutsTheBlockOnItsLastCharacter()
         => fixture.RunAsync(async () =>
@@ -89,6 +91,107 @@ public sealed class VimPointerViewTests(HeadlessAvaloniaFixture fixture)
             window.Close();
         });
 
+    [Fact]
+    public void ADoubleClickOnAWord_InNormalMode_SelectsItInVisualMode()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Words));
+            MainWindow window = Show(harness);
+
+            DoubleClick(window, On(window, line: 1, column: 6));
+
+            Assert.Equal("VISUAL", ModeText(window));
+            Assert.Equal("bar", Editor(window).SelectedText);
+            Assert.Equal(6, Editor(window).CaretOffset);
+
+            window.KeyTextInput("d");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("foo  baz\n", Editor(window).Document.Text);
+            Assert.Equal("NORMAL", ModeText(window));
+            window.Close();
+        });
+
+    [Fact]
+    public void AfterADoubleClick_EscAndAClickBothEndVisualMode()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Words));
+            MainWindow window = Show(harness);
+
+            DoubleClick(window, On(window, line: 1, column: 6));
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("NORMAL", ModeText(window));
+            Assert.True(Editor(window).TextArea.Selection.IsEmpty);
+
+            DoubleClick(window, On(window, line: 1, column: 10));
+            Assert.Equal("VISUAL", ModeText(window));
+            Assert.Equal("baz", Editor(window).SelectedText);
+
+            // Long enough after the double-click that the platform counts a fresh single click.
+            await System.Threading.Tasks.Task.Delay(600);
+            Click(window, On(window, line: 1, column: 2));
+            Assert.Equal("NORMAL", ModeText(window));
+            Assert.True(Editor(window).TextArea.Selection.IsEmpty);
+            Assert.Equal("foo bar baz\n", Editor(window).Document.Text);
+            window.Close();
+        });
+
+    [Fact]
+    public void ADoubleClick_InInsertMode_SelectsTheWord_AndStaysInInsertMode()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Words));
+            MainWindow window = Show(harness);
+            window.KeyTextInput("i");
+
+            DoubleClick(window, On(window, line: 1, column: 6));
+
+            Assert.Equal("INSERT", ModeText(window));
+            Assert.Equal("bar", Editor(window).SelectedText);
+            window.Close();
+        });
+
+    [Fact]
+    public void ATripleClick_SelectsTheLine_InLinewiseVisualMode()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Words));
+            MainWindow window = Show(harness);
+            Point point = On(window, line: 1, column: 6);
+
+            DoubleClick(window, point);
+            window.MouseDown(point, MouseButton.Left);
+            window.MouseUp(point, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("V-LINE", ModeText(window));
+
+            window.KeyTextInput("d");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("", Editor(window).Document.Text);
+            window.Close();
+        });
+
+    [Fact]
+    public void WithVimOff_ADoubleClickSelectsTheWord()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new(settings => settings.VimEnabled = false);
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", Words));
+            MainWindow window = Show(harness);
+
+            DoubleClick(window, On(window, line: 1, column: 6));
+
+            Assert.Equal("bar", Editor(window).SelectedText);
+            Assert.Equal(7, Editor(window).CaretOffset);
+            window.Close();
+        });
+
     /// <summary>
     /// A point on a line, well to the right of its last character, in the window's coordinates.
     /// </summary>
@@ -120,6 +223,15 @@ public sealed class VimPointerViewTests(HeadlessAvaloniaFixture fixture)
 
     internal static void Click(MainWindow window, Point point)
     {
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    internal static void DoubleClick(MainWindow window, Point point)
+    {
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
         window.MouseDown(point, MouseButton.Left);
         window.MouseUp(point, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();

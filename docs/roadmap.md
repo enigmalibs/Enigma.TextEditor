@@ -130,8 +130,8 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Ctrl+F and Ctrl+H open in every mode | DONE        | (in BUG-B026.md)          |
 | - PHASE02    | The panel's keys are its own         | DONE        | (in BUG-B026.md)          |
 | - PHASE03    | Tab from find to replace field       | DONE        | (in BUG-B026.md)          |
-| BUG-47C2     | Mouse clicks in vim normal mode      | IN PROGRESS | docs/plan/BUG-47C2.md     |
+| BUG-47C2     | Mouse clicks in vim normal mode      | DONE        | docs/plan/BUG-47C2.md     |
 | - PHASE01    | Click past a line end in normal mode | DONE        | (in BUG-47C2.md)          |
-| - PHASE02    | Double-click selects in visual mode  | TODO        | (in BUG-47C2.md)          |
+| - PHASE02    | Double-click selects in visual mode  | DONE        | (in BUG-47C2.md)          |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

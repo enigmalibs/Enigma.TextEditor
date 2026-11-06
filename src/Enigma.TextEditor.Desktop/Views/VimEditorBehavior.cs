@@ -50,7 +50,10 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// Pointer gestures on the text are AvaloniaEdit's, and the engine is told what they did once they
 /// are done (BUG-47C2): a plain click that left nothing selected put the caret down
 /// (<see cref="VimEngine.PlaceCaret"/>), which in the command modes brings it back onto the line's
-/// last character and ends a visual mode. Insert mode keeps the caret where the click put it.
+/// last character and ends a visual mode; a double-click selected a word, which becomes a visual
+/// selection, and a triple-click whole lines, which become a linewise one
+/// (<see cref="VimEngine.AdoptSelection"/>). Insert mode keeps the caret and the selection as the
+/// pointer left them.
 /// </para>
 /// <para>
 /// The engine's options are seeded from the editor's own on every attach — the indentation size and
@@ -504,6 +507,13 @@ public sealed class VimEditorBehavior
 
         _pressClicks = e.ClickCount;
         _pressExtends = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+
+        // A double-click has selected its word by now: visual mode from the moment it lands, so the
+        // mode the status bar shows is right while the button is still down.
+        if (_pressClicks >= 2)
+        {
+            AdoptPointerSelection(_pressClicks);
+        }
     }
 
     // On the release rather than the press: a press that goes on to drag starts its selection where it
@@ -519,11 +529,58 @@ public sealed class VimEditorBehavior
         }
 
         // A plain click that left nothing selected put the caret down. A drag, or a click with Shift,
-        // made a selection, which stays a selection made with the mouse.
+        // made a selection, which stays a selection made with the mouse. A double-click is taken over
+        // again as it ends: dragging after it reaches further a word at a time.
         if ((clicks == 1) && !_pressExtends && _editor.TextArea.Selection.IsEmpty)
         {
             _engine.PlaceCaret();
         }
+        else if (clicks >= 2)
+        {
+            AdoptPointerSelection(clicks);
+        }
+    }
+
+    /// <summary>
+    /// Hands the engine the selection a double- or triple-click has made, as a visual selection.
+    /// </summary>
+    /// <param name="clicks">The gesture's click count.</param>
+    private void AdoptPointerSelection(int clicks)
+    {
+        AvaloniaEdit.Editing.Selection selection = _editor.TextArea.Selection;
+
+        if (selection.IsEmpty)
+        {
+            // A double-click on nothing selectable — past the end of the text — is a click.
+            _engine.PlaceCaret();
+
+            return;
+        }
+
+        AvaloniaEdit.Document.ISegment segment = selection.SurroundingSegment;
+
+        // The caret is on the far edge: at the start of a selection dragged backwards.
+        bool backwards = (_editor.CaretOffset == segment.Offset) && (segment.Length > 1);
+        int anchor = backwards ? segment.EndOffset : segment.Offset;
+        int active = backwards ? segment.Offset : segment.EndOffset;
+
+        _engine.AdoptSelection(anchor, active, linewise: (clicks >= 3) && CoversWholeLines(segment));
+    }
+
+    // From the start of a line to the end of one — its last character or its line break: what a
+    // triple-click selects (AvaloniaEdit leaves the line break out).
+    private bool CoversWholeLines(AvaloniaEdit.Document.ISegment segment)
+    {
+        if (_editor.Document is not { } document)
+        {
+            return false;
+        }
+
+        AvaloniaEdit.Document.DocumentLine last = document.GetLineByOffset(segment.EndOffset);
+        bool startsALine = document.GetLineByOffset(segment.Offset).Offset == segment.Offset;
+        bool endsALine = (last.Offset == segment.EndOffset) || (last.EndOffset == segment.EndOffset);
+
+        return startsALine && endsALine;
     }
 
     private void OnTextInput(object? sender, TextInputEventArgs e)

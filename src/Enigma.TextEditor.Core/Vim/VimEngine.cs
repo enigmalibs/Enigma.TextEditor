@@ -654,6 +654,55 @@ public sealed class VimEngine
         _desiredColumn = NoDesiredColumn;
     }
 
+    /// <summary>
+    /// Takes over a selection the pointer has just made — a double-click on a word, a triple-click on
+    /// a line — as a visual selection (BUG-47C2).
+    /// </summary>
+    /// <param name="anchor">Where the selection was started, as the editor counts it.</param>
+    /// <param name="active">Where it reaches to: one past its last character when it runs forwards.</param>
+    /// <param name="linewise">
+    /// <see langword="true"/> for whole lines, which becomes linewise visual — <c>V</c>; otherwise
+    /// charwise — <c>v</c>.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// The editor's selection runs between two edges and its caret sits on the far one; a visual
+    /// selection runs between two characters and its caret sits on the last one it covers, which is
+    /// what an operator then acts up to. So a word selected forwards becomes an anchor on its first
+    /// character and a caret on its last — exactly where <c>viw</c> leaves them — and one selected
+    /// backwards an anchor on its last character and a caret on its first.
+    /// </para>
+    /// <para>
+    /// What was half typed is dropped: the selection is what the next key acts on. Insert mode, an open
+    /// command line and an empty selection are left as they are.
+    /// </para>
+    /// </remarks>
+    public void AdoptSelection(int anchor, int active, bool linewise)
+    {
+        if ((Mode == VimMode.Insert) || (_commandLine is not null))
+        {
+            return;
+        }
+
+        int from = Math.Clamp(anchor, 0, _buffer.TextLength);
+        int to = Math.Clamp(active, 0, _buffer.TextLength);
+
+        if (from == to)
+        {
+            return;
+        }
+
+        _parser.Reset();
+        _windowPending = false;
+
+        _visualAnchor = OnTheLine(to > from ? from : from - 1);
+        SetCaret(to > from ? to - 1 : to);
+        _desiredColumn = NoDesiredColumn;
+
+        SetMode(linewise ? VimMode.VisualLine : VimMode.Visual);
+        ShowSelection();
+    }
+
     private bool IsVisual => Mode is VimMode.Visual or VimMode.VisualLine;
 
     private VimLine CurrentLine => _buffer.GetLineByOffset(_buffer.CaretOffset);
@@ -3617,12 +3666,15 @@ public sealed class VimEngine
         ModeChanged?.Invoke(this, mode);
     }
 
-    private void SetCaret(int offset)
+    private void SetCaret(int offset) => _buffer.CaretOffset = OnTheLine(offset);
+
+    // The nearest place normal mode allows: on a character of the line, never past its last one.
+    private int OnTheLine(int offset)
     {
         int clamped = Math.Clamp(offset, 0, _buffer.TextLength);
         VimLine line = _buffer.GetLineByOffset(clamped);
 
-        _buffer.CaretOffset = Math.Clamp(clamped, line.Offset, line.LastCaretOffset);
+        return Math.Clamp(clamped, line.Offset, line.LastCaretOffset);
     }
 
     private int Walk(int caret, int count, Func<IVimBuffer, int, int> step)
