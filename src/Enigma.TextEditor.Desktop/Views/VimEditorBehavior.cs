@@ -47,6 +47,12 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// it — in normal mode with nothing half typed; anywhere else it is vim's first.
 /// </para>
 /// <para>
+/// Pointer gestures on the text are AvaloniaEdit's, and the engine is told what they did once they
+/// are done (BUG-47C2): a plain click that left nothing selected put the caret down
+/// (<see cref="VimEngine.PlaceCaret"/>), which in the command modes brings it back onto the line's
+/// last character and ends a visual mode. Insert mode keeps the caret where the click put it.
+/// </para>
+/// <para>
 /// The engine's options are seeded from the editor's own on every attach — the indentation size and
 /// whether Tab writes spaces — so that <c>&gt;&gt;</c> indents exactly as the editor's Tab key does,
 /// and the application needs no setting of its own for either. The other way round, a <c>:set</c> that
@@ -94,6 +100,12 @@ public sealed class VimEditorBehavior
 
     private bool _attached;
     private bool _highlightConnected;
+
+    // The click count of the left-button press on the text the pointer is still holding down, or 0 when
+    // none is — what the release is told the gesture was. And whether Shift was held with it, which
+    // extends the selection rather than placing the caret.
+    private int _pressClicks;
+    private bool _pressExtends;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VimEditorBehavior"/> class.
@@ -222,12 +234,20 @@ public sealed class VimEditorBehavior
             _editor.AddHandler(InputElement.KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
             _editor.AddHandler(InputElement.TextInputEvent, OnTextInput, RoutingStrategies.Tunnel);
             _editor.AddHandler(InputElement.KeyDownEvent, OnKeyDownAfterEditor, RoutingStrategies.Bubble, handledEventsToo: true);
+
+            // After the text area's own handlers, which place the caret and make the selection the
+            // engine is then told about — and which handle the press, hence handled events too.
+            _editor.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Bubble, handledEventsToo: true);
+            _editor.AddHandler(InputElement.PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Bubble, handledEventsToo: true);
         }
         else
         {
             _editor.RemoveHandler(InputElement.KeyDownEvent, OnKeyDown);
             _editor.RemoveHandler(InputElement.TextInputEvent, OnTextInput);
             _editor.RemoveHandler(InputElement.KeyDownEvent, OnKeyDownAfterEditor);
+            _editor.RemoveHandler(InputElement.PointerPressedEvent, OnPointerPressed);
+            _editor.RemoveHandler(InputElement.PointerReleasedEvent, OnPointerReleased);
+            _pressClicks = 0;
         }
 
         // Reset either way: switching off has to close an insert session's undo group, and switching
@@ -456,6 +476,53 @@ public sealed class VimEditorBehavior
         if (IsSearchShortcut(e) && !IsInSearchPanel(e.Source) && (_editor.SearchPanel is { IsOpened: true }))
         {
             _engine.Interrupt();
+        }
+    }
+
+    /// <summary>
+    /// Whether a pointer event was raised over the text itself — not over the line numbers, the
+    /// scrollbars or the find panel, which have pointer gestures of their own.
+    /// </summary>
+    private bool IsOnText(object? source)
+    {
+        AvaloniaEdit.Rendering.TextView view = _editor.TextArea.TextView;
+
+        return (source is Visual visual) && (ReferenceEquals(visual, view) || view.IsVisualAncestorOf(visual));
+    }
+
+    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        _pressClicks = 0;
+
+        if (_editor.IsReadOnly
+            || (_editor.Document is null)
+            || !IsOnText(e.Source)
+            || !e.GetCurrentPoint(_editor).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        _pressClicks = e.ClickCount;
+        _pressExtends = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+    }
+
+    // On the release rather than the press: a press that goes on to drag starts its selection where it
+    // landed, and bringing the caret back onto the line first would move that start.
+    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        int clicks = _pressClicks;
+        _pressClicks = 0;
+
+        if ((clicks == 0) || (e.InitialPressMouseButton != MouseButton.Left) || _editor.IsReadOnly || (_editor.Document is null))
+        {
+            return;
+        }
+
+        // A plain click that left nothing selected put the caret down. A drag, or a click with Shift,
+        // made a selection, which stays a selection made with the mouse.
+        if ((clicks == 1) && !_pressExtends && _editor.TextArea.Selection.IsEmpty)
+        {
+            _engine.PlaceCaret();
         }
     }
 

@@ -619,6 +619,41 @@ public sealed class VimEngine
         }
     }
 
+    /// <summary>
+    /// Takes over a caret the pointer has just put down — a click on the text that left nothing
+    /// selected.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A click past the end of a line puts the editor's caret after its last character, a place
+    /// normal mode does not have: the block would be drawn over nothing, and the next command — which
+    /// starts by bringing the caret back onto the line — would act on the character to its left
+    /// without the user ever having seen the block there (BUG-47C2). The caret is put on the last
+    /// character as soon as the click lands, as vim does.
+    /// </para>
+    /// <para>
+    /// A click also ends a visual mode, the selection remembered for <c>gv</c>, and makes the clicked
+    /// column the one <c>j</c> and <c>k</c> keep to. Insert mode and an open command line leave the
+    /// caret where the click put it: insert mode has a place after the last character, and the command
+    /// line is not about the text.
+    /// </para>
+    /// </remarks>
+    public void PlaceCaret()
+    {
+        if ((Mode == VimMode.Insert) || (_commandLine is not null))
+        {
+            return;
+        }
+
+        if (IsVisual)
+        {
+            LeaveVisual();
+        }
+
+        SetCaret(_buffer.CaretOffset);
+        _desiredColumn = NoDesiredColumn;
+    }
+
     private bool IsVisual => Mode is VimMode.Visual or VimMode.VisualLine;
 
     private VimLine CurrentLine => _buffer.GetLineByOffset(_buffer.CaretOffset);
@@ -711,9 +746,9 @@ public sealed class VimEngine
         ClearStatus();
 
         // Every command starts from a caret normal mode would allow. Nothing the engine does can
-        // leave one past the last character of a line, but a mouse click in the empty space beyond
-        // the end of a line can, and a command that ran from there would be acting on a position the
-        // buffer does not have.
+        // leave one past the last character of a line, and a click there is brought back as it lands
+        // (PlaceCaret), but anything else that moves the editor's caret behind the engine's back can,
+        // and a command that ran from there would be acting on a position the buffer does not have.
         SetCaret(_buffer.CaretOffset);
 
         _activeRegister = command.Register;

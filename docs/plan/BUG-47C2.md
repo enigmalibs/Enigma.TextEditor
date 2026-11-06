@@ -1,6 +1,6 @@
 # BUG-47C2 — Mouse clicks in vim normal mode
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** BUG
 **Branch (PHASE01):** `bugfix/bug-47c2-phase01-click-line-end`
 **Branch (PHASE02):** `bugfix/bug-47c2-phase02-double-click-visual`
@@ -50,7 +50,7 @@ Two mouse gestures leave vim's normal mode in the wrong state:
 
 ## PHASE01 — Click past a line end in normal mode
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
