@@ -124,7 +124,7 @@ Today the hex viewer selects whole rows only. Make it select **bytes**:
 
 ## PHASE03 — Select bytes with the mouse
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

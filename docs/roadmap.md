@@ -144,7 +144,7 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-BE30 | Hex selection and copy menu          | IN PROGRESS | docs/plan/FEATURE-BE30.md |
 | - PHASE01    | Selection model and copy formats     | DONE        | (in FEATURE-BE30.md)      |
 | - PHASE02    | Paint the selection in both columns  | DONE        | (in FEATURE-BE30.md)      |
-| - PHASE03    | Select bytes with the mouse          | TODO        | (in FEATURE-BE30.md)      |
+| - PHASE03    | Select bytes with the mouse          | DONE        | (in FEATURE-BE30.md)      |
 | - PHASE04    | Copy context menu                    | TODO        | (in FEATURE-BE30.md)      |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

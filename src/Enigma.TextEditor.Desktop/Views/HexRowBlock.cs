@@ -137,6 +137,29 @@ public sealed class HexRowBlock : TextBlock
     }
 
     /// <inheritdoc />
+    /// <summary>
+    /// Finds the byte at a distance from the row's left edge.
+    /// </summary>
+    /// <param name="x">The distance, in the block's coordinates; it may be outside the block.</param>
+    /// <param name="within">
+    /// The column to stay in, or <see langword="null"/> for whichever the point is over. Over the other column, the
+    /// point is on this column's nearest edge: the hex column's last byte, the text column's first.
+    /// </param>
+    /// <returns>The column, and the byte counted from the row's first, 0 to 15 — whether or not a short row has it.</returns>
+    internal (HexColumn Column, int ByteInRow) ByteAt(double x, HexColumn? within)
+    {
+        int charIndex = TextLayout.HitTestPoint(new Point(x - Padding.Left, TextLayout.Height / 2)).CharacterHit.FirstCharacterIndex;
+        (HexColumn column, int byteInRow) = HexFormatter.ByteAt(charIndex, OffsetDigits);
+
+        if ((within is { } locked) && (locked != column))
+        {
+            return (locked, locked == HexColumn.Hex ? HexFormatter.BytesPerRow - 1 : 0);
+        }
+
+        return (column, byteInRow);
+    }
+
+    /// <inheritdoc />
     protected override void RenderTextLayout(DrawingContext context, Point origin)
     {
         // Render itself is sealed: the bands go down here, just before the text that is drawn over them.
