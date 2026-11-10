@@ -41,6 +41,9 @@ public partial class MainWindow : Window
     // What a minimised window comes back as: maximised, if it was before it went down.
     private WindowState _restoreState = WindowState.Normal;
 
+    // One step per notch of the wheel; a touchpad's fractions of a notch add up to one.
+    private readonly ZoomAccumulator _wheelZoom = new(1.0);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
     /// </summary>
@@ -50,6 +53,9 @@ public partial class MainWindow : Window
         DialogKeyboard.Attach(HostDialog, FocusCurrentPage);
         SettingsHost.KeyDown += OnSettingsKeyDown;
         Explorer.LeaveRequested += (_, _) => FocusActivePane();
+
+        // Tunnelled, so the zoom sees a Ctrl+wheel before the text, the hex rows, a tab strip or a minimap scrolls.
+        Splits.AddHandler(PointerWheelChangedEvent, OnSplitsPointerWheelChanged, RoutingStrategies.Tunnel);
     }
 
     /// <summary>
@@ -245,6 +251,19 @@ public partial class MainWindow : Window
 
         _viewModel.Shell.ShowFiles();
         e.Handled = true;
+    }
+
+    // Ctrl+wheel over the panes zooms the text, up larger, as in a browser, and never scrolls it. On Windows a pinch
+    // on a precision touchpad arrives this way too, in fractions of a notch. A wheel without Ctrl is left to scroll.
+    private void OnSplitsPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) || (e.Delta.Y == 0) || (_viewModel is null))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        _viewModel.Settings.ZoomByAsync(_wheelZoom.Add(e.Delta.Y)).Forget();
     }
 
     // Posted, after the flyout's own focus handling. Not while a dialog is open: an item that opened one

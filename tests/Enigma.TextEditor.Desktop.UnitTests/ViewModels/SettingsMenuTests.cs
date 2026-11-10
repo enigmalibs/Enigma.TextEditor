@@ -148,6 +148,34 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
+    public void ZoomBy_StepsSeveralSizesAtOnce_StaysWithinTheLimits_AndWritesThem()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            SettingsMenuViewModel menu = harness.SettingsMenu;
+            int changes = 0;
+            menu.Changed += (_, _) => changes++;
+
+            await menu.ZoomByAsync(2);
+            Assert.Equal(AppSettings.DefaultFontSize + 2, harness.Preferences.FontSize);
+            Assert.Equal(AppSettings.DefaultFontSize + 2, SettingsLoader.Load(harness.Settings.FilePath).Config.Value.EditorFontSize);
+
+            await menu.ZoomByAsync(-3);
+            Assert.Equal(AppSettings.DefaultFontSize - 1, harness.Preferences.FontSize);
+            Assert.Equal(2, changes);
+
+            await menu.ZoomByAsync(0);
+            Assert.Equal(2, changes);
+
+            await menu.ZoomByAsync(1000);
+            Assert.Equal(AppSettings.MaximumFontSize, harness.Preferences.FontSize);
+
+            await menu.ZoomByAsync(-1000);
+            Assert.Equal(AppSettings.MinimumFontSize, harness.Preferences.FontSize);
+            Assert.Equal("Font Size: 6", menu.FontSizeText);
+        });
+
+    [Fact]
     public void ChoosingAFontSize_AppliesIt_WritesIt_AndTheStatusItemSaysSo()
         => fixture.RunAsync(async () =>
         {

@@ -138,7 +138,8 @@ at the top, the split editor itself, and the settings at the bottom, a page that
 Appearance, Editing and New files, each with its full range; *Text* also sets the font the editors and the hex view
 draw a file in, from the monospace faces the machine has. **Settings → All Settings** (Ctrl+,) opens that page too,
 and Esc goes back to the files. **View → Zoom In / Zoom Out / Reset Zoom** (Ctrl+=, Ctrl+-, Ctrl+0) sets the editor's
-font size, between 6 and 72, as the settings page's font size does. **Help → About Enigma Text Editor** shows the version
+font size, between 6 and 72, as the settings page's font size does. Ctrl+wheel over the text or the hex view zooms
+too, one size per notch: up zooms in, down zooms out. **Help → About Enigma Text Editor** shows the version
 and the commit it was built from.
 
 ## Your data
