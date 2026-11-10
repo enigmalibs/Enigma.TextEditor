@@ -187,6 +187,7 @@ public static class HelpCatalog
                 with { ExCommands = [VimExCommand.SetFileOptions] },
             Text("", "Byte order mark, for UTF-8", ":set bomb"),
             Text("", "Language: its name, or an extension", ":set filetype=python, ft"),
+            Text("", "Pick the language from the list", ":set language, lang"),
         ]),
         Section("Application", PhosphorIcon.Keyboard, null,
         [

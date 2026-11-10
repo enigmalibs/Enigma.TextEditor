@@ -1,6 +1,6 @@
 # FEATURE-2BFB — :set lang opens the language picker
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-2bfb-set-lang`
 **Run:** feature/2026-11-10-set-lang-zoom-gestures

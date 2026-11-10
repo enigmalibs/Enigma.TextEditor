@@ -146,7 +146,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE02    | Paint the selection in both columns  | DONE        | (in FEATURE-BE30.md)      |
 | - PHASE03    | Select bytes with the mouse          | DONE        | (in FEATURE-BE30.md)      |
 | - PHASE04    | Copy context menu                    | DONE        | (in FEATURE-BE30.md)      |
-| FEATURE-2BFB | :set lang opens the language picker  | TODO        | docs/plan/FEATURE-2BFB.md |
+| FEATURE-2BFB | :set lang opens the language picker  | DONE        | docs/plan/FEATURE-2BFB.md |
 | FEATURE-A47C | Zoom with Ctrl+wheel and pinch       | TODO        | docs/plan/FEATURE-A47C.md |
 | - PHASE01    | Ctrl+wheel zoom                      | TODO        | (in FEATURE-A47C.md)      |
 | - PHASE02    | Touchpad pinch gesture               | TODO        | (in FEATURE-A47C.md)      |

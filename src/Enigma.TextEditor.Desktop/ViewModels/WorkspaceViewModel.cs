@@ -58,6 +58,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// <param name="preferences">How every editor looks.</param>
     /// <param name="help">The key-binding help, for <c>:help</c>.</param>
     /// <param name="languages">The languages <c>:set filetype</c> can name.</param>
+    /// <param name="languagePicker">The language list, for <c>:set language</c>.</param>
     public WorkspaceViewModel(
         IDocumentService documents,
         DocumentRegistry registry,
@@ -69,7 +70,8 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         IAppShutdown shutdown,
         EditorPreferences preferences,
         IHelpDialogService help,
-        LanguageCatalog languages)
+        LanguageCatalog languages,
+        ILanguagePicker languagePicker)
     {
         _documents = documents ?? throw new ArgumentNullException(nameof(documents));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
@@ -83,7 +85,8 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
             shutdown ?? throw new ArgumentNullException(nameof(shutdown)),
             status,
             help ?? throw new ArgumentNullException(nameof(help)),
-            languages ?? throw new ArgumentNullException(nameof(languages)));
+            languages ?? throw new ArgumentNullException(nameof(languages)),
+            languagePicker ?? throw new ArgumentNullException(nameof(languagePicker)));
         _window = new WindowCommandHandler(this, _ex, status);
         Preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
 

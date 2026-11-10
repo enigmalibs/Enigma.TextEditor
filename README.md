@@ -66,7 +66,8 @@ with the tab in the new half; the half it will take is highlighted while you dra
 - `:set` options (`ignorecase`, `smartcase`, `wrapscan`, `hlsearch`, `incsearch`, `expandtab`, `shiftwidth`,
   `tabstop`); the last three are the file's indentation, as the status bar shows it. The bar's other file items are
   `:set` options too, under Vim's names: `fileformat` (`unix`, `dos`), `fileencoding` (`utf-8`, `latin1`, `cp1252`…)
-  with `bomb`, and `filetype` (`python`, `cs`…).
+  with `bomb`, and `filetype` (`python`, `cs`…). `:set lang` (or `:set language`) opens the language list, as the
+  bar's language button does.
 
 The registers, the last search and the last `f`/`t` are shared by every pane. Files are driven the Vim way too:
 `:w`, `:q`, `:wq`, `:x`, `:e`, `:enew`, `:bn`, `:bp`, `:wa` and `:qa`, with `:q!`, `:enew!` and `:qa!` to throw
