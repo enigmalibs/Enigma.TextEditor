@@ -5,6 +5,7 @@ using AvaloniaEdit.Document;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Core.Hex;
+using Enigma.TextEditor.Core.Sessions;
 using Enigma.TextEditor.Desktop.Services;
 
 namespace Enigma.TextEditor.Desktop.ViewModels;
@@ -51,6 +52,7 @@ public sealed class DocumentViewModel : ObservableObject
         FilePath = filePath is null ? null : Path.GetFullPath(filePath);
         UntitledName = untitledName;
         Format = content.Format;
+        FileFormat = content.Format;
         Indentation = indentation;
         Hex = hex;
 
@@ -138,6 +140,15 @@ public sealed class DocumentViewModel : ObservableObject
             }
         }
     }
+
+    /// <summary>
+    /// Gets how the file itself is written, as it was last read or saved: <see cref="Format"/> without a change of
+    /// encoding or line endings the next save has still to make.
+    /// </summary>
+    /// <remarks>
+    /// What a session stores: the file is read again in its own encoding, not in one it was never written in.
+    /// </remarks>
+    public TextFileFormat FileFormat { get; private set; }
 
     /// <summary>
     /// Gets the encoding the buffer is written in, as the status bar and the pickers name it.
@@ -243,6 +254,7 @@ public sealed class DocumentViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(written);
 
         FilePath = Path.GetFullPath(filePath);
+        FileFormat = writtenFormat ?? Format;
 
         // The format is the one written: a change made while the save was in flight is not in the
         // file, and stays pending.
@@ -275,6 +287,7 @@ public sealed class DocumentViewModel : ObservableObject
         Reloading?.Invoke(this, EventArgs.Empty);
 
         Format = content.Format;
+        FileFormat = content.Format;
         _replacing = true;
 
         try
@@ -291,6 +304,31 @@ public sealed class DocumentViewModel : ObservableObject
         _formatChanged = false;
         IsDirty = false;
         _editedSinceSave = false;
+    }
+
+    /// <summary>
+    /// Describes the buffer for a saved session: its file, how it is written and indented, and the language the user
+    /// chose for it.
+    /// </summary>
+    /// <returns>The buffer's entry.</returns>
+    /// <remarks>
+    /// The file's own format is stored, not a change still waiting for a save: unsaved changes are not kept, so the
+    /// file comes back as it is on disk. An untitled buffer has no file, and keeps the format it was given.
+    /// </remarks>
+    public SessionDocument ToSession()
+    {
+        TextFileFormat format = IsUntitled ? Format : FileFormat;
+
+        return new SessionDocument(
+            FilePath,
+            UntitledName,
+            IsHex,
+            format.Encoding.CodePage,
+            format.HasByteOrderMark,
+            format.LineEndings,
+            Indentation.UseTabs,
+            Indentation.Size,
+            IsLanguageChosen ? Language.Id : null);
     }
 
     private void ChangeFormat(TextFileFormat format)

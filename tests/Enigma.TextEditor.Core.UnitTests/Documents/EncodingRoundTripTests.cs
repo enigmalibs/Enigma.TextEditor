@@ -148,6 +148,22 @@ public sealed class EncodingRoundTripTests
     }
 
     [Fact]
+    public void EveryOfferedEncoding_IsFoundAgainByItsCodePageAndMark()
+    {
+        foreach (TextEncoding entry in TextEncodings.All)
+        {
+            Assert.Equal(entry, TextEncodings.ForCodePage(entry.CodePage, entry.WithByteOrderMark));
+        }
+    }
+
+    [Fact]
+    public void ACodePageNotOffered_StillHasAnEntry_AndOneThatDoesNotExistHasNone()
+    {
+        Assert.Equal("UTF-32 LE", TextEncodings.ForCodePage(TextEncodings.Utf32LeCodePage, true)?.Label);
+        Assert.Null(TextEncodings.ForCodePage(987654, false));
+    }
+
+    [Fact]
     public void AUtf32File_HasAnEntryEvenThoughItIsNotOffered()
     {
         TextFileFormat format = new(new UTF32Encoding(false, true), true, LineEndingStyle.Lf);

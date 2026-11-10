@@ -137,7 +137,7 @@ completion records live in `docs/done/<ID>.md`.
 | BUG-C6A9     | Ctrl+Y does not redo                 | DONE        | docs/plan/BUG-C6A9.md     |
 | FEATURE-34A1 | Restore the previous session         | IN PROGRESS | docs/plan/FEATURE-34A1.md |
 | - PHASE01    | Session file and its lock            | DONE        | (in FEATURE-34A1.md)      |
-| - PHASE02    | Capture and restore tabs and splits  | TODO        | (in FEATURE-34A1.md)      |
+| - PHASE02    | Capture and restore tabs and splits  | DONE        | (in FEATURE-34A1.md)      |
 | - PHASE03    | Restore the session at start         | TODO        | (in FEATURE-34A1.md)      |
 | - PHASE04    | Keep unsaved changes on exit         | TODO        | (in FEATURE-34A1.md)      |
 

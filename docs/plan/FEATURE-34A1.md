@@ -97,7 +97,7 @@ Work like Notepad on Windows 11 and VS Code:
 
 ## PHASE02 — Capture and restore tabs and splits
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
