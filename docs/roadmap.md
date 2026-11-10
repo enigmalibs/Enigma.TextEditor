@@ -134,5 +134,11 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Click past a line end in normal mode | DONE        | (in BUG-47C2.md)          |
 | - PHASE02    | Double-click selects in visual mode  | DONE        | (in BUG-47C2.md)          |
 | FEATURE-8AEF | Release 1.17.0                       | DONE        | docs/plan/FEATURE-8AEF.md |
+| BUG-C6A9     | Ctrl+Y does not redo                 | TODO        | docs/plan/BUG-C6A9.md     |
+| FEATURE-34A1 | Restore the previous session         | TODO        | docs/plan/FEATURE-34A1.md |
+| - PHASE01    | Session file and its lock            | TODO        | (in FEATURE-34A1.md)      |
+| - PHASE02    | Capture and restore tabs and splits  | TODO        | (in FEATURE-34A1.md)      |
+| - PHASE03    | Restore the session at start         | TODO        | (in FEATURE-34A1.md)      |
+| - PHASE04    | Keep unsaved changes on exit         | TODO        | (in FEATURE-34A1.md)      |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
