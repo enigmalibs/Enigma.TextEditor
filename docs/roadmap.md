@@ -150,5 +150,6 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-A47C | Zoom with Ctrl+wheel and pinch       | DONE        | docs/plan/FEATURE-A47C.md |
 | - PHASE01    | Ctrl+wheel zoom                      | DONE        | (in FEATURE-A47C.md)      |
 | - PHASE02    | Touchpad pinch gesture               | DONE        | (in FEATURE-A47C.md)      |
+| FEATURE-F4F8 | Release 1.19.0                       | TODO        | docs/plan/FEATURE-F4F8.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
