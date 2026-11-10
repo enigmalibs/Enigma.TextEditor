@@ -5,9 +5,12 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.17** — find and replace and the mouse with vim on: `Ctrl+F` and `Ctrl+H` open the find and
-> replace panel in every mode, and you can type in it in every mode; a click past the end of a line puts the block on
-> its last character, and a double-click selects a word in visual mode. 1.16 brought undo with vim on: `Ctrl+Z` in
+> **What's new in 1.18** — the previous session comes back: quitting keeps the tabs, the splits and every unsaved
+> change, untitled documents included, without asking, and the next start brings them back as they were; and, with
+> vim on, `Ctrl+Y` redoes in every mode, as the Edit menu says. 1.17 brought find and replace and the mouse with vim
+> on: `Ctrl+F` and `Ctrl+H` open the find and replace panel in every mode, and you can type in it in every mode; a
+> click past the end of a line puts the block on its last character, and a double-click selects a word in visual
+> mode. 1.16 brought undo with vim on: `Ctrl+Z` in
 > insert mode takes back what you typed and keeps you in insert mode, `Ctrl+Y` redoes, and the menus' Undo and Redo
 > work in every mode. 1.15 brought the application icon filling its frame: the same editor window, drawn larger,
 > everywhere the icon shows. 1.14 brought the icon without
@@ -94,7 +97,10 @@ several can run side by side. The editor reads each file the way it is written, 
 - **Indentation**, tabs or spaces and how many, read from the file, else the default from **Settings**;
   **Tools → Indentation** changes what Tab and `>>` insert.
 
-Closing a document with unsaved changes asks whether to save them, as does quitting with any.
+Closing a document with unsaved changes asks whether to save them. Quitting does not: the tabs, the splits and every
+unsaved change, untitled documents included, are kept, and the next start brings them back as they were, files named
+on the command line opening beside them. `:qa!` keeps the tabs but throws the changes away. A second window started
+while one is open starts empty, and asks about unsaved changes when it closes.
 
 **Syntax highlighting** comes from the TextMate grammars [TextMateSharp](https://github.com/danipen/TextMateSharp)
 ships, chosen by the file's extension. **Tools → Set Language…**, or the language on the status bar, picks another
@@ -133,14 +139,16 @@ and the commit it was built from.
 
 ## Your data
 
-The editor keeps three things of its own, in a per-user application-data folder:
+The editor keeps four things of its own, in a per-user application-data folder:
 
 - your preferences, in `settings.json`;
 - its log;
 - `instance.json`, which names the window you used last, so that a file opened from the system goes to it. That
   window removes the file when it closes.
+- `session.json`, what was open when you last quit: the tabs, the splits, and the text of every unsaved change.
+  `session.lock` marks the window that keeps it.
 
-Your documents are only ever the files you open and save.
+Your documents are the files you open and save — and, until you save them, the unsaved changes `session.json` keeps.
 
 | Platform | Folder                                                                  |
 |----------|-------------------------------------------------------------------------|
@@ -150,6 +158,8 @@ Your documents are only ever the files you open and save.
 
 - `settings.json` is readable JSON. A key it lacks keeps its default. A file that cannot be read is moved aside to
   `settings.invalid.json`, the log says so, and the editor starts with the defaults.
+- `session.json` is readable JSON too, unsaved text included. A file that cannot be used is moved aside to
+  `session.invalid.json`, the log says so, and the editor starts without it.
 - `logs/app.log` is the log, one file per day, with two weeks kept.
 
 ## Requirements

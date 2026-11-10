@@ -1,6 +1,8 @@
 using System.IO;
 using Avalonia.Threading;
 using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Core.Sessions;
+using Enigma.TextEditor.Core.Settings;
 using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Enigma.TextEditor.Desktop.ViewModels;
@@ -144,10 +146,14 @@ public sealed class UnsavedChangesTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
-    public void TheRealWindow_StaysOpenWhenTheQuestionIsCancelledAndClosesWhenItIsAnswered()
+    public void TheRealWindow_OfAnInstanceNotOwningTheSession_StaysOpenWhenTheQuestionIsCancelledAndClosesWhenItIsAnswered()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
+
+            // Another instance owns the session, so this one cannot keep the changes for later: it asks, as before.
+            using SessionLock? other = SessionLock.TryAcquire(harness.Folder.PathOf(AppPaths.SessionLockFileName));
+            Assert.NotNull(other);
             (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a")))!.Document.Document.Insert(0, "1");
             MainWindow window = new() { DataContext = harness.Window };
             window.Show();

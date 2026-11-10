@@ -128,6 +128,33 @@ public static class TextEncodings
     }
 
     /// <summary>
+    /// The entry for a code page, as a saved session names a buffer's encoding.
+    /// </summary>
+    /// <param name="codePage">The code page.</param>
+    /// <param name="withByteOrderMark">Whether the text is written with a byte-order mark.</param>
+    /// <returns>
+    /// The entry <see cref="For(TextFileFormat)"/> gives a file in that encoding; or <see langword="null"/> for a
+    /// code page this machine has no encoding for.
+    /// </returns>
+    public static TextEncoding? ForCodePage(int codePage, bool withByteOrderMark)
+    {
+        EnsureCodePages();
+
+        Encoding encoding;
+
+        try
+        {
+            encoding = Encoding.GetEncoding(codePage);
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
+
+        return For(new TextFileFormat(encoding, withByteOrderMark, LineEndings.Default));
+    }
+
+    /// <summary>
     /// Registers the code-page provider, once per process, before a single-byte encoding is asked for.
     /// </summary>
     internal static void EnsureCodePages()

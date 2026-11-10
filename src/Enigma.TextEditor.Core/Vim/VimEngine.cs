@@ -318,15 +318,16 @@ public sealed class VimEngine
     /// without the engine ever seeing the keys. Normal mode says <see langword="true"/> to every bare
     /// key, even one it has no meaning for, because a key that fell through would type a character into
     /// a document that is not being typed into; keys held with Control or Alt are the exception, and
-    /// belong to the window — all but the ones the contract claims: <c>Ctrl+R</c> and the six scroll
-    /// commands <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+F</c> <c>Ctrl+B</c> <c>Ctrl+E</c> <c>Ctrl+Y</c>, taken
-    /// in the command modes only, and the undo keys, taken in every mode.
+    /// belong to the window — all but the ones the contract claims: <c>Ctrl+R</c> and the five scroll
+    /// commands <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+F</c> <c>Ctrl+B</c> <c>Ctrl+E</c>, taken in the
+    /// command modes only, and the undo keys, taken in every mode.
     /// </para>
     /// <para>
-    /// The undo keys are <c>Ctrl+Z</c> and <c>Ctrl+Shift+Z</c>, and in insert mode <c>Ctrl+Y</c> as
-    /// well, which is the editor's redo there and vim's scroll everywhere else. They are the engine's
-    /// in insert mode because the session holds an undo group open until <c>Esc</c>, and the editor's
-    /// own undo refuses to run inside one — see <see cref="Undo"/>.
+    /// The undo keys are <c>Ctrl+Z</c>, and <c>Ctrl+Shift+Z</c> and <c>Ctrl+Y</c> — the two the editor
+    /// redoes with, and the Edit menu names the second. <c>Ctrl+Y</c> is vim's line scroll up, given up
+    /// for the redo the menu promises (BUG-C6A9). They are the engine's in insert mode because the
+    /// session holds an undo group open until <c>Esc</c>, and the editor's own undo refuses to run
+    /// inside one — see <see cref="Undo"/>.
     /// </para>
     /// <para>
     /// While a recording is open every key the engine takes goes into it, after it has done its work:
@@ -417,9 +418,9 @@ public sealed class VimEngine
                 return true;
             }
 
-            if (IsUndoKey(key) || IsRedoKey(key) || IsInsertRedoKey(key))
+            if (IsUndoKey(key) || IsRedoKey(key))
             {
-                Step(forward: !IsUndoKey(key));
+                Step(forward: IsRedoKey(key));
 
                 return true;
             }
@@ -458,7 +459,7 @@ public sealed class VimEngine
         }
 
         // A key held with Control or Alt belongs to the window, with these exceptions: the undo keys
-        // and redo, read here, and the six scroll commands, which go through the grammar like any
+        // and redo, read here, and the five scroll commands, which go through the grammar like any
         // other key so that a count in front of one reaches it — '5<C-d>' scrolls five lines.
         if (key.HasCommandModifier && !KeySequenceParser.IsControlCommand(key))
         {
@@ -715,12 +716,8 @@ public sealed class VimEngine
     // Ctrl+Z, the editor's undo in every mode.
     private static bool IsUndoKey(VimKey key) => IsControlLetter(key, 'z');
 
-    // Ctrl+Shift+Z, the editor's redo in every mode — folded into RedoKey on the way in.
+    // Ctrl+Shift+Z and Ctrl+Y, the editor's redo in every mode — both folded into RedoKey on the way in.
     private static bool IsRedoKey(VimKey key) => IsControlLetter(key, 'Z');
-
-    // Ctrl+Y, the editor's redo too, but only in insert mode: in the command modes it is vim's scroll.
-    private static bool IsInsertRedoKey(VimKey key)
-        => IsControlLetter(key, 'y') || IsControlLetter(key, 'Y');
 
     private static bool IsControlLetter(VimKey key, char letter)
         => key.IsCharacter
@@ -729,16 +726,20 @@ public sealed class VimEngine
             && ((key.Modifiers & VimModifiers.Alt) == VimModifiers.None);
 
     /// <summary>
-    /// Writes <c>Ctrl+Shift+Z</c> as <see cref="RedoKey"/>, the capital the notation keeps.
+    /// Writes <c>Ctrl+Shift+Z</c> and <c>Ctrl+Y</c> as <see cref="RedoKey"/>, the capital the notation
+    /// keeps.
     /// </summary>
     /// <remarks>
     /// The view builds a key held with Control from its key code — a lowercase letter, with Shift
     /// beside it — and the notation drops Shift from a character, so a recording would otherwise read
-    /// the redo back as an undo. Only this key: every other key held with Control means the same with
-    /// or without Shift.
+    /// the redo back as an undo. <c>Ctrl+Y</c>, with or without Shift, is the same redo under the name
+    /// the Edit menu gives it, and is recorded as that one redo. Every other key held with Control means
+    /// the same with or without Shift.
     /// </remarks>
     private static VimKey FoldRedoKey(VimKey key)
-        => IsControlLetter(key, 'z') && ((key.Modifiers & VimModifiers.Shift) != VimModifiers.None)
+        => (IsControlLetter(key, 'z') && ((key.Modifiers & VimModifiers.Shift) != VimModifiers.None))
+            || IsControlLetter(key, 'y')
+            || IsControlLetter(key, 'Y')
             ? key with { Character = 'Z', Modifiers = key.Modifiers & ~VimModifiers.Shift }
             : key;
 
@@ -1023,11 +1024,7 @@ public sealed class VimEngine
                 break;
 
             case VimAction.ScrollLineDown:
-                ScrollLines(count, down: true);
-                break;
-
-            case VimAction.ScrollLineUp:
-                ScrollLines(count, down: false);
+                ScrollLinesDown(count);
                 break;
 
             case VimAction.ScrollCaretTop:
@@ -1104,7 +1101,6 @@ public sealed class VimEngine
         => action is VimAction.ScrollPageDown
             or VimAction.ScrollPageUp
             or VimAction.ScrollLineDown
-            or VimAction.ScrollLineUp
             or VimAction.ScrollCaretTop
             or VimAction.ScrollCaretCenter
             or VimAction.ScrollCaretBottom
@@ -2279,9 +2275,9 @@ public sealed class VimEngine
     }
 
     /// <summary>
-    /// Runs <c>Ctrl+E</c> or <c>Ctrl+Y</c>: the view moves <paramref name="count"/> lines and the
-    /// caret stays — unless the move would leave it off screen, in which case it is pulled onto the
-    /// nearest line still shown, keeping its column.
+    /// Runs <c>Ctrl+E</c>: the view moves <paramref name="count"/> lines down and the caret stays —
+    /// unless the move would leave it off screen, in which case it is pulled onto the nearest line
+    /// still shown, keeping its column.
     /// </summary>
     /// <remarks>
     /// Where the caret ends up is worked out from where the view was asked to go rather than read back
@@ -2290,10 +2286,10 @@ public sealed class VimEngine
     /// for the same reason a page up does: the line the caret is on is then exactly on screen, and
     /// the top is what the count of lines makes it.
     /// </remarks>
-    private void ScrollLines(int count, bool down)
+    private void ScrollLinesDown(int count)
     {
         int first = _buffer.FirstVisibleLine;
-        int target = down ? Math.Min(first + count, _buffer.LineCount) : Math.Max(first - count, 1);
+        int target = Math.Min(first + count, _buffer.LineCount);
 
         if (target == first)
         {

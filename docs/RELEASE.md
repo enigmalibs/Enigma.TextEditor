@@ -116,7 +116,8 @@ running it. Then it publishes (`publish.ps1`, above) and packages the result wit
 | The entry in *Installed apps*       | "Enigma Text Editor", publisher "Josué Clément"                                                 |
 
 Installing it replaces an earlier version installed from an MSI, and uninstalling it from *Installed apps* leaves
-`%APPDATA%\Enigma.TextEditor` (the settings, the log and `instance.json`) alone.
+`%APPDATA%\Enigma.TextEditor` (the settings, the log, `instance.json`, and the session in `session.json` and
+`session.lock`) alone.
 
 On macOS there is no installer: run the published folder as it is.
 

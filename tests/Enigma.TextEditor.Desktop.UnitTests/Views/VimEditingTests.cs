@@ -271,6 +271,45 @@ public sealed class VimEditingTests(HeadlessAvaloniaFixture fixture)
             window.Close();
         });
 
+    [Fact]
+    public void CtrlYInNormalMode_IsTheRedoTheEditMenuNames()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
+            MainWindow window = Show(harness);
+
+            window.KeyTextInput("xu");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("abc", Editor(window).Document.Text);
+
+            window.KeyPressQwerty(PhysicalKey.Y, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("bc", Editor(window).Document.Text);
+            Assert.Equal("NORMAL", ModeText(window));
+            window.Close();
+        });
+
+    [Fact]
+    public void WithVimOff_CtrlYIsTheEditorsRedo()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new(settings => settings.VimEnabled = false);
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "abc"));
+            MainWindow window = Show(harness);
+
+            window.KeyTextInput("x");
+            window.KeyPressQwerty(PhysicalKey.Z, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("abc", Editor(window).Document.Text);
+
+            window.KeyPressQwerty(PhysicalKey.Y, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("xabc", Editor(window).Document.Text);
+            window.Close();
+        });
+
     private static string? ModeText(MainWindow window) => window.FindControl<TextBlock>("ModeText")?.Text;
 
     private static AvaloniaEdit.TextEditor Editor(MainWindow window)

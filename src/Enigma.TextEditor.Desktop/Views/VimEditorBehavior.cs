@@ -29,8 +29,9 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// which one the engine is in. A visual mode types nothing either, so what is true of normal mode
 /// here is true of both of them: the text input is swallowed and fed to the engine, and Enter, Tab,
 /// Home, End and the page keys are taken away from the editor and offered to it. So are the scroll
-/// keys vim spells with Control — <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+B</c> <c>Ctrl+E</c>
-/// <c>Ctrl+Y</c> — which the engine takes in the command modes and turns down in insert mode.
+/// keys vim spells with Control — <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+B</c> <c>Ctrl+E</c> — which the
+/// engine takes in the command modes and turns down in insert mode. <c>Ctrl+Y</c> is not one of them:
+/// it is the editor's redo in every mode, as the Edit menu says (BUG-C6A9).
 /// </para>
 /// <para>
 /// <c>Ctrl+F</c> and <c>Ctrl+H</c> are the editor's in every mode and never reach the engine: they
@@ -65,8 +66,8 @@ namespace Enigma.TextEditor.Desktop.Views;
 /// Insert mode touches neither event. That is what "insert mode is ordinary typing" has to mean in a
 /// real editor: an input method composes a character over several keystrokes and delivers it as text,
 /// and a handler that took those keys apart would break every composed character in the language.
-/// The exceptions are <c>Esc</c> and the undo keys — <c>Ctrl+Z</c>, <c>Ctrl+Shift+Z</c> and, in
-/// insert mode, <c>Ctrl+Y</c> — which the engine takes in place of the editor, because the editor's
+/// The exceptions are <c>Esc</c> and the undo keys — <c>Ctrl+Z</c>, <c>Ctrl+Shift+Z</c> and
+/// <c>Ctrl+Y</c> — which the engine takes in place of the editor, because the editor's
 /// own undo cannot run inside the undo group an insert session holds open. The Edit menu and the
 /// editor's own menu reach the same undo through <see cref="Undo"/> and <see cref="Redo"/>.
 /// </para>
@@ -309,7 +310,7 @@ public sealed class VimEditorBehavior
             return VimKey.Named(special, Modifiers(e.KeyModifiers));
         }
 
-        // Ctrl+R and the six scroll commands — Ctrl+D, Ctrl+U, Ctrl+F, Ctrl+B, Ctrl+E, Ctrl+Y — are
+        // Ctrl+R, the undo keys and the five scroll commands — Ctrl+D, Ctrl+U, Ctrl+F, Ctrl+B, Ctrl+E — are
         // the commands in the contract that are a held key rather than a typed character, and a
         // modified key produces no text input at all, so they have to be recognised from the key
         // code. Safe for these, and only these: vim names each command by its letter, and every
