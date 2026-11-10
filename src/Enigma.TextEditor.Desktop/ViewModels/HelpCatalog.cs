@@ -196,6 +196,7 @@ public static class HelpCatalog
             Keys("Ctrl+F4", "Close the tab"),
             Keys("Ctrl+=, Ctrl+-, Ctrl+0", "Zoom in, out, back to the default"),
             Keys("Ctrl+wheel", "Zoom in (up) or out (down), over the text"),
+            Keys("Pinch on the touchpad", "Zoom in (fingers apart) or out (together), over the text"),
             Keys("Ctrl+Shift+E", "Show or hide the explorer"),
             Keys("Esc", "Back to the text, from the explorer"),
             Keys("Ctrl+,", "Settings"),

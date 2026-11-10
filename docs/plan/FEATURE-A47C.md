@@ -1,6 +1,6 @@
 # FEATURE-A47C — Zoom with Ctrl+wheel and pinch
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-a47c-phase01-ctrl-wheel-zoom`
 **Branch (PHASE02):** `feature/feature-a47c-phase02-touchpad-pinch`
@@ -77,7 +77,7 @@ Let the user change the editor's font size with the pointer:
 
 ## PHASE02 — Touchpad pinch gesture
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

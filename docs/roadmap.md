@@ -147,8 +147,8 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE03    | Select bytes with the mouse          | DONE        | (in FEATURE-BE30.md)      |
 | - PHASE04    | Copy context menu                    | DONE        | (in FEATURE-BE30.md)      |
 | FEATURE-2BFB | :set lang opens the language picker  | DONE        | docs/plan/FEATURE-2BFB.md |
-| FEATURE-A47C | Zoom with Ctrl+wheel and pinch       | IN PROGRESS | docs/plan/FEATURE-A47C.md |
+| FEATURE-A47C | Zoom with Ctrl+wheel and pinch       | DONE        | docs/plan/FEATURE-A47C.md |
 | - PHASE01    | Ctrl+wheel zoom                      | DONE        | (in FEATURE-A47C.md)      |
-| - PHASE02    | Touchpad pinch gesture               | TODO        | (in FEATURE-A47C.md)      |
+| - PHASE02    | Touchpad pinch gesture               | DONE        | (in FEATURE-A47C.md)      |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

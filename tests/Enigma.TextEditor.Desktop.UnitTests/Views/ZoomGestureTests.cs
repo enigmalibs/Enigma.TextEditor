@@ -15,7 +15,7 @@ using Xunit;
 namespace Enigma.TextEditor.Desktop.UnitTests.Views;
 
 /// <summary>
-/// Zooming the text with the pointer on the real window: Ctrl+wheel over the panes.
+/// Zooming the text with the pointer on the real window: Ctrl+wheel and the touchpad's zoom gesture over the panes.
 /// </summary>
 [Collection(HeadlessCollection.Name)]
 public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
@@ -123,6 +123,104 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal(AppSettings.DefaultFontSize, harness.Settings.Value.EditorFontSize);
             window.Close();
         });
+
+    [Fact]
+    public void SpreadingOnTheTouchpadOverTheText_ZoomsIn_AndPinchingZoomsOut()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x"));
+            (MainWindow window, EditorPaneView pane) = Show(harness);
+            Control text = pane.EditorControl.TextArea.TextView;
+
+            Assert.True(Magnify(text, window, 0.2));
+            await DrainAsync();
+
+            Assert.Equal(AppSettings.DefaultFontSize + 2, harness.Settings.Value.EditorFontSize);
+            Assert.Equal(AppSettings.DefaultFontSize + 2, pane.EditorControl.FontSize);
+
+            Assert.True(Magnify(text, window, -0.3));
+            await DrainAsync();
+
+            Assert.Equal(AppSettings.DefaultFontSize - 1, harness.Settings.Value.EditorFontSize);
+            window.Close();
+        });
+
+    [Fact]
+    public void SmallMagnifications_ZoomOnceTheyAddUpToATenth()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x"));
+            (MainWindow window, EditorPaneView pane) = Show(harness);
+            Control text = pane.EditorControl.TextArea.TextView;
+
+            for (int step = 0; step < 4; step++)
+            {
+                Magnify(text, window, 0.02);
+            }
+
+            await DrainAsync();
+            Assert.Equal(AppSettings.DefaultFontSize, harness.Settings.Value.EditorFontSize);
+
+            Magnify(text, window, 0.02);
+            await DrainAsync();
+            Assert.Equal(AppSettings.DefaultFontSize + 1, harness.Settings.Value.EditorFontSize);
+            window.Close();
+        });
+
+    [Fact]
+    public void TheTouchpadGestureOverTheHexView_ZoomsToo()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenHexAsync(harness.Folder.Write("a.bin", new byte[256]));
+            (MainWindow window, EditorPaneView pane) = Show(harness);
+
+            Assert.True(Magnify(pane.HexView, window, 0.1));
+            await DrainAsync();
+
+            Assert.Equal(AppSettings.DefaultFontSize + 1, harness.Preferences.FontSize);
+            window.Close();
+        });
+
+    [Fact]
+    public void TheTouchpadGestureOutsideThePanes_DoesNotZoom()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x"));
+            (MainWindow window, _) = Show(harness);
+
+            Assert.False(Magnify(window.FindControl<Control>("StatusBar")!, window, 0.5));
+            await DrainAsync();
+
+            Assert.Equal(AppSettings.DefaultFontSize, harness.Settings.Value.EditorFontSize);
+            window.Close();
+        });
+
+    // The headless platform has no touchpad: the gesture is raised on the control under the fingers, as the platform's
+    // input would raise it. Returns whether something handled it.
+    private static bool Magnify(Control target, MainWindow window, double magnification)
+    {
+        Point centre = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)!.Value;
+        PointerDeltaEventArgs gesture = new(
+            InputElement.PointerTouchPadGestureMagnifyEvent,
+            target,
+            // A touchpad is the mouse pointer to Avalonia: its gestures come from the mouse device.
+            new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true),
+            window,
+            centre,
+            0,
+            PointerPointProperties.None,
+            KeyModifiers.None,
+            new Vector(magnification, 0));
+
+        target.RaiseEvent(gesture);
+        Dispatcher.UIThread.RunJobs();
+
+        return gesture.Handled;
+    }
 
     private static Point OverText(EditorPaneView pane, MainWindow window)
     {
