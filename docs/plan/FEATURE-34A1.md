@@ -1,6 +1,6 @@
 # FEATURE-34A1 — Restore the previous session
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-34a1-phase01-session-file`
 **Branch (PHASE02):** `feature/feature-34a1-phase02-capture-restore`
@@ -65,7 +65,7 @@ Work like Notepad on Windows 11 and VS Code:
 
 ## PHASE01 — Session file and its lock
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

@@ -135,8 +135,8 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE02    | Double-click selects in visual mode  | DONE        | (in BUG-47C2.md)          |
 | FEATURE-8AEF | Release 1.17.0                       | DONE        | docs/plan/FEATURE-8AEF.md |
 | BUG-C6A9     | Ctrl+Y does not redo                 | DONE        | docs/plan/BUG-C6A9.md     |
-| FEATURE-34A1 | Restore the previous session         | TODO        | docs/plan/FEATURE-34A1.md |
-| - PHASE01    | Session file and its lock            | TODO        | (in FEATURE-34A1.md)      |
+| FEATURE-34A1 | Restore the previous session         | IN PROGRESS | docs/plan/FEATURE-34A1.md |
+| - PHASE01    | Session file and its lock            | DONE        | (in FEATURE-34A1.md)      |
 | - PHASE02    | Capture and restore tabs and splits  | TODO        | (in FEATURE-34A1.md)      |
 | - PHASE03    | Restore the session at start         | TODO        | (in FEATURE-34A1.md)      |
 | - PHASE04    | Keep unsaved changes on exit         | TODO        | (in FEATURE-34A1.md)      |
