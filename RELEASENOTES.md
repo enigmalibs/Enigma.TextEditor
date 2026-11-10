@@ -1,5 +1,100 @@
 # Release notes
 
+## 1.18.0 — 2026-11-09
+
+A minor release that brings the previous session back. Quitting keeps the tabs, the splits and every unsaved change,
+untitled documents included, and the next start brings them back as they were. With vim on, `Ctrl+Y` now redoes in
+every mode, as the Edit menu says.
+
+### The session comes back
+
+- **Quitting keeps what was open:**
+  - the tabs of each pane, in their order, with the one showing;
+  - the splits and their sizes, and the pane you were in;
+  - each tab's caret and scroll position. A hex view comes back as a hex view, on its row.
+
+  The next start brings them all back. It holds however the window closes: the close button, Alt+F4 or
+  **File → Exit**, `:qa`, or the system logging off.
+- **Unsaved changes are kept too, and quitting no longer asks about them.**
+  - A modified file comes back with its changes, marked unsaved, in the encoding, line endings and indentation it
+    will be saved in. That holds even if the file was deleted in the meantime: a save writes it again.
+  - An untitled document with text comes back with it, under its name.
+  - The dot stays until you save or reload, since undo cannot reach back past the restart.
+  - Closing a tab with unsaved changes still asks whether to save them.
+  - `:qa!` throws the changes away: the files' tabs come back as the files are on disk, and an untitled document with
+    text does not come back.
+- **A file with no unsaved change is read again from disk,** in the encoding it was open in, with its indentation and
+  the language you chose for it. Edits made outside the editor while it was closed therefore show. A file with kept
+  changes comes back with the kept text, even if the file changed on disk since.
+- **A file that cannot be read back is skipped,** with no dialog:
+  - the status line names it once (*Not restored from the previous session: …*), and the log says why;
+  - a pane left without tabs closes;
+  - with nothing to bring back, the editor starts with a new untitled tab, as before.
+- **Files named on the command line open after the session,** in the pane you were in.
+- **One window keeps the session: the first one started.** A second window started while it runs starts empty, and
+  asks about unsaved changes when it closes, as before. If the session cannot be written, quitting asks as before
+  too.
+- **The session is written when the window closes.** After a crash, the next start brings back what was open the last
+  time the editor closed, not the changes made since.
+- **`session.json` sits beside `settings.json`.** It is readable JSON and holds the text of every unsaved change.
+  `session.lock` marks the window that keeps it. A file that cannot be used is moved aside to `session.invalid.json`,
+  the log says so, and the editor starts without it.
+- **Help → Key Bindings** describes the new `:qa` ("Quit; tabs and unsaved changes come back at the next start") and
+  `:qa!` ("Quit, throwing every change away; the tabs come back").
+
+### `Ctrl+Y` redoes with vim on
+
+- **`Ctrl+Y` redoes in every mode,** as **Edit → Redo** and the editor's right-click Redo show it, and as
+  `Ctrl+Shift+Z` does:
+  - in normal mode, it is `Ctrl+R`;
+  - in a visual mode, it leaves the selection, then redoes;
+  - in insert mode, it redoes without leaving insert mode, as in 1.17.
+
+  In 1.17 it scrolled the view up a line in normal and visual mode, and redid nothing.
+- **A recording takes `Ctrl+Y` as the redo** and replays it as one.
+- **Vim's scroll of one line up is given up.** `Ctrl+E` still scrolls a line down, and `Ctrl+U` and `PgUp` scroll
+  up.
+- **Help → Key Bindings** lists `Ctrl+E` alone under *Scrolling*, and `Ctrl+Z, Ctrl+Y` ("Undo, redo, as the Edit menu
+  does") under *Editing*.
+- **With vim off, nothing changes:** `Ctrl+Y` redid already.
+
+### Upgrading from 1.17
+
+- **Your settings carry over** unchanged. 1.18 adds no settings key.
+- **Quitting no longer asks about unsaved changes:** they are kept for the next start. Save them, or use `:qa!`, to
+  leave nothing behind.
+- **`Ctrl+Y` no longer scrolls a line up** in normal and visual mode: it redoes.
+- **Two files are new** in the application-data folder, `session.json` and `session.lock`. The first start of 1.18
+  finds no session and starts as before.
+- **Going back to 1.17 reads the same settings,** but 1.17 ignores `session.json`: save the changes it keeps before
+  going back, or they will not come back.
+- **On Windows, an MSI built from 1.18 upgrades the installed version** in place, 1.17.0 included.
+  `packaging\windows\buildmsi.ps1` names it `Enigma.TextEditor.1.18.0.msi`. Uninstalling it leaves the session in
+  `%APPDATA%\Enigma.TextEditor`, as it leaves the settings.
+- On Linux, run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- **xunit.v3 4.0.2 → 4.0.3**, in the test projects only.
+- **The Avalonia set is held back at 12.1.4**, with Enigma.Avalonia.Desktop 1.3.0. Avalonia 12.1.6 is out, but the
+  set moves as a whole, and Enigma.Avalonia.Desktop has not moved.
+- Nothing else has an update.
+
+### Compatibility
+
+- Unchanged from 1.17.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.18.0** is a minor release under Semantic Versioning. It brings the previous session back at the start, keeps
+  unsaved changes when the editor quits, and gives `Ctrl+Y` the redo in every mode. The settings file and every
+  default setting stay as they were.
+
 ## 1.17.0 — 2026-11-06
 
 A minor release that makes find and replace and the mouse work with vim on. `Ctrl+F` and `Ctrl+H` open the find and

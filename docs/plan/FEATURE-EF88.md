@@ -1,6 +1,6 @@
 # FEATURE-EF88 — Release 1.18.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-ef88-release-1-18-0`
 **Run:** feature/2026-11-09-release-1-18-0
