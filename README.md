@@ -5,9 +5,12 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.18** — the previous session comes back: quitting keeps the tabs, the splits and every unsaved
-> change, untitled documents included, without asking, and the next start brings them back as they were; and, with
-> vim on, `Ctrl+Y` redoes in every mode, as the Edit menu says. 1.17 brought find and replace and the mouse with vim
+> **What's new in 1.19** — the hex view selects bytes, in the hex or the text column, and copies them as a hex
+> string, as text or as an address range, from its right-click menu or with Ctrl+C; Ctrl+wheel and the touchpad's
+> zoom gesture change the font size; and `:set lang` opens the language list. 1.18 brought the previous session
+> back: quitting keeps the tabs, the splits and every unsaved change, untitled documents included, without asking,
+> and the next start brings them back as they were; and, with vim on, `Ctrl+Y` redoes in every mode, as the Edit
+> menu says. 1.17 brought find and replace and the mouse with vim
 > on: `Ctrl+F` and `Ctrl+H` open the find and replace panel in every mode, and you can type in it in every mode; a
 > click past the end of a line puts the block on its last character, and a double-click selects a word in visual
 > mode. 1.16 brought undo with vim on: `Ctrl+Z` in
