@@ -39,6 +39,15 @@
            Background="Transparent"
            BorderThickness="0"
            AutomationProperties.Name="Hex rows">
+    <!-- What can be done with the selected bytes. Ctrl+C, shown on the item it does, copies them in the column
+         they were selected in. -->
+    <ListBox.ContextMenu>
+      <ContextMenu x:Name="RowsMenu" Opening="OnRowsMenuOpening">
+        <MenuItem x:Name="MenuCopyHex" Header="Copy _Hex String" Click="OnMenuCopyHexClick" />
+        <MenuItem x:Name="MenuCopyText" Header="Copy _Text" Click="OnMenuCopyTextClick" />
+        <MenuItem x:Name="MenuCopyRange" Header="Copy _Address Range" Click="OnMenuCopyRangeClick" />
+      </ContextMenu>
+    </ListBox.ContextMenu>
     <ListBox.ItemTemplate>
       <!-- Each row is told the tab's selection and paints its own part of it; a recycled row reads which
            bytes it shows from its new text. -->

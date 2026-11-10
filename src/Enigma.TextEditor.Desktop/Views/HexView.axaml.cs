@@ -1,8 +1,11 @@
 using System;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Enigma.TextEditor.Core.Hex;
@@ -121,23 +124,31 @@ public partial class HexView : UserControl
 
     private void OnRowsKeyDown(object? sender, KeyEventArgs e)
     {
-        if (!VimIsOn)
+        // While a ':' line or a Ctrl+W is pending, every key belongs to the engine — Enter, Esc and
+        // Backspace included, which the list would otherwise take.
+        if (VimIsOn && _engine!.HasPendingSequence && (VimEditorBehavior.Translate(e) is { } pending))
         {
+            e.Handled = _engine.HandleKey(pending);
             return;
         }
 
-        // While a ':' line or a Ctrl+W is pending, every key belongs to the engine — Enter, Esc and
-        // Backspace included, which the list would otherwise take.
-        if (_engine!.HasPendingSequence && (VimEditorBehavior.Translate(e) is { } pending))
+        // Ctrl+C: the selected bytes, as the column they were selected in shows them.
+        if ((e.Key == Key.C) && (e.KeyModifiers == KeyModifiers.Control) && (DataContext is EditorTabViewModel { HexSelection: { } selection }))
         {
-            e.Handled = _engine.HandleKey(pending);
+            CopyBytes(selection.Column);
+            e.Handled = true;
+            return;
+        }
+
+        if (!VimIsOn)
+        {
             return;
         }
 
         // Ctrl+W: the window prefix.
         if ((e.Key == Key.W) && e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
-            e.Handled = _engine.HandleKey(VimKey.Typed('w', VimModifiers.Control));
+            e.Handled = _engine!.HandleKey(VimKey.Typed('w', VimModifiers.Control));
         }
     }
 
@@ -166,10 +177,16 @@ public partial class HexView : UserControl
         PointerPointProperties button = e.GetCurrentPoint(Rows).Properties;
 
         if ((DataContext is not EditorTabViewModel { Document.Hex: { } } tab)
-            || !button.IsLeftButtonPressed
+            || !(button.IsLeftButtonPressed || button.IsRightButtonPressed)
             || ((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true) is null))
         {
             // Not on a row — the scroll bar, or below a short file's last row: the list's own.
+            return;
+        }
+
+        if (button.IsRightButtonPressed)
+        {
+            SelectForMenu(tab, e);
             return;
         }
 
@@ -216,6 +233,95 @@ public partial class HexView : UserControl
         _dragging = false;
         e.Pointer.Capture(null);
         e.Handled = true;
+    }
+
+    // A right press inside the selection keeps it for the menu that opens; anywhere else, the byte under the pointer
+    // is what the menu acts on. Handled either way, so the list does not move its own row selection too; the
+    // release that follows still opens the menu.
+    private void SelectForMenu(EditorTabViewModel tab, PointerPressedEventArgs e)
+    {
+        if (ByteUnder(e, null, scroll: false) is { } hit && (tab.HexSelection?.Contains(hit.Offset) != true))
+        {
+            Select(tab, HexSelection.At(hit.Offset, hit.Column));
+        }
+
+        Rows.Focus(NavigationMethod.Pointer);
+        e.Handled = true;
+    }
+
+    // What can run is read as the menu opens, and Ctrl+C is shown on the item it does.
+    private void OnRowsMenuOpening(object? sender, CancelEventArgs e)
+    {
+        HexSelection? selection = (DataContext as EditorTabViewModel)?.HexSelection;
+        KeyGesture copy = new(Key.C, KeyModifiers.Control);
+
+        MenuCopyHex.IsEnabled = selection.HasValue;
+        MenuCopyText.IsEnabled = selection.HasValue;
+        MenuCopyRange.IsEnabled = selection.HasValue;
+        MenuCopyHex.InputGesture = selection?.Column == HexColumn.Hex ? copy : null;
+        MenuCopyText.InputGesture = selection?.Column == HexColumn.Text ? copy : null;
+    }
+
+    private void OnMenuCopyHexClick(object? sender, RoutedEventArgs e) => CopyFromMenu(() => CopyBytes(HexColumn.Hex));
+
+    private void OnMenuCopyTextClick(object? sender, RoutedEventArgs e) => CopyFromMenu(() => CopyBytes(HexColumn.Text));
+
+    private void OnMenuCopyRangeClick(object? sender, RoutedEventArgs e) => CopyFromMenu(CopyRange);
+
+    // The keyboard goes back to the rows the menu was opened on.
+    private void CopyFromMenu(Action copy)
+    {
+        copy();
+        Rows.Focus();
+    }
+
+    // The selected bytes as one of the two columns shows them. Read from the file when copied, up to a limit: a
+    // selection can reach across gigabytes, and its text is built whole before the clipboard takes it.
+    private void CopyBytes(HexColumn format)
+    {
+        if (DataContext is not EditorTabViewModel { HexSelection: { } selection, Document.Hex: { } hex })
+        {
+            return;
+        }
+
+        if (selection.Length > HexDocument.MaxCopyBytes)
+        {
+            _session?.ReportStatus(
+                $"The selection is too large to copy as {(format == HexColumn.Hex ? "hex" : "text")}: "
+                + $"the limit is {HexDocument.FormatSize(HexDocument.MaxCopyBytes)}");
+            return;
+        }
+
+        byte[] bytes;
+
+        try
+        {
+            bytes = hex.Read(selection.Start, (int)selection.Length);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _session?.ReportStatus($"Could not read the selection: {exception.Message}");
+            return;
+        }
+
+        SetClipboard(format == HexColumn.Hex ? HexFormatter.FormatHexString(bytes) : HexFormatter.FormatText(bytes));
+    }
+
+    private void CopyRange()
+    {
+        if (DataContext is EditorTabViewModel { HexSelection: { } selection, Document.Hex: { } hex })
+        {
+            SetClipboard(HexFormatter.FormatAddressRange(selection.Start, selection.End, hex.OffsetDigits));
+        }
+    }
+
+    // Not awaited: a click or a keystroke has nowhere to return a task to, and a failure reaches the safety net.
+    private void SetClipboard(string text)
+    {
+        if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+        {
+            clipboard.SetTextAsync(text).Forget();
+        }
     }
 
     private void Select(EditorTabViewModel tab, HexSelection selection)

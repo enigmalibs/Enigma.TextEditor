@@ -110,7 +110,10 @@ one. Colours follow the theme.
 anyway, or not at all. A file over 32 MB, the largest the editor opens as text, is offered the viewer alone.
 **File → Open as Hex…** opens any file there directly, whatever its size, and **Tools → Reopen as Hex** or
 **Reopen as Text** switches a tab between the two. Rows are 16 bytes, `hexdump -C` style, read from the file as you
-scroll.
+scroll. Press and drag in the hex column, or in the text column, to select bytes there; the same bytes are highlighted
+in the other column, and Shift with a click extends the selection. The right-click menu copies them as a hex string
+(`48 65 6C 6C 6F`), as text (as the column shows it), or as an address range (`0x00000001 - 0x00000004`); **Ctrl+C**
+copies them as the column they were selected in shows them. Hex and text copies stop at 1 MB; the range has no limit.
 
 **The status bar** shows, left to right:
 

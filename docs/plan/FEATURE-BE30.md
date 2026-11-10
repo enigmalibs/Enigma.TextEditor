@@ -1,6 +1,6 @@
 # FEATURE-BE30 — Hex selection and copy menu
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-be30-phase01-selection-model`
 **Branch (PHASE02):** `feature/feature-be30-phase02-paint-selection`
@@ -143,7 +143,7 @@ Today the hex viewer selects whole rows only. Make it select **bytes**:
 
 ## PHASE04 — Copy context menu
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
