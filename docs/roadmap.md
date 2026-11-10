@@ -143,7 +143,7 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-EF88 | Release 1.18.0                       | DONE        | docs/plan/FEATURE-EF88.md |
 | FEATURE-BE30 | Hex selection and copy menu          | IN PROGRESS | docs/plan/FEATURE-BE30.md |
 | - PHASE01    | Selection model and copy formats     | DONE        | (in FEATURE-BE30.md)      |
-| - PHASE02    | Paint the selection in both columns  | TODO        | (in FEATURE-BE30.md)      |
+| - PHASE02    | Paint the selection in both columns  | DONE        | (in FEATURE-BE30.md)      |
 | - PHASE03    | Select bytes with the mouse          | TODO        | (in FEATURE-BE30.md)      |
 | - PHASE04    | Copy context menu                    | TODO        | (in FEATURE-BE30.md)      |
 

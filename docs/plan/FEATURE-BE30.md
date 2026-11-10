@@ -101,7 +101,7 @@ Today the hex viewer selects whole rows only. Make it select **bytes**:
 
 ## PHASE02 — Paint the selection in both columns
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 
