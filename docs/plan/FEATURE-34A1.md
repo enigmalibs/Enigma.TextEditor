@@ -127,7 +127,7 @@ Work like Notepad on Windows 11 and VS Code:
 
 ## PHASE03 — Restore the session at start
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

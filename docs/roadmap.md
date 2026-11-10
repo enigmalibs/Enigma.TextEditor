@@ -138,7 +138,7 @@ completion records live in `docs/done/<ID>.md`.
 | FEATURE-34A1 | Restore the previous session         | IN PROGRESS | docs/plan/FEATURE-34A1.md |
 | - PHASE01    | Session file and its lock            | DONE        | (in FEATURE-34A1.md)      |
 | - PHASE02    | Capture and restore tabs and splits  | DONE        | (in FEATURE-34A1.md)      |
-| - PHASE03    | Restore the session at start         | TODO        | (in FEATURE-34A1.md)      |
+| - PHASE03    | Restore the session at start         | DONE        | (in FEATURE-34A1.md)      |
 | - PHASE04    | Keep unsaved changes on exit         | TODO        | (in FEATURE-34A1.md)      |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

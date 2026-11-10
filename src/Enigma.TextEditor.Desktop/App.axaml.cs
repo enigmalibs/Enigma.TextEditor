@@ -49,7 +49,7 @@ public partial class App : Application
             ConfigLoadResult<AppSettings> settings = SettingsLoader.Load(AppPaths.SettingsFile);
             RequestedThemeVariant = ThemeService.ToVariant(settings.Config.Value.Theme);
 
-            IHost host = BuildHost(this, settings, AppPaths.LogFile, firstRun);
+            IHost host = BuildHost(this, settings, AppPaths.LogFile, AppPaths.SessionFile, AppPaths.SessionLockFile, firstRun);
 
             // Started, never run: the Avalonia lifetime owns the message loop; the host only supplies
             // configuration, logging and services.
@@ -112,12 +112,16 @@ public partial class App : Application
     /// <param name="application">The running application, which the theme service drives.</param>
     /// <param name="settings">The settings, loaded before the container.</param>
     /// <param name="logFilePath">Where the log is written.</param>
+    /// <param name="sessionFilePath">Where the session is kept.</param>
+    /// <param name="sessionLockFilePath">The file the instance owning the session holds open.</param>
     /// <param name="firstRun">Whether this is the very first start; not one when omitted.</param>
     /// <returns>The host, not started.</returns>
     internal static IHost BuildHost(
         Application application,
         ConfigLoadResult<AppSettings> settings,
         string logFilePath,
+        string sessionFilePath,
+        string sessionLockFilePath,
         FirstRunState? firstRun = null)
     {
         ArgumentNullException.ThrowIfNull(application);
@@ -138,6 +142,7 @@ public partial class App : Application
         }
 
         builder.Services.AddAppLogging(logFilePath);
+        builder.Services.AddSession(sessionFilePath, sessionLockFilePath);
         builder.Services.AddEnigmaServices();
         builder.Services.AddShell();
 

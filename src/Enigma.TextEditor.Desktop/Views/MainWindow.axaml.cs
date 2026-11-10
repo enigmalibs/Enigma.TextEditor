@@ -265,9 +265,19 @@ public partial class MainWindow : Window
     {
         base.OnClosing(e);
 
-        if (e.Cancel || _closeConfirmed || (DataContext is not MainWindowViewModel viewModel)
-            || !viewModel.MustConfirmClose)
+        if (e.Cancel || (DataContext is not MainWindowViewModel viewModel))
         {
+            return;
+        }
+
+        // What the window leaves is what the next start brings back. Here rather than when the application exits,
+        // because this is the last moment every way of closing - the button, Alt+F4, :qa, the system logging off -
+        // passes through with the buffers still on hand.
+        if (_closeConfirmed || !viewModel.MustConfirmClose)
+        {
+            // The close goes ahead: every change was saved or thrown away, or there was none to ask about.
+            viewModel.SaveSession();
+
             return;
         }
 
