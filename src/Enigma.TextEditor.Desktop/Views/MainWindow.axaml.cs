@@ -272,12 +272,19 @@ public partial class MainWindow : Window
 
         // What the window leaves is what the next start brings back. Here rather than when the application exits,
         // because this is the last moment every way of closing - the button, Alt+F4, :qa, the system logging off -
-        // passes through with the buffers still on hand.
-        if (_closeConfirmed || !viewModel.MustConfirmClose)
+        // passes through with the buffers still on hand, and the questions can still be asked if keeping fails.
+        if (_closeConfirmed)
         {
-            // The close goes ahead: every change was saved or thrown away, or there was none to ask about.
+            // After the questions: every change was saved or thrown away, and none is left to keep.
             viewModel.SaveSession();
 
+            return;
+        }
+
+        // Kept, unsaved changes and all, the window closes without a question; so it does when nothing unsaved
+        // would be lost. Otherwise - another instance owns the session, or it could not be written - it asks.
+        if (viewModel.KeepSessionOnClose() || !viewModel.MustConfirmClose)
+        {
             return;
         }
 

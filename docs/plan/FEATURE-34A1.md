@@ -1,6 +1,6 @@
 # FEATURE-34A1 — Restore the previous session
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-34a1-phase01-session-file`
 **Branch (PHASE02):** `feature/feature-34a1-phase02-capture-restore`
@@ -152,7 +152,7 @@ Work like Notepad on Windows 11 and VS Code:
 
 ## PHASE04 — Keep unsaved changes on exit
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

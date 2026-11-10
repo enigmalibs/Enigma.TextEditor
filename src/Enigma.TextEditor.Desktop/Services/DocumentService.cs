@@ -193,6 +193,11 @@ public sealed class DocumentService : IDocumentService
                 return open;
             }
 
+            if (saved.UnsavedText is { } kept)
+            {
+                return RestoreUnsaved(path, saved, kept, indentation);
+            }
+
             // In the encoding the buffer had: a file reopened in another one comes back in it. A code page this
             // machine does not have is left to detection.
             DocumentContent content = await DocumentFile.ReadAsync(path, TextEncodings.ForCodePage(saved.CodePage, saved.ByteOrderMark));
@@ -320,13 +325,28 @@ public sealed class DocumentService : IDocumentService
             ? _registry.NextUntitledName()
             : saved.UntitledName;
 
-        DocumentViewModel document = new(null, name, new DocumentContent(string.Empty, FormatOf(saved)), indentation);
+        DocumentViewModel document = new(null, name, new DocumentContent(saved.UnsavedText ?? string.Empty, FormatOf(saved)), indentation);
         ApplyLanguage(document, saved.Language);
+
+        if (document.Document.TextLength > 0)
+        {
+            document.MarkRestoredUnsaved();
+        }
 
         return _registry.Add(document);
     }
 
-    // How an untitled buffer is written: its encoding, when this machine has it, else the default; its line endings.
+    // The text the session kept, not the file's: the file is not read at all, and need not exist.
+    private DocumentViewModel RestoreUnsaved(string path, SessionDocument saved, string text, Indentation indentation)
+    {
+        DocumentViewModel document = new(path, _registry.NextUntitledName(), new DocumentContent(text, FormatOf(saved)), indentation);
+        ApplyLanguage(document, saved.Language);
+        document.MarkRestoredUnsaved();
+
+        return _registry.Add(document);
+    }
+
+    // How a kept buffer is written: its encoding, when this machine has it, else the default; its line endings.
     private static TextFileFormat FormatOf(SessionDocument saved)
         => TextEncodings.ForCodePage(saved.CodePage, saved.ByteOrderMark) is { } encoding
             ? TextFileFormat.Default.With(encoding).With(saved.LineEndings)

@@ -33,6 +33,10 @@ public sealed class DocumentViewModel : ObservableObject
     // buffer differs from its file, and this does until the next save.
     private bool _formatChanged;
 
+    // Text a saved session kept that the file does not have: no undo step says so — the history did not survive the
+    // restart — so this does, until the next save or reload.
+    private bool _restoredChanges;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DocumentViewModel"/> class.
     /// </summary>
@@ -146,7 +150,8 @@ public sealed class DocumentViewModel : ObservableObject
     /// encoding or line endings the next save has still to make.
     /// </summary>
     /// <remarks>
-    /// What a session stores: the file is read again in its own encoding, not in one it was never written in.
+    /// What a session stores for a buffer whose unsaved changes are not kept: the file is read again in its own
+    /// encoding, not in one it was never written in.
     /// </remarks>
     public TextFileFormat FileFormat { get; private set; }
 
@@ -269,6 +274,7 @@ public sealed class DocumentViewModel : ObservableObject
         }
 
         Document.UndoStack.MarkAsOriginalFile();
+        _restoredChanges = false;
         IsDirty = _formatChanged;
         _editedSinceSave = false;
     }
@@ -302,22 +308,43 @@ public sealed class DocumentViewModel : ObservableObject
         Document.UndoStack.ClearAll();
         Document.UndoStack.MarkAsOriginalFile();
         _formatChanged = false;
+        _restoredChanges = false;
         IsDirty = false;
         _editedSinceSave = false;
     }
 
     /// <summary>
-    /// Describes the buffer for a saved session: its file, how it is written and indented, and the language the user
-    /// chose for it.
+    /// Records that the buffer holds changes its file does not — text a saved session kept — so that it shows as
+    /// unsaved until it is saved or read again.
     /// </summary>
+    /// <remarks>
+    /// The undo history did not survive the restart, so undoing cannot reach the file's text, and nothing undone
+    /// clears the mark: only a save or a reload does.
+    /// </remarks>
+    public void MarkRestoredUnsaved()
+    {
+        _restoredChanges = true;
+        IsDirty = true;
+    }
+
+    /// <summary>
+    /// Describes the buffer for a saved session: its file, how it is written and indented, the language the user
+    /// chose for it — and, when its unsaved changes are kept, its text.
+    /// </summary>
+    /// <param name="keepUnsaved">
+    /// Whether changes the file does not have are kept: the text of a buffer with unsaved changes, or of an untitled
+    /// buffer that has any. Without it, a file is read again when the session is restored.
+    /// </param>
     /// <returns>The buffer's entry.</returns>
     /// <remarks>
-    /// The file's own format is stored, not a change still waiting for a save: unsaved changes are not kept, so the
-    /// file comes back as it is on disk. An untitled buffer has no file, and keeps the format it was given.
+    /// Text that is kept is stored with the format it will be saved in, a change still waiting for a save included.
+    /// Otherwise the file's own format is stored: the changes are not kept, so the file comes back as it is on disk.
+    /// An untitled buffer has no file, and keeps the format it was given.
     /// </remarks>
-    public SessionDocument ToSession()
+    public SessionDocument ToSession(bool keepUnsaved = false)
     {
-        TextFileFormat format = IsUntitled ? Format : FileFormat;
+        bool keepsText = keepUnsaved && !IsHex && (IsUntitled ? Document.TextLength > 0 : IsDirty);
+        TextFileFormat format = keepsText || IsUntitled ? Format : FileFormat;
 
         return new SessionDocument(
             FilePath,
@@ -328,7 +355,8 @@ public sealed class DocumentViewModel : ObservableObject
             format.LineEndings,
             Indentation.UseTabs,
             Indentation.Size,
-            IsLanguageChosen ? Language.Id : null);
+            IsLanguageChosen ? Language.Id : null,
+            keepsText ? Document.Text : null);
     }
 
     private void ChangeFormat(TextFileFormat format)
@@ -368,7 +396,7 @@ public sealed class DocumentViewModel : ObservableObject
             return;
         }
 
-        IsDirty = !Document.UndoStack.IsOriginalFile || _formatChanged;
+        IsDirty = !Document.UndoStack.IsOriginalFile || _formatChanged || _restoredChanges;
     }
 
     // Set on the first keystroke rather than waiting for the undo stack, which cannot say anything

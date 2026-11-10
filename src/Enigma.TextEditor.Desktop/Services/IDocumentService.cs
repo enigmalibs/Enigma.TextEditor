@@ -44,8 +44,10 @@ public interface IDocumentService
     /// <param name="saved">The buffer as the session stored it.</param>
     /// <returns>The buffer, or <see langword="null"/> when its file is gone or cannot be read.</returns>
     /// <remarks>
-    /// A file is read again, in the encoding the session names, with the indentation and the chosen language the
-    /// buffer had; a hex view opens its file again; an untitled buffer comes back empty, under its name.
+    /// A buffer whose unsaved text the session kept comes back with that text and format, marked unsaved, without
+    /// reading its file — which may be gone: a save writes it again. Otherwise a file is read again, in the encoding
+    /// the session names, with the indentation and the chosen language the buffer had; a hex view opens its file
+    /// again; an untitled buffer comes back empty, under its name.
     /// </remarks>
     Task<DocumentViewModel?> RestoreAsync(SessionDocument saved);
 

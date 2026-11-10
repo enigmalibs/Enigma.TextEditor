@@ -975,29 +975,33 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// Captures what the editor area shows, for the next start to restore: the layout, each pane's tabs and the one
     /// showing, the pane with the keyboard, and the buffers behind the tabs.
     /// </summary>
+    /// <param name="keepUnsaved">
+    /// Whether unsaved changes are kept: the text of every buffer with changes its file does not have, and of every
+    /// untitled buffer with text. Without it, they are left out — the close is throwing them away.
+    /// </param>
     /// <returns>The session.</returns>
     /// <remarks>
     /// <para>
-    /// A buffer with a file — text or hex — is stored by its file. An untitled buffer is stored only when it is
-    /// empty: its text is not kept, so there is nothing of it to bring back. A buffer not stored takes its tabs with
-    /// it, and a pane whose showing tab went shows its first tab left.
+    /// A buffer with a file — text or hex — is stored by its file, with its text when that is kept. An untitled
+    /// buffer is stored when it is empty, or when its text is kept: without it, there is nothing of it to bring
+    /// back. A buffer not stored takes its tabs with it, and a pane whose showing tab went shows its first tab left.
     /// </para>
     /// <para>
     /// Positions are stored as the tabs last recorded them, and clamped to what a session may hold, so the file
     /// written is one the next start accepts.
     /// </para>
     /// </remarks>
-    public SessionState CaptureSession()
+    public SessionState CaptureSession(bool keepUnsaved = false)
     {
         List<SessionDocument> documents = [];
         Dictionary<DocumentViewModel, int> indexes = [];
 
         foreach (DocumentViewModel document in _registry.Documents)
         {
-            if (!document.IsUntitled || (document.Document.TextLength == 0))
+            if (keepUnsaved || !document.IsUntitled || (document.Document.TextLength == 0))
             {
                 indexes[document] = documents.Count;
-                documents.Add(document.ToSession());
+                documents.Add(document.ToSession(keepUnsaved));
             }
         }
 

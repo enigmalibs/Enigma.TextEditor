@@ -177,6 +177,19 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Keeps what the editor area shows for the next start as the window closes — its splits, its tabs and every
+    /// unsaved change — so that closing need not ask about any of them.
+    /// </summary>
+    /// <returns>
+    /// Whether the session was kept. Not when this instance does not own the session, or the write failed: the
+    /// unsaved changes are then asked about, as before there was a session.
+    /// </returns>
+    /// <remarks>
+    /// After <c>:qa!</c> the changes are not kept — the user said to throw them away — but the tabs and splits are.
+    /// </remarks>
+    public bool KeepSessionOnClose() => _session.Save(Workspace.CaptureSession(keepUnsaved: !_shutdown.DiscardChangesOnExit));
+
+    /// <summary>
     /// Keeps the splits and tabs for the next start, without unsaved changes — after every one has been asked about
     /// and saved or thrown away.
     /// </summary>

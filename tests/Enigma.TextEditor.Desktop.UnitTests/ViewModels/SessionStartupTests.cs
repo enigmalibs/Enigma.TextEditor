@@ -86,23 +86,15 @@ public sealed class SessionStartupTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
-    public void ClosingTheWindow_KeepsTheSession_AfterTheQuestionsAreAnswered()
+    public void ClosingTheWindowWithEverythingSaved_KeepsTheTabsForTheNextStart()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
-            (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a")))!.Document.Document.Insert(0, "1");
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "a"));
             await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "b"));
             MainWindow window = new() { DataContext = harness.Window };
             window.Show();
 
-            // Cancelled: the window stays, and nothing is kept.
-            harness.Unsaved.Answers.Enqueue(UnsavedChangesChoice.Cancel);
-            window.Close();
-            Dispatcher.UIThread.RunJobs();
-            Assert.False(File.Exists(harness.Folder.PathOf(AppPaths.SessionFileName)));
-
-            // Answered: the window closes, and keeps its tabs.
-            harness.Unsaved.Answers.Enqueue(UnsavedChangesChoice.Discard);
             window.Close();
             Dispatcher.UIThread.RunJobs();
             harness.Session.Dispose();
@@ -110,10 +102,8 @@ public sealed class SessionStartupTests(HeadlessAvaloniaFixture fixture)
             using EditorHarness next = new(sessionFolder: harness.Folder.Root);
             await next.Window.StartAsync(new StartupFiles([], []));
 
-            // The change thrown away is not kept: the file comes back as it is on disk.
             Assert.Equal("a.txt, *b.txt", Describe(next.Workspace));
-            Assert.Equal("a", next.Workspace.ActivePane.Tabs[0].Document.Document.Text);
-            Assert.False(next.Workspace.ActivePane.Tabs[0].Document.IsDirty);
+            Assert.Empty(harness.Unsaved.AskedAbout);
         });
 
     // Each pane, in reading order: its tabs' titles, the showing one starred.
