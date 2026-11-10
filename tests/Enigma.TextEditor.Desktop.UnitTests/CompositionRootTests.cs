@@ -51,6 +51,7 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
     [InlineData(typeof(FirstRunViewModel))]
     [InlineData(typeof(IFirstRunDialogService))]
     [InlineData(typeof(IUnhandledErrorReporter))]
+    [InlineData(typeof(ISessionStore))]
     public void TheContainer_ResolvesEveryService(Type serviceType)
     {
         using TempFolder folder = new();
@@ -141,7 +142,8 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
                 host.Services.GetRequiredService<IHelpDialogService>(),
                 host.Services.GetRequiredService<FirstRunState>(),
                 host.Services.GetRequiredService<IFirstRunDialogService>(),
-                shutdown);
+                shutdown,
+                host.Services.GetRequiredService<ISessionStore>());
 
             viewModel.ExitCommand.Execute(null);
 
@@ -180,6 +182,12 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
         // Never the user's own settings file, and never their log.
         ConfigLoadResult<AppSettings> settings = SettingsLoader.Load(folder.PathOf(AppPaths.SettingsFileName));
 
-        return App.BuildHost(Application.Current!, settings, folder.PathOf("app.log"), firstRun);
+        return App.BuildHost(
+            Application.Current!,
+            settings,
+            folder.PathOf("app.log"),
+            folder.PathOf(AppPaths.SessionFileName),
+            folder.PathOf(AppPaths.SessionLockFileName),
+            firstRun);
     }
 }

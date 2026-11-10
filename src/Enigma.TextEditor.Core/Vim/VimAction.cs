@@ -248,11 +248,6 @@ public enum VimAction
     ScrollLineDown,
 
     /// <summary>
-    /// <c>Ctrl+Y</c> — the same, up.
-    /// </summary>
-    ScrollLineUp,
-
-    /// <summary>
     /// <c>zt</c> — scroll so that the caret's line is at the top of the screen; the caret stays.
     /// </summary>
     /// <remarks>

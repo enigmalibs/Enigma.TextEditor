@@ -1,10 +1,12 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using AvaloniaEdit.Document;
 using Enigma.Configuration;
 using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Core.Hex;
+using Enigma.TextEditor.Core.Sessions;
 using Enigma.TextEditor.Core.Settings;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Microsoft.Extensions.Logging;
@@ -163,6 +165,64 @@ public sealed class DocumentService : IDocumentService
     }
 
     /// <inheritdoc />
+    public async Task<DocumentViewModel?> RestoreAsync(SessionDocument saved)
+    {
+        ArgumentNullException.ThrowIfNull(saved);
+
+        Indentation indentation = saved.IndentWithTabs ? Indentation.Tabs(saved.IndentSize) : Indentation.Spaces(saved.IndentSize);
+
+        if (saved.FilePath is not { } path)
+        {
+            return RestoreUntitled(saved, indentation);
+        }
+
+        try
+        {
+            if (saved.IsHex)
+            {
+                return _registry.FindHex(path) ?? _registry.Add(new DocumentViewModel(
+                    path,
+                    _registry.NextUntitledName(),
+                    new DocumentContent(string.Empty, TextFileFormat.Default),
+                    Indentation.Default,
+                    HexDocument.Open(path)));
+            }
+
+            if (_registry.Find(path) is { } open)
+            {
+                return open;
+            }
+
+            if (saved.UnsavedText is { } kept)
+            {
+                return RestoreUnsaved(path, saved, kept, indentation);
+            }
+
+            // In the encoding the buffer had: a file reopened in another one comes back in it. A code page this
+            // machine does not have is left to detection.
+            DocumentContent content = await DocumentFile.ReadAsync(path, TextEncodings.ForCodePage(saved.CodePage, saved.ByteOrderMark));
+
+            // Checked again after the await, as an open is: one session never names a file twice, but a file can
+            // arrive from elsewhere in the meantime.
+            if (_registry.Find(path) is { } raced)
+            {
+                return raced;
+            }
+
+            DocumentViewModel document = new(path, _registry.NextUntitledName(), content, indentation);
+            ApplyLanguage(document, saved.Language);
+
+            return _registry.Add(document);
+        }
+        catch (Exception failure) when (IsFileFailure(failure))
+        {
+            _logger.LogWarning(failure, "{FilePath} could not be restored from the previous session.", path);
+
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
     public DocumentViewModel CreateUntitled()
         => _registry.CreateUntitled(TextFileFormat.Default.With(_settings.Value.DefaultLineEnding), DefaultIndentation);
 
@@ -255,6 +315,53 @@ public sealed class DocumentService : IDocumentService
             await _messages.ShowErrorAsync("This file could not be reopened", $"{Path.GetFileName(path)} — {failure.Message}");
 
             return false;
+        }
+    }
+
+    private DocumentViewModel RestoreUntitled(SessionDocument saved, Indentation indentation)
+    {
+        // The name it had, unless an open buffer has taken it since — then the next free one.
+        string name = _registry.Documents.Any(document => document.IsUntitled && (document.UntitledName == saved.UntitledName))
+            ? _registry.NextUntitledName()
+            : saved.UntitledName;
+
+        DocumentViewModel document = new(null, name, new DocumentContent(saved.UnsavedText ?? string.Empty, FormatOf(saved)), indentation);
+        ApplyLanguage(document, saved.Language);
+
+        if (document.Document.TextLength > 0)
+        {
+            document.MarkRestoredUnsaved();
+        }
+
+        return _registry.Add(document);
+    }
+
+    // The text the session kept, not the file's: the file is not read at all, and need not exist.
+    private DocumentViewModel RestoreUnsaved(string path, SessionDocument saved, string text, Indentation indentation)
+    {
+        DocumentViewModel document = new(path, _registry.NextUntitledName(), new DocumentContent(text, FormatOf(saved)), indentation);
+        ApplyLanguage(document, saved.Language);
+        document.MarkRestoredUnsaved();
+
+        return _registry.Add(document);
+    }
+
+    // How a kept buffer is written: its encoding, when this machine has it, else the default; its line endings.
+    private static TextFileFormat FormatOf(SessionDocument saved)
+        => TextEncodings.ForCodePage(saved.CodePage, saved.ByteOrderMark) is { } encoding
+            ? TextFileFormat.Default.With(encoding).With(saved.LineEndings)
+            : TextFileFormat.Default.With(saved.LineEndings);
+
+    // The language the user chose, when the catalog still has it; otherwise the one the file's name implies.
+    private void ApplyLanguage(DocumentViewModel document, string? chosen)
+    {
+        if ((chosen is not null) && (_languages.Find(chosen) is { } language))
+        {
+            document.ChooseLanguage(language);
+        }
+        else
+        {
+            document.DetectLanguage(_languages.ForFile(document.FilePath));
         }
     }
 

@@ -51,7 +51,7 @@
        Avalonia set above. Avalonia.Headless.XUnit is deliberately absent: its 12.1.x builds pin
        xunit.v3 3.x, so the Desktop suite drives the headless platform through its own fixture. -->
   <ItemGroup>
-    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="xunit.v3" Version="4.0.3" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
     <PackageVersion Include="Avalonia.Headless" Version="12.1.4" />
     <PackageVersion Include="Avalonia.Skia" Version="12.1.4" />

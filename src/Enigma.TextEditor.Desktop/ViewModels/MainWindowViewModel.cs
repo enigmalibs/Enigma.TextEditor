@@ -20,6 +20,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly IHelpDialogService _help;
     private readonly FirstRunState _firstRun;
     private readonly IFirstRunDialogService _firstRunDialog;
+    private readonly ISessionStore _session;
     private DocumentViewModel? _document;
 
     /// <summary>
@@ -37,6 +38,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <param name="firstRun">Whether this is the very first start, decided before the settings were read.</param>
     /// <param name="firstRunDialog">The welcome dialog, shown on a first start only.</param>
     /// <param name="shutdown">Ends the application.</param>
+    /// <param name="session">What the editor showed when it last closed, and where the next close keeps it.</param>
     public MainWindowViewModel(
         WorkspaceViewModel workspace,
         FileExplorerViewModel explorer,
@@ -49,7 +51,8 @@ public sealed class MainWindowViewModel : ObservableObject
         IHelpDialogService help,
         FirstRunState firstRun,
         IFirstRunDialogService firstRunDialog,
-        IAppShutdown shutdown)
+        IAppShutdown shutdown,
+        ISessionStore session)
     {
         Workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         Explorer = explorer ?? throw new ArgumentNullException(nameof(explorer));
@@ -63,6 +66,7 @@ public sealed class MainWindowViewModel : ObservableObject
         _firstRun = firstRun ?? throw new ArgumentNullException(nameof(firstRun));
         _firstRunDialog = firstRunDialog ?? throw new ArgumentNullException(nameof(firstRunDialog));
         _shutdown = shutdown ?? throw new ArgumentNullException(nameof(shutdown));
+        _session = session ?? throw new ArgumentNullException(nameof(session));
 
         ExitCommand = new RelayCommand(OnExit);
         AboutCommand = new AsyncRelayCommand(() => _about.ShowAsync());
@@ -145,14 +149,15 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand ExitCommand { get; }
 
     /// <summary>
-    /// Runs what needs the window on screen: the welcome dialog of a first start, then the files named on
-    /// the command line.
+    /// Runs what needs the window on screen: the welcome dialog of a first start, then the session the editor last
+    /// closed with, then the files named on the command line.
     /// </summary>
     /// <param name="startup">The files and folders named on the command line.</param>
     /// <returns>A task that completes once the files are open.</returns>
     /// <remarks>
     /// In that order: the window has one dialog host, so a file that fails to open must not ask its
-    /// question while the welcome dialog is up — and the files then open with the editor set up as chosen.
+    /// question while the welcome dialog is up — and the files then open with the editor set up as chosen. The
+    /// session comes back first, so the files named now open beside it, in the pane that had the keyboard.
     /// </remarks>
     public async Task StartAsync(StartupFiles startup)
     {
@@ -163,8 +168,33 @@ public sealed class MainWindowViewModel : ObservableObject
             await _firstRunDialog.ShowAsync();
         }
 
+        if (_session.Load() is { } session)
+        {
+            await Workspace.RestoreSessionAsync(session);
+        }
+
         await Workspace.OpenStartupFilesAsync(startup);
     }
+
+    /// <summary>
+    /// Keeps what the editor area shows for the next start as the window closes — its splits, its tabs and every
+    /// unsaved change — so that closing need not ask about any of them.
+    /// </summary>
+    /// <returns>
+    /// Whether the session was kept. Not when this instance does not own the session, or the write failed: the
+    /// unsaved changes are then asked about, as before there was a session.
+    /// </returns>
+    /// <remarks>
+    /// After <c>:qa!</c> the changes are not kept — the user said to throw them away — but the tabs and splits are.
+    /// </remarks>
+    public bool KeepSessionOnClose() => _session.Save(Workspace.CaptureSession(keepUnsaved: !_shutdown.DiscardChangesOnExit));
+
+    /// <summary>
+    /// Keeps the splits and tabs for the next start, without unsaved changes — after every one has been asked about
+    /// and saved or thrown away.
+    /// </summary>
+    /// <returns>Whether it was kept; not when this instance does not own the session, or the write failed.</returns>
+    public bool SaveSession() => _session.Save(Workspace.CaptureSession());
 
     /// <summary>
     /// Opens the files another launch of the editor handed over to this one, as if they had been named on its own

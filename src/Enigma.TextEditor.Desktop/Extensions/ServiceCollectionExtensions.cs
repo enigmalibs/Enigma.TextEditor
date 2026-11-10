@@ -69,6 +69,26 @@ public static class ServiceCollectionExtensions
         }
 
         /// <summary>
+        /// Registers where the session is kept: what the editor showed when it closed, for the next start.
+        /// </summary>
+        /// <param name="sessionFilePath">The session file.</param>
+        /// <param name="lockFilePath">The file the instance that owns the session holds open.</param>
+        /// <remarks>
+        /// The paths are the composition root's to give, as the log's is: a test never touches the user's own session.
+        /// </remarks>
+        public void AddSession(string sessionFilePath, string lockFilePath)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sessionFilePath);
+            ArgumentException.ThrowIfNullOrWhiteSpace(lockFilePath);
+
+            // One store for the application's life: it holds the session's lock until the container is disposed.
+            services.AddSingleton<ISessionStore>(provider => new SessionStore(
+                sessionFilePath,
+                lockFilePath,
+                provider.GetRequiredService<ILogger<SessionStore>>()));
+        }
+
+        /// <summary>
         /// Routes <see cref="ILogger{TCategoryName}"/> to a daily file under the application-data folder.
         /// </summary>
         /// <param name="logFilePath">The current log file.</param>

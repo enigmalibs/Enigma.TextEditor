@@ -166,6 +166,9 @@ public sealed class VimUndoTests
     [InlineData("|abcde", "xx", "<C-z><C-z>", "uu")]
     [InlineData("|abcde", "xu", "<C-S-z>", "<C-r>")]
     [InlineData("|abcde", "xu", "<C-Z>", "<C-r>")]
+    [InlineData("|abcde", "xu", "<C-y>", "<C-r>")]
+    [InlineData("|abcde", "xu", "<C-Y>", "<C-r>")]
+    [InlineData("|abcde", "xxuu", "<C-y><C-y>", "<C-r><C-r>")]
     public void TheUndoKeysInNormalMode_DoExactlyWhatUAndCtrlRDo(string before, string setup, string keys, string vimKeys)
     {
         VimRun held = VimScript.Run(before, setup + keys);
@@ -186,8 +189,30 @@ public sealed class VimUndoTests
     }
 
     [Fact]
-    public void CtrlYInNormalMode_IsStillTheScroll_AndUndoesNothing()
+    public void CtrlYInNormalMode_IsTheRedo()
+    {
+        // The Edit menu names Ctrl+Y for its Redo (BUG-C6A9): with vim on it puts back what 'u' took,
+        // as Ctrl+R does, rather than scrolling the view up a line.
+        VimRun run = VimScript.Run("|abcde", "xu<C-y>");
+
+        Assert.Equal("|bcde", run.Text);
+        Assert.Equal(VimMode.Normal, run.Mode);
+    }
+
+    [Fact]
+    public void CtrlYWithNothingToRedo_ChangesNothing()
         => Assert.Equal("|bcde", VimScript.Run("|abcde", "x<C-y>").Text);
+
+    [Fact]
+    public void CtrlYInVisualMode_LeavesTheSelection_ThenRedoes()
+    {
+        VimRun run = VimScript.Run("|abc def", "xuvl<C-y>");
+
+        Assert.Equal(VimScript.Run("|abc def", "xu<C-y>").Text, run.Text);
+        Assert.Equal("bc def", run.Buffer.Text);
+        Assert.Equal(VimMode.Normal, run.Mode);
+        Assert.Null(run.Buffer.Selection);
+    }
 
     [Theory]
     [InlineData("|world", "ihello<C-z>X<Esc>.", "|XXworld")]
@@ -202,6 +227,17 @@ public sealed class VimUndoTests
 
         Assert.Equal("Zabc\n|Zdef", run.Text);
         Assert.Equal("iXY<C-z>Z<Esc>", run.RegisterNamed('a')?.Text);
+    }
+
+    [Theory]
+    [InlineData("<C-y>")]
+    [InlineData("<C-Y>")]
+    public void ARecording_WritesCtrlYAsTheRedoItIs_AndReplaysIt(string redo)
+    {
+        VimRun run = VimScript.Run("|abcde", $"xuqa{redo}qu@a");
+
+        Assert.Equal("|bcde", run.Text);
+        Assert.Equal("<C-Z>", run.RegisterNamed('a')?.Text);
     }
 
     [Fact]

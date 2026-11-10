@@ -274,13 +274,11 @@ public sealed class VimScreenMotionTests
     // aligned on.
     [InlineData("<C-e>", 11, 15, 12, 15)]
     [InlineData("3<C-e>", 11, 15, 14, 15)]
-    [InlineData("<C-y>", 11, 15, 10, 15)]
-    [InlineData("3<C-y>", 11, 15, 8, 15)]
     // Unless the caret would leave over the top, when it is pulled onto the new top line.
     [InlineData("5<C-e>", 11, 15, 16, 16)]
     // The last line may come to the top, and the view stops there.
     [InlineData("5<C-e>", 28, 29, 30, 30)]
-    public void CtrlEAndCtrlY_ScrollTheViewAndLeaveTheCaretUnlessItWouldLeave(
+    public void CtrlE_ScrollsTheViewAndLeavesTheCaretUnlessItWouldLeave(
         string keys,
         int firstVisible,
         int caretLine,
@@ -295,36 +293,29 @@ public sealed class VimScreenMotionTests
         Assert.Equal([(expectedFirst, VimScrollAlignment.Top)], run.Buffer.Scrolls);
     }
 
-    [Theory]
-    // A caret that would leave over the bottom is pulled onto the new bottom line, and the view is
-    // aligned on that line at the bottom — the line the caret is on is then exactly on screen.
-    [InlineData("<C-y>", 11, 20, 10, 19)]
-    [InlineData("5<C-y>", 11, 20, 6, 15)]
-    public void CtrlY_PullsACaretThatWouldLeaveOntoTheBottomLine(
-        string keys,
-        int firstVisible,
-        int caretLine,
-        int expectedFirst,
-        int expectedCaret)
+    [Fact]
+    public void CtrlEAtTheEnd_DoesNothing()
     {
-        VimRun run = Screen(keys, firstVisible, caretLine, caretColumn: 7);
+        VimRun run = Screen("<C-e>", firstVisible: 30, caretLine: 30);
 
-        Assert.Equal(expectedFirst, run.FirstVisibleLine);
-        Assert.Equal(expectedCaret, run.CaretLine);
-        Assert.Equal(7, run.CaretColumn);
-        Assert.Equal([(expectedCaret, VimScrollAlignment.Bottom)], run.Buffer.Scrolls);
+        Assert.Empty(run.Buffer.Scrolls);
+        Assert.Equal(30, run.CaretLine);
+        Assert.Null(run.Status);
     }
 
     [Theory]
-    [InlineData("<C-e>", 30, 30)]
-    [InlineData("<C-y>", 1, 3)]
-    public void CtrlEAtTheEndAndCtrlYAtTheTop_DoNothing(string keys, int firstVisible, int caretLine)
+    // Vim's line scroll up is given up for the editor's redo (BUG-C6A9): with nothing to redo, Ctrl+Y
+    // is taken and changes nothing — the view, the caret and the text stay where they are.
+    [InlineData("<C-y>")]
+    [InlineData("3<C-y>")]
+    public void CtrlYInNormalMode_IsNoLongerTheScroll(string keys)
     {
-        VimRun run = Screen(keys, firstVisible, caretLine);
+        VimRun run = Screen(keys, firstVisible: 11, caretLine: 15, caretColumn: 7);
 
         Assert.Empty(run.Buffer.Scrolls);
-        Assert.Equal(caretLine, run.CaretLine);
-        Assert.Null(run.Status);
+        Assert.Equal(11, run.FirstVisibleLine);
+        Assert.Equal(15, run.CaretLine);
+        Assert.Equal(7, run.CaretColumn);
     }
 
     [Fact]
@@ -483,8 +474,8 @@ public sealed class VimScreenMotionTests
     [Fact]
     public void InInsertMode_CtrlYIsTheRedo_NotTheScroll()
     {
-        // Taken rather than left to the editor (BUG-375B): Ctrl+Y is the editor's redo in insert mode,
-        // and the editor's redo cannot run inside the session's open undo group. Still no scroll.
+        // Taken rather than left to the editor (BUG-375B): Ctrl+Y is the editor's redo in every mode,
+        // and the editor's redo cannot run inside the session's open undo group. No scroll.
         FakeVimBuffer buffer = VimScript.NewBuffer(Numbered(Lines, caretLine: 15));
         buffer.ViewportLines = Window;
         VimEngine engine = new(buffer);
@@ -521,7 +512,6 @@ public sealed class VimScreenMotionTests
     [InlineData("<C-b>")]
     [InlineData("<PageDown>")]
     [InlineData("<C-e>")]
-    [InlineData("<C-y>")]
     [InlineData("zt")]
     [InlineData("zz")]
     [InlineData("zb")]

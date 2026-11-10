@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Core.Sessions;
 using Enigma.TextEditor.Desktop.ViewModels;
 
 namespace Enigma.TextEditor.Desktop.Services;
@@ -35,6 +36,20 @@ public interface IDocumentService
     /// <param name="filePath">The file.</param>
     /// <returns>The buffer, or <see langword="null"/> when the file could not be opened.</returns>
     Task<DocumentViewModel?> OpenHexAsync(string filePath);
+
+    /// <summary>
+    /// Brings a buffer of a saved session back, or finds the one it is already open in — without a question or a
+    /// dialog: a failure is logged and comes back as <see langword="null"/>, for the restore to name.
+    /// </summary>
+    /// <param name="saved">The buffer as the session stored it.</param>
+    /// <returns>The buffer, or <see langword="null"/> when its file is gone or cannot be read.</returns>
+    /// <remarks>
+    /// A buffer whose unsaved text the session kept comes back with that text and format, marked unsaved, without
+    /// reading its file — which may be gone: a save writes it again. Otherwise a file is read again, in the encoding
+    /// the session names, with the indentation and the chosen language the buffer had; a hex view opens its file
+    /// again; an untitled buffer comes back empty, under its name.
+    /// </remarks>
+    Task<DocumentViewModel?> RestoreAsync(SessionDocument saved);
 
     /// <summary>
     /// Creates an empty, untitled buffer in the default format.

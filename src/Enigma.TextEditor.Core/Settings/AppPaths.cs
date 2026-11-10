@@ -34,6 +34,21 @@ public static class AppPaths
     public const string ActiveInstanceFileName = "instance.json";
 
     /// <summary>
+    /// The name of the file holding what the editor showed when it last closed.
+    /// </summary>
+    public const string SessionFileName = "session.json";
+
+    /// <summary>
+    /// The name an unusable session file is moved aside to.
+    /// </summary>
+    public const string QuarantinedSessionFileName = "session.invalid.json";
+
+    /// <summary>
+    /// The name of the file the instance that owns the session holds open.
+    /// </summary>
+    public const string SessionLockFileName = "session.lock";
+
+    /// <summary>
     /// Gets the full path of the settings file.
     /// </summary>
     public static string SettingsFile
@@ -50,4 +65,16 @@ public static class AppPaths
     /// </summary>
     public static string ActiveInstanceFile
         => ConfigPaths.InApplicationData(AppInfo.AppDataFolderName, ActiveInstanceFileName);
+
+    /// <summary>
+    /// Gets the full path of the session file.
+    /// </summary>
+    public static string SessionFile
+        => ConfigPaths.InApplicationData(AppInfo.AppDataFolderName, SessionFileName);
+
+    /// <summary>
+    /// Gets the full path of the session's lock file.
+    /// </summary>
+    public static string SessionLockFile
+        => ConfigPaths.InApplicationData(AppInfo.AppDataFolderName, SessionLockFileName);
 }
