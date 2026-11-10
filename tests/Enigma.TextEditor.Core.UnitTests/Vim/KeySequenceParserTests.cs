@@ -495,7 +495,6 @@ public sealed class KeySequenceParserTests
     [InlineData("<C-b>", VimAction.ScrollPageUp, 0)]
     [InlineData("<C-e>", VimAction.ScrollLineDown, 0)]
     [InlineData("3<C-e>", VimAction.ScrollLineDown, 3)]
-    [InlineData("<C-y>", VimAction.ScrollLineUp, 0)]
     [InlineData("<PageDown>", VimAction.ScrollPageDown, 0)]
     [InlineData("3<PageDown>", VimAction.ScrollPageDown, 3)]
     [InlineData("<PageUp>", VimAction.ScrollPageUp, 0)]
@@ -542,12 +541,12 @@ public sealed class KeySequenceParserTests
     [InlineData("<C-f>", true)]
     [InlineData("<C-b>", true)]
     [InlineData("<C-e>", true)]
-    [InlineData("<C-y>", true)]
+    [InlineData("<C-y>", false)]
     [InlineData("<C-r>", false)]
     [InlineData("<C-x>", false)]
     [InlineData("<A-d>", false)]
     [InlineData("d", false)]
-    public void IsControlCommand_NamesTheSixScrollKeysAndNothingElse(string key, bool expected)
+    public void IsControlCommand_NamesTheFiveScrollKeysAndNothingElse(string key, bool expected)
         => Assert.Equal(expected, KeySequenceParser.IsControlCommand(VimKeyNotation.Parse(key)[0]));
 
     [Theory]

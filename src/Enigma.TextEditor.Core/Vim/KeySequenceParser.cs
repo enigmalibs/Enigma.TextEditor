@@ -41,14 +41,15 @@ namespace Enigma.TextEditor.Core.Vim;
 /// deletes a character as before.
 /// </para>
 /// <para>
-/// A key held with Control is read before any of that. Six of them are vim's scroll commands —
-/// <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+F</c> <c>Ctrl+B</c> <c>Ctrl+E</c> <c>Ctrl+Y</c> — and each is a
+/// A key held with Control is read before any of that. Five of them are vim's scroll commands —
+/// <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+F</c> <c>Ctrl+B</c> <c>Ctrl+E</c> — and each is a
 /// whole command that a count may stand in front of and nothing else may: <c>r</c> and <c>Ctrl+D</c>
 /// is not "write a d", and <c>d</c> and <c>Ctrl+F</c> is not a delete over a page, because a scroll is
 /// not a motion. Both are dead sequences, named in full. The two page keys are the two page scrolls
 /// under other names, and <c>z</c> opens the six commands that put a line where the user wants it on
-/// the screen. None of the twelve means anything behind an operator, and all of them work over a
-/// selection, where the caret's move is the selection's.
+/// the screen. None of the eleven means anything behind an operator, and all of them work over a
+/// selection, where the caret's move is the selection's. Vim's sixth, <c>Ctrl+Y</c>, is not among them:
+/// it is the editor's redo, as the Edit menu says, and the engine reads it before the grammar (BUG-C6A9).
 /// </para>
 /// <para>
 /// A register name is a prefix to the whole command rather than a command of its own: after
@@ -178,7 +179,7 @@ public sealed class KeySequenceParser
 
         _sequence.Append(key.ToString());
 
-        // Before everything: a key held with Control is one of the six scroll commands or nothing at
+        // Before everything: a key held with Control is one of the five scroll commands or nothing at
         // all, and either way it ends whatever was half typed rather than continuing it. 'r' and
         // Ctrl+D is not "write a d" and 'd' and Ctrl+F is not a delete over a page — a scroll is not a
         // motion — so both are dead, named in full. Only a count may stand in front of one.
@@ -450,10 +451,10 @@ public sealed class KeySequenceParser
     }
 
     /// <summary>
-    /// Whether a key held with Control is one the grammar reads — one of vim's six scroll commands.
+    /// Whether a key held with Control is one the grammar reads — one of vim's scroll commands.
     /// </summary>
     /// <param name="key">The keystroke.</param>
-    /// <returns><see langword="true"/> for <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+F</c> <c>Ctrl+B</c> <c>Ctrl+E</c> <c>Ctrl+Y</c>.</returns>
+    /// <returns><see langword="true"/> for <c>Ctrl+D</c> <c>Ctrl+U</c> <c>Ctrl+F</c> <c>Ctrl+B</c> <c>Ctrl+E</c>.</returns>
     /// <remarks>
     /// What the engine asks before offering a held key to the grammar: every other key held with
     /// Control or Alt belongs to the window, and never reaches the parser at all.
@@ -485,7 +486,7 @@ public sealed class KeySequenceParser
         };
 
     /// <summary>
-    /// Which scroll command a key held with Control names, for the six vim gives one.
+    /// Which scroll command a key held with Control names, for the five the editor leaves to vim.
     /// </summary>
     /// <remarks>
     /// The letter is read whichever case it arrived in, because Shift held with Control changes
@@ -507,7 +508,6 @@ public sealed class KeySequenceParser
             'f' => VimAction.ScrollPageDown,
             'b' => VimAction.ScrollPageUp,
             'e' => VimAction.ScrollLineDown,
-            'y' => VimAction.ScrollLineUp,
             _ => null,
         };
     }

@@ -1,6 +1,6 @@
 # BUG-C6A9 — Ctrl+Y does not redo
 
-**Status:** TODO
+**Status:** DONE
 **Type:** BUG
 **Branch:** `bugfix/bug-c6a9-ctrl-y-redo`
 **Run:** bugfix/2026-11-09-ctrl-y-session-restore

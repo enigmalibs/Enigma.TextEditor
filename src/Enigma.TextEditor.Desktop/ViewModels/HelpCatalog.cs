@@ -53,7 +53,7 @@ public static class HelpCatalog
         [
             Keys("Ctrl+D, Ctrl+U", "Half a page down, up"),
             Keys("PgDn, Ctrl+B, PgUp", "A page down, a page up"),
-            Keys("Ctrl+E, Ctrl+Y", "One line down, up; the caret stays on its line"),
+            Keys("Ctrl+E", "One line down; the caret stays on its line"),
             Keys("zt, zz, zb", "The caret's line to the top, middle, bottom of the screen"),
             Keys("z Enter, z., z-", "The same, the caret to the first non-blank"),
         ]),
@@ -76,6 +76,7 @@ public static class HelpCatalog
             Keys("J, gJ", "Join with the next line, with a space or as it is"),
             Keys("~", "Toggle the case of the character"),
             Keys("u, Ctrl+R", "Undo, redo"),
+            Keys("Ctrl+Z, Ctrl+Y", "Undo, redo, as the Edit menu does"),
             Keys(".", "Repeat the last change"),
         ]),
         Section("Operators & text objects", PhosphorIcon.BracketsCurly, "An operator, then a motion or a text object: dw, c$, yiw, >}",
