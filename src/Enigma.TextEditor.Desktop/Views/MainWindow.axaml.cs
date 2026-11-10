@@ -41,6 +41,12 @@ public partial class MainWindow : Window
     // What a minimised window comes back as: maximised, if it was before it went down.
     private WindowState _restoreState = WindowState.Normal;
 
+    // One step per notch of the wheel; a touchpad's fractions of a notch add up to one.
+    private readonly ZoomAccumulator _wheelZoom = new(1.0);
+
+    // One step per tenth of magnification: spreading two fingers right across the touchpad is a few sizes.
+    private readonly ZoomAccumulator _pinchZoom = new(0.1);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
     /// </summary>
@@ -50,6 +56,12 @@ public partial class MainWindow : Window
         DialogKeyboard.Attach(HostDialog, FocusCurrentPage);
         SettingsHost.KeyDown += OnSettingsKeyDown;
         Explorer.LeaveRequested += (_, _) => FocusActivePane();
+
+        // Tunnelled, so the zoom sees a Ctrl+wheel before the text, the hex rows, a tab strip or a minimap scrolls.
+        Splits.AddHandler(PointerWheelChangedEvent, OnSplitsPointerWheelChanged, RoutingStrategies.Tunnel);
+
+        // Bubbled, the only way the touchpad's gestures are routed. Nothing in a pane handles a magnify, so it arrives.
+        Splits.AddHandler(PointerTouchPadGestureMagnifyEvent, OnSplitsMagnify, RoutingStrategies.Bubble);
     }
 
     /// <summary>
@@ -245,6 +257,32 @@ public partial class MainWindow : Window
 
         _viewModel.Shell.ShowFiles();
         e.Handled = true;
+    }
+
+    // Ctrl+wheel over the panes zooms the text, up larger, as in a browser, and never scrolls it. On Windows a pinch
+    // on a precision touchpad arrives this way too, in fractions of a notch. A wheel without Ctrl is left to scroll.
+    private void OnSplitsPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) || (e.Delta.Y == 0) || (_viewModel is null))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        _viewModel.Settings.ZoomByAsync(_wheelZoom.Add(e.Delta.Y)).Forget();
+    }
+
+    // The touchpad's zoom gesture where the platform reports it as one (macOS, among others): spreading the fingers
+    // zooms in, pinching them zooms out. The magnification is the delta's X.
+    private void OnSplitsMagnify(object? sender, PointerDeltaEventArgs e)
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        _viewModel.Settings.ZoomByAsync(_pinchZoom.Add(e.Delta.X)).Forget();
     }
 
     // Posted, after the flyout's own focus handling. Not while a dialog is open: an item that opened one

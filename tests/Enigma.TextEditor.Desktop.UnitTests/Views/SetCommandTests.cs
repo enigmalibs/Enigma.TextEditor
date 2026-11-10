@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Enigma.TextEditor.Desktop.ViewModels;
 using Enigma.TextEditor.Desktop.Views;
@@ -101,6 +102,71 @@ public sealed class SetCommandTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal("CRLF", harness.StatusBar.LineEndingText);
             Assert.Equal("ISO-8859-1", harness.StatusBar.EncodingText);
             Assert.Equal("Python", harness.StatusBar.LanguageText);
+            window.Close();
+        });
+
+    [Theory]
+    [InlineData("set lang")]
+    [InlineData("set language")]
+    public void SetLang_OpensTheLanguageList_AndThePickIsTheBuffers(string command)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            EditorTabViewModel tab = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x\n")))!;
+            MainWindow window = Show(harness);
+            harness.LanguagePicker.Answers.Enqueue(harness.Languages.Lookup("python"));
+
+            Ex(window, command);
+
+            Assert.Equal([LanguageInfo.PlainText], harness.LanguagePicker.OpenedWith);
+            Assert.Equal("python", tab.Document.Language.Id);
+            Assert.Equal("Python", harness.StatusBar.LanguageText);
+            window.Close();
+        });
+
+    [Fact]
+    public void SetLang_Cancelled_LeavesTheLanguageAsItWas()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            EditorTabViewModel tab = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.py", "x\n")))!;
+            MainWindow window = Show(harness);
+
+            Ex(window, "set lang");
+
+            Assert.Single(harness.LanguagePicker.OpenedWith);
+            Assert.Equal("python", tab.Document.Language.Id);
+            Assert.Equal("Python", harness.StatusBar.LanguageText);
+            window.Close();
+        });
+
+    [Fact]
+    public void SetLang_AmongOtherOptions_OpensTheListOnce_WithThemApplied()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x\n"));
+            MainWindow window = Show(harness);
+
+            Ex(window, "set lang ff=dos lang");
+
+            Assert.Single(harness.LanguagePicker.OpenedWith);
+            Assert.Equal("CRLF", harness.StatusBar.LineEndingText);
+            window.Close();
+        });
+
+    [Fact]
+    public void SetLang_InTheHexView_SaysWhy_AndOpensNothing()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            await harness.Workspace.OpenHexAsync(harness.Folder.Write("a.bin", new byte[8]));
+            MainWindow window = Show(harness);
+
+            Ex(window, "set lang");
+
+            Assert.Empty(harness.LanguagePicker.OpenedWith);
+            Assert.Equal("Not available in the hex view: lang", harness.StatusLine.Current);
             window.Close();
         });
 

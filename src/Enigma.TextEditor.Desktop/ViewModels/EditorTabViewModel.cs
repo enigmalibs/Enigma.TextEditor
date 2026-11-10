@@ -1,5 +1,6 @@
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Enigma.TextEditor.Core.Hex;
 
 namespace Enigma.TextEditor.Desktop.ViewModels;
 
@@ -43,6 +44,14 @@ public sealed class EditorTabViewModel : ObservableObject
     /// Gets or sets the row selected in the hex view, counted from zero; -1 for none.
     /// </summary>
     public int HexRow { get; set => SetProperty(ref field, value); } = -1;
+
+    /// <summary>
+    /// Gets or sets the bytes selected in the hex view; <see langword="null"/> before any are.
+    /// </summary>
+    /// <remarks>
+    /// Not kept in the session: a selection is made to be copied, not to be come back to.
+    /// </remarks>
+    public HexSelection? HexSelection { get; set => SetProperty(ref field, value); }
 
     /// <summary>
     /// Gets or sets how far the view was scrolled down.

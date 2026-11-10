@@ -23,10 +23,11 @@ namespace Enigma.TextEditor.Core.Vim;
 /// <c>:set hlsearch</c> that will never do anything says so.
 /// </para>
 /// <para>
-/// The options about the file — <c>fileformat</c>, <c>fileencoding</c>, <c>bomb</c> and
-/// <c>filetype</c>, long and short — are known here but not kept: their values are encodings, line
-/// endings and languages, which are the application's. Their words are handed back as they were typed,
-/// for the engine to pass on.
+/// The options about the file — <c>fileformat</c>, <c>fileencoding</c>, <c>bomb</c>,
+/// <c>filetype</c> and <c>language</c>, long and short — are known here but not kept: their values are
+/// encodings, line endings and languages, which are the application's. Their words are handed back as
+/// they were typed, for the engine to pass on. <c>language</c> is not vim's: it is <c>filetype</c> under
+/// the status bar's name, and alone it opens the bar's language list.
 /// </para>
 /// <para>
 /// <c>tabstop</c> is <c>shiftwidth</c> under its other name: the editor has one indentation size, the
@@ -51,7 +52,7 @@ internal static class VimSet
     ];
 
     // The file's options, long and short: known, so not refused, and handed on rather than kept.
-    private static readonly string[] FileOptionNames = ["fileformat", "ff", "fileencoding", "fenc", "bomb", "filetype", "ft"];
+    private static readonly string[] FileOptionNames = ["fileformat", "ff", "fileencoding", "fenc", "bomb", "filetype", "ft", "language", "lang"];
 
     private static readonly Number[] Numbers =
     [

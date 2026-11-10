@@ -1,5 +1,101 @@
 # Release notes
 
+## 1.19.0 — 2026-11-10
+
+A minor release with three additions:
+
+- the hex view selects bytes and copies them as a hex string, as text or as an address range;
+- Ctrl+wheel and the touchpad's zoom gesture change the font size;
+- `:set lang` opens the language list.
+
+### Selecting and copying bytes in the hex view
+
+- **Press and drag in the hex column, or in the text column, to select bytes there:**
+  - the selection stays in the column you started in;
+  - the same bytes show in the other column, more faintly;
+  - Shift with a press extends the selection from where it started;
+  - dragging above or below the rows scrolls one row per move and extends the selection;
+  - a press past the last byte of a short last row selects that row's last byte;
+  - the arrow keys still move the current row and leave the selection as it is.
+- **The right-click menu copies the selected bytes:**
+  - **Copy Hex String**, as `48 65 6C 6C 6F`;
+  - **Copy Text**, as the text column shows them;
+  - **Copy Address Range**, as `0x00000001 - 0x00000004`, as wide as the rows write offsets.
+
+  A right-click inside the selection keeps it. Anywhere else on a row, it selects the byte under the pointer. When
+  nothing is selected, the items are disabled.
+- **Ctrl+C copies the selection** in the format of the column it was made in, with vim on or off. If a `:` command
+  or `Ctrl+W` is half typed, it takes the key first.
+- **Hex and text copies stop at 1 MB:**
+  - a larger selection is not copied, and the status line says *The selection is too large to copy as hex: the limit
+    is 1 MB*;
+  - the address range is always copied;
+  - if the file cannot be read for a copy, the status line says why (*Could not read the selection: …*).
+- **The current row is now marked in the editor's current-line colour.** Since 1.7 it used the selection colour,
+  which would now look like a selection. Rows no longer light up under the pointer.
+- **Each pane has its own selection,** even when two panes show the same file. Switching tabs keeps it, but the
+  session does not: after a restart, nothing is selected.
+
+### `:set lang` opens the language list
+
+- **`:set lang` (or `:set language`) opens the language list** for the file it was typed in. It is the same list as
+  the one the status bar's language button and **Tools → Set Language…** open. Picking a language sets it for the
+  file. Closing the list without a pick changes nothing.
+- **`:set lang?` shows the language** (`language=python`), and **`:set lang=<name>` sets it**, as `:set ft?` and
+  `:set ft=<name>` do.
+- **In the hex view, the command is refused,** as the other file options are: *Not available in the hex view: lang*.
+- **Help → Key Bindings** lists `:set language, lang` ("Pick the language from the list") under *Options*.
+
+### Zooming with Ctrl+wheel and the touchpad
+
+- **Ctrl+wheel zooms the text.** It works like **View → Zoom In** and **Zoom Out**:
+  - up zooms in and down zooms out, one font size per notch, between 6 and 72;
+  - it works over the text, the hex view, the tab strips and the minimap, in every pane;
+  - the new size is remembered.
+- **A Ctrl+wheel no longer scrolls.** A wheel without Ctrl scrolls as before.
+- **Precision touchpads and high-resolution wheels** turn in fractions of a notch. They zoom one size each time the
+  fractions add up to a notch.
+- **The touchpad's zoom gesture zooms too:** spread two fingers to zoom in, or pinch them to zoom out. On Windows,
+  the touchpad sends the gesture as Ctrl+wheel.
+- **Help → Key Bindings** lists both under *Application*:
+  - `Ctrl+wheel`: "Zoom in (up) or out (down), over the text";
+  - *Pinch on the touchpad*: "Zoom in (fingers apart) or out (together), over the text".
+
+### Upgrading from 1.18
+
+- **Your settings carry over** unchanged. 1.19 adds no settings key and no file. Going back to 1.18 reads the same
+  settings and the same session.
+- **Ctrl+wheel zooms instead of scrolling.** Use the wheel without Ctrl to scroll.
+- **A press in the hex view also selects the byte under it,** besides making its row the current one. The current
+  row is drawn in the current-line colour.
+- **On Windows, an MSI built from 1.19 upgrades the installed version** in place, 1.18.0 included.
+  `packaging\windows\buildmsi.ps1` names it `Enigma.TextEditor.1.19.0.msi`.
+- **On Linux,** run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- **No change.** The Avalonia set is held back at **12.1.4**, with Enigma.Avalonia.Desktop 1.3.0. Avalonia 12.1.6 is
+  out, but the set moves as a whole, and Enigma.Avalonia.Desktop has not moved.
+- Nothing else has an update.
+
+### Compatibility
+
+- Unchanged from 1.18.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.19.0** is a minor release under Semantic Versioning. It adds:
+  - selecting and copying bytes in the hex view;
+  - `:set lang`;
+  - zooming with Ctrl+wheel and the touchpad.
+
+  The settings file, the session file and every default setting stay as they were.
+
 ## 1.18.0 — 2026-11-09
 
 A minor release that brings the previous session back. Quitting keeps the tabs, the splits and every unsaved change,

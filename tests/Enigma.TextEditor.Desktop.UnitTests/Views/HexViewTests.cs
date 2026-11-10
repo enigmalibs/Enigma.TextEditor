@@ -166,7 +166,7 @@ public sealed class HexViewTests(HeadlessAvaloniaFixture fixture)
         });
 
     [Fact]
-    public void TheSelectedRow_IsMarkedInTheSelectionColour_NotTheSystemAccent()
+    public void TheCurrentRow_IsMarkedInTheCurrentLineColour_NotTheSelectionColourOrTheSystemAccent()
         => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
@@ -177,12 +177,16 @@ public sealed class HexViewTests(HeadlessAvaloniaFixture fixture)
             window.KeyTextInput("j");
             Dispatcher.UIThread.RunJobs();
 
+            // The selection colour belongs to the selected bytes now; the row the keys are on is marked as the
+            // editor marks the line the caret is on.
+            Assert.True(window.TryFindResource("EnigmaHoverBrush", out object? currentLine));
             Assert.True(window.TryFindResource("EnigmaSelectionBrush", out object? selection));
-            ListBoxItem selected = Assert.IsType<ListBoxItem>(rows.ContainerFromIndex(1));
+            ListBoxItem current = Assert.IsType<ListBoxItem>(rows.ContainerFromIndex(1));
             ListBoxItem other = Assert.IsType<ListBoxItem>(rows.ContainerFromIndex(0));
-            Assert.True(selected.IsSelected);
-            Assert.Same(selection, Presenter(selected).Background);
-            Assert.NotSame(selection, Presenter(other).Background);
+            Assert.True(current.IsSelected);
+            Assert.Same(currentLine, Presenter(current).Background);
+            Assert.NotSame(selection, Presenter(current).Background);
+            Assert.NotSame(currentLine, Presenter(other).Background);
             window.Close();
         });
 

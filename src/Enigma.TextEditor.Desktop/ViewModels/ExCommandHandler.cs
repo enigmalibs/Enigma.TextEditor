@@ -35,6 +35,7 @@ public sealed class ExCommandHandler
     private readonly StatusMessages _status;
     private readonly IHelpDialogService _help;
     private readonly LanguageCatalog _languages;
+    private readonly ILanguagePicker _languagePicker;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ExCommandHandler"/> class.
@@ -44,13 +45,21 @@ public sealed class ExCommandHandler
     /// <param name="status">Where a malformed path is reported.</param>
     /// <param name="help">Shows the key-binding help, for <c>:help</c>.</param>
     /// <param name="languages">The languages <c>:set filetype</c> can name.</param>
-    public ExCommandHandler(WorkspaceViewModel workspace, IAppShutdown shutdown, StatusMessages status, IHelpDialogService help, LanguageCatalog languages)
+    /// <param name="languagePicker">The language list, for <c>:set language</c>.</param>
+    public ExCommandHandler(
+        WorkspaceViewModel workspace,
+        IAppShutdown shutdown,
+        StatusMessages status,
+        IHelpDialogService help,
+        LanguageCatalog languages,
+        ILanguagePicker languagePicker)
     {
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         _shutdown = shutdown ?? throw new ArgumentNullException(nameof(shutdown));
         _status = status ?? throw new ArgumentNullException(nameof(status));
         _help = help ?? throw new ArgumentNullException(nameof(help));
         _languages = languages ?? throw new ArgumentNullException(nameof(languages));
+        _languagePicker = languagePicker ?? throw new ArgumentNullException(nameof(languagePicker));
     }
 
     /// <summary>
@@ -168,11 +177,7 @@ public sealed class ExCommandHandler
                 break;
 
             case VimExCommand.SetFileOptions when (tab is not null) && (request.Argument is { } words):
-                if (FileOptions.Apply(words, tab.Document, _languages) is { } message)
-                {
-                    _status.Show(message);
-                }
-
+                await SetFileOptionsAsync(tab.Document, words);
                 break;
 
             default:
@@ -245,6 +250,21 @@ public sealed class ExCommandHandler
         else if (Resolve(file, document) is { } path)
         {
             await _workspace.SaveAsAsync(document, path);
+        }
+    }
+
+    // ':set lang' is the status bar's language item: the list opens once the other words are done, on the
+    // buffer the command was typed in, and a cancel leaves it as it was.
+    private async Task SetFileOptionsAsync(DocumentViewModel document, string words)
+    {
+        if (FileOptions.Apply(words, document, _languages, out bool pickLanguage) is { } message)
+        {
+            _status.Show(message);
+        }
+
+        if (pickLanguage && (await _languagePicker.PickAsync(document.Language) is { } language))
+        {
+            document.ChooseLanguage(language);
         }
     }
 

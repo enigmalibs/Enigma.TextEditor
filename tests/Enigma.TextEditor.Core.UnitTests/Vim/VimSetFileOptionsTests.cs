@@ -23,6 +23,10 @@ public sealed class VimSetFileOptionsTests
     [InlineData(":set ft=python<CR>", "ft=python")]
     [InlineData(":set filetype=<CR>", "filetype=")]
     [InlineData(":se ft?<CR>", "ft?")]
+    [InlineData(":set lang<CR>", "lang")]
+    [InlineData(":set language<CR>", "language")]
+    [InlineData(":set lang=python<CR>", "lang=python")]
+    [InlineData(":set lang?<CR>", "lang?")]
     public void AFileOption_IsHandedOn_AsTyped(string keys, string argument)
     {
         VimRun run = VimScript.Run("|a", keys);
@@ -62,12 +66,14 @@ public sealed class VimSetFileOptionsTests
     public void ASetWithoutFileOptions_AsksTheApplicationNothing(string keys)
         => Assert.Empty(VimScript.Run("|a", keys).ExRequests);
 
-    [Fact]
-    public void ANoInFrontOfAValuedFileOption_IsUnknown()
+    [Theory]
+    [InlineData("noff")]
+    [InlineData("nolang")]
+    public void ANoInFrontOfAValuedFileOption_IsUnknown(string word)
     {
-        VimRun run = VimScript.Run("|a", ":set noff<CR>");
+        VimRun run = VimScript.Run("|a", $":set {word}<CR>");
 
-        Assert.Equal("Unknown option: noff", run.Status);
+        Assert.Equal($"Unknown option: {word}", run.Status);
         Assert.Empty(run.ExRequests);
     }
 }
