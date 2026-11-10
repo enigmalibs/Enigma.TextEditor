@@ -7,14 +7,20 @@ using Enigma.TextEditor.Desktop.Services;
 namespace Enigma.TextEditor.Desktop.ViewModels;
 
 /// <summary>
-/// <c>:set</c> of the options about the file — <c>fileformat</c>, <c>fileencoding</c>, <c>bomb</c> and
-/// <c>filetype</c> — which the Vim engine hands on, because their values are the application's.
+/// <c>:set</c> of the options about the file — <c>fileformat</c>, <c>fileencoding</c>, <c>bomb</c>,
+/// <c>filetype</c> and <c>language</c> — which the Vim engine hands on, because their values are the
+/// application's.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Each is one of the status bar's items under Vim's name, and changes the buffer the way that item's
 /// tool does: <c>ff</c> its line endings, <c>fenc</c> and <c>bomb</c> the encoding the next save writes
 /// (Vim's <c>fileencoding</c>, not a re-read), <c>ft</c> its language.
+/// </para>
+/// <para>
+/// <c>language</c> (<c>lang</c>) is the language item under its own name rather than Vim's: alone, it
+/// does what clicking the item does and asks for the language list, which the caller shows once the
+/// other words are done; <c>lang?</c> and <c>lang=python</c> are <c>ft?</c> and <c>ft=python</c>.
 /// </para>
 /// <para>
 /// The spellings are the engine's: <c>name=value</c> sets, <c>name?</c> or a bare <c>name</c> shows,
@@ -49,23 +55,43 @@ internal static class FileOptions
     /// <param name="languages">The languages <c>filetype</c> can name.</param>
     /// <returns>What to show: the values asked for, or why a word was refused; <see langword="null"/> for nothing.</returns>
     public static string? Apply(string words, DocumentViewModel document, LanguageCatalog languages)
+        => Apply(words, document, languages, out _);
+
+    /// <summary>
+    /// Sets or shows the file options a <c>:set</c> named, and says whether one of them asked for the
+    /// language list.
+    /// </summary>
+    /// <param name="words">The words, as typed, separated by spaces.</param>
+    /// <param name="document">The buffer the <c>:set</c> was typed in.</param>
+    /// <param name="languages">The languages <c>filetype</c> can name.</param>
+    /// <param name="pickLanguage">
+    /// Whether a bare <c>language</c> asked for the language list. Never after a refusal: the list would
+    /// cover the message that says what went wrong.
+    /// </param>
+    /// <returns>What to show: the values asked for, or why a word was refused; <see langword="null"/> for nothing.</returns>
+    public static string? Apply(string words, DocumentViewModel document, LanguageCatalog languages, out bool pickLanguage)
     {
         ArgumentNullException.ThrowIfNull(words);
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(languages);
 
         List<string> shown = [];
+        pickLanguage = false;
 
         foreach (string word in words.Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
             // The hex view shows bytes: it has no encoding, line endings or language to set.
             if (document.IsHex)
             {
+                pickLanguage = false;
+
                 return $"Not available in the hex view: {word}";
             }
 
-            if (!ApplyOne(word, document, languages, shown))
+            if (!ApplyOne(word, document, languages, shown, ref pickLanguage))
             {
+                pickLanguage = false;
+
                 return Invalid + word;
             }
         }
@@ -73,7 +99,7 @@ internal static class FileOptions
         return shown.Count > 0 ? string.Join(' ', shown) : null;
     }
 
-    private static bool ApplyOne(string word, DocumentViewModel document, LanguageCatalog languages, List<string> shown)
+    private static bool ApplyOne(string word, DocumentViewModel document, LanguageCatalog languages, List<string> shown, ref bool pickLanguage)
     {
         int equals = word.IndexOf('=', StringComparison.Ordinal);
         string name = equals >= 0 ? word[..equals] : word.TrimEnd('?', '!');
@@ -90,6 +116,25 @@ internal static class FileOptions
 
             case "filetype" or "ft":
                 return Valued(suffix, () => shown.Add("filetype=" + document.Language.Id), () => SetLanguage(document, value!, languages));
+
+            // Alone, the status bar's item: the list, not the value a bare 'ft' shows.
+            case "language" or "lang":
+                switch (suffix)
+                {
+                    case '\0':
+                        pickLanguage = true;
+                        return true;
+
+                    case '?':
+                        shown.Add("language=" + document.Language.Id);
+                        return true;
+
+                    case '=':
+                        return SetLanguage(document, value!, languages);
+
+                    default:
+                        return false;
+                }
 
             case "bomb":
                 switch (suffix)

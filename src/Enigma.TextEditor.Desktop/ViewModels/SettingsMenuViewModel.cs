@@ -392,6 +392,14 @@ public sealed class SettingsMenuViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Zooms the editors' text by a number of sizes: what Ctrl+wheel and the touchpad's pinch do.
+    /// </summary>
+    /// <param name="steps">How many sizes: positive larger, negative smaller; the result stays within the zoom's limits.</param>
+    /// <returns>A task that completes once the settings are written, or at once if nothing changed.</returns>
+    public Task ZoomByAsync(int steps)
+        => steps == 0 ? Task.CompletedTask : SetFontSizeAsync(Value.EditorFontSize + steps);
+
+    /// <summary>
     /// Sets the family the editors' text is drawn in and writes it.
     /// </summary>
     /// <param name="family">The family's name, or an empty one for the built-in monospace stack.</param>

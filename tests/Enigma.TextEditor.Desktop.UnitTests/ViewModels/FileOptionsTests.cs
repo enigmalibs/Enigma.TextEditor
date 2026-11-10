@@ -199,6 +199,64 @@ public sealed class FileOptionsTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal("python", document.Language.Id);
         });
 
+    [Theory]
+    [InlineData("lang")]
+    [InlineData("language")]
+    public void Language_Alone_AsksForTheList_AndShowsNothing(string words)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            DocumentViewModel document = await OpenAsync(harness, "x", "a.py");
+
+            Assert.Null(FileOptions.Apply(words, document, harness.Languages, out bool pickLanguage));
+            Assert.True(pickLanguage);
+            Assert.Equal("python", document.Language.Id);
+        });
+
+    [Fact]
+    public void Language_IsShownAndSet_AsFileTypeIs_UnderItsOwnName()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            DocumentViewModel document = await OpenAsync(harness, "x", "a.py");
+
+            Assert.Equal("language=python", FileOptions.Apply("lang?", document, harness.Languages, out bool asked));
+            Assert.False(asked);
+            Assert.Null(FileOptions.Apply("language=json", document, harness.Languages, out bool set));
+            Assert.False(set);
+            Assert.Equal("JSON", document.Language.DisplayName);
+            Assert.Null(FileOptions.Apply("lang=", document, harness.Languages));
+            Assert.Equal(LanguageInfo.PlainText, document.Language);
+        });
+
+    [Theory]
+    [InlineData("lang!")]
+    [InlineData("lang=klingon")]
+    public void ALanguageThatCannotBeRead_IsRefused_AndAsksForNothing(string words)
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            DocumentViewModel document = await OpenAsync(harness, "x", "a.py");
+
+            Assert.Equal($"Invalid argument: {words}", FileOptions.Apply(words, document, harness.Languages, out bool pickLanguage));
+            Assert.False(pickLanguage);
+            Assert.Equal("python", document.Language.Id);
+        });
+
+    [Fact]
+    public void ARefusalAfterLanguage_DoesNotAskForTheList()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            DocumentViewModel document = await OpenAsync(harness, "x", "a.txt");
+
+            Assert.Equal(
+                "Invalid argument: fenc=nope",
+                FileOptions.Apply("ff=dos lang fenc=nope", document, harness.Languages, out bool pickLanguage));
+            Assert.False(pickLanguage);
+            Assert.Equal(LineEndingStyle.CrLf, document.Format.LineEndings);
+        });
+
     [Fact]
     public void TheFirstBadWord_StopsTheRest_WithWhatCameBeforeItDone()
         => fixture.RunAsync(async () =>
@@ -219,6 +277,8 @@ public sealed class FileOptionsTests(HeadlessAvaloniaFixture fixture)
             DocumentViewModel document = (await harness.Workspace.OpenHexAsync(harness.Folder.Write("a.bin", new byte[8])))!.Document;
 
             Assert.Equal("Not available in the hex view: ff=dos", FileOptions.Apply("ff=dos", document, harness.Languages));
+            Assert.Equal("Not available in the hex view: lang", FileOptions.Apply("lang", document, harness.Languages, out bool pickLanguage));
+            Assert.False(pickLanguage);
         });
 
     private static async Task<DocumentViewModel> OpenAsync(EditorHarness harness, string text, string name = "a.txt")

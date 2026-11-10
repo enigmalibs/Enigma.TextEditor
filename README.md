@@ -5,9 +5,12 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.18** — the previous session comes back: quitting keeps the tabs, the splits and every unsaved
-> change, untitled documents included, without asking, and the next start brings them back as they were; and, with
-> vim on, `Ctrl+Y` redoes in every mode, as the Edit menu says. 1.17 brought find and replace and the mouse with vim
+> **What's new in 1.19** — the hex view selects bytes, in the hex or the text column, and copies them as a hex
+> string, as text or as an address range, from its right-click menu or with Ctrl+C; Ctrl+wheel and the touchpad's
+> zoom gesture change the font size; and `:set lang` opens the language list. 1.18 brought the previous session
+> back: quitting keeps the tabs, the splits and every unsaved change, untitled documents included, without asking,
+> and the next start brings them back as they were; and, with vim on, `Ctrl+Y` redoes in every mode, as the Edit
+> menu says. 1.17 brought find and replace and the mouse with vim
 > on: `Ctrl+F` and `Ctrl+H` open the find and replace panel in every mode, and you can type in it in every mode; a
 > click past the end of a line puts the block on its last character, and a double-click selects a word in visual
 > mode. 1.16 brought undo with vim on: `Ctrl+Z` in
@@ -66,7 +69,8 @@ with the tab in the new half; the half it will take is highlighted while you dra
 - `:set` options (`ignorecase`, `smartcase`, `wrapscan`, `hlsearch`, `incsearch`, `expandtab`, `shiftwidth`,
   `tabstop`); the last three are the file's indentation, as the status bar shows it. The bar's other file items are
   `:set` options too, under Vim's names: `fileformat` (`unix`, `dos`), `fileencoding` (`utf-8`, `latin1`, `cp1252`…)
-  with `bomb`, and `filetype` (`python`, `cs`…).
+  with `bomb`, and `filetype` (`python`, `cs`…). `:set lang` (or `:set language`) opens the language list, as the
+  bar's language button does.
 
 The registers, the last search and the last `f`/`t` are shared by every pane. Files are driven the Vim way too:
 `:w`, `:q`, `:wq`, `:x`, `:e`, `:enew`, `:bn`, `:bp`, `:wa` and `:qa`, with `:q!`, `:enew!` and `:qa!` to throw
@@ -110,7 +114,10 @@ one. Colours follow the theme.
 anyway, or not at all. A file over 32 MB, the largest the editor opens as text, is offered the viewer alone.
 **File → Open as Hex…** opens any file there directly, whatever its size, and **Tools → Reopen as Hex** or
 **Reopen as Text** switches a tab between the two. Rows are 16 bytes, `hexdump -C` style, read from the file as you
-scroll.
+scroll. Press and drag in the hex column, or in the text column, to select bytes there; the same bytes are highlighted
+in the other column, and Shift with a click extends the selection. The right-click menu copies them as a hex string
+(`48 65 6C 6C 6F`), as text (as the column shows it), or as an address range (`0x00000001 - 0x00000004`); **Ctrl+C**
+copies them as the column they were selected in shows them. Hex and text copies stop at 1 MB; the range has no limit.
 
 **The status bar** shows, left to right:
 
@@ -134,7 +141,9 @@ at the top, the split editor itself, and the settings at the bottom, a page that
 Appearance, Editing and New files, each with its full range; *Text* also sets the font the editors and the hex view
 draw a file in, from the monospace faces the machine has. **Settings → All Settings** (Ctrl+,) opens that page too,
 and Esc goes back to the files. **View → Zoom In / Zoom Out / Reset Zoom** (Ctrl+=, Ctrl+-, Ctrl+0) sets the editor's
-font size, between 6 and 72, as the settings page's font size does. **Help → About Enigma Text Editor** shows the version
+font size, between 6 and 72, as the settings page's font size does. Ctrl+wheel over the text or the hex view zooms
+too, one size per notch: up zooms in, down zooms out. So does the touchpad's zoom gesture: spread two fingers to zoom
+in, pinch them to zoom out. **Help → About Enigma Text Editor** shows the version
 and the commit it was built from.
 
 ## Your data

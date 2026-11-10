@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Enigma.TextEditor.Desktop.ViewModels"
+             xmlns:views="using:Enigma.TextEditor.Desktop.Views"
              x:Class="Enigma.TextEditor.Desktop.Views.HexView"
              x:DataType="vm:EditorTabViewModel">
 
@@ -10,15 +11,21 @@
       <Setter Property="Padding" Value="8,0" />
       <Setter Property="MinHeight" Value="0" />
     </Style>
-    <!-- The row the keys are on is marked as the editor marks a selection, rather than in Fluent's band of
-         the operating system's accent, which is a saturated stripe in the dark theme. One style covers
-         the selected row hovered too: these styles outrank the control theme's. -->
+    <!-- No band under the pointer: the rows are text to select bytes in, and a band following a drag across
+         them would flicker. Before the next style, which wins for the current row hovered. -->
+    <Style Selector="ListBox#Rows ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <!-- The row the keys are on is marked as the editor marks the line the caret is on: the selection colour
+         belongs to the selected bytes, and Fluent's band of the operating system's accent is a saturated
+         stripe in the dark theme. These styles outrank the control theme's. -->
     <Style Selector="ListBox#Rows ListBoxItem:selected /template/ ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource EnigmaSelectionBrush}" />
+      <Setter Property="Background" Value="{DynamicResource EnigmaHoverBrush}" />
     </Style>
     <!-- No font family here: the rows inherit the editor's, as they inherit its size, from the pane. -->
-    <Style Selector="ListBox#Rows TextBlock.row">
+    <Style Selector="ListBox#Rows views|HexRowBlock.row">
       <Setter Property="Foreground" Value="{DynamicResource EnigmaForegroundBrush}" />
+      <Setter Property="SelectionBrush" Value="{DynamicResource EnigmaSelectionBrush}" />
     </Style>
   </UserControl.Styles>
 
@@ -32,9 +39,23 @@
            Background="Transparent"
            BorderThickness="0"
            AutomationProperties.Name="Hex rows">
+    <!-- What can be done with the selected bytes. Ctrl+C, shown on the item it does, copies them in the column
+         they were selected in. -->
+    <ListBox.ContextMenu>
+      <ContextMenu x:Name="RowsMenu" Opening="OnRowsMenuOpening">
+        <MenuItem x:Name="MenuCopyHex" Header="Copy _Hex String" Click="OnMenuCopyHexClick" />
+        <MenuItem x:Name="MenuCopyText" Header="Copy _Text" Click="OnMenuCopyTextClick" />
+        <MenuItem x:Name="MenuCopyRange" Header="Copy _Address Range" Click="OnMenuCopyRangeClick" />
+      </ContextMenu>
+    </ListBox.ContextMenu>
     <ListBox.ItemTemplate>
+      <!-- Each row is told the tab's selection and paints its own part of it; a recycled row reads which
+           bytes it shows from its new text. -->
       <DataTemplate x:DataType="x:String">
-        <TextBlock Classes="row" Text="{Binding}" />
+        <views:HexRowBlock Classes="row"
+                           Text="{Binding}"
+                           OffsetDigits="{Binding $parent[ListBox].((vm:EditorTabViewModel)DataContext).Document.Hex.OffsetDigits, FallbackValue=8}"
+                           Selection="{Binding $parent[ListBox].((vm:EditorTabViewModel)DataContext).HexSelection, FallbackValue={x:Null}}" />
       </DataTemplate>
     </ListBox.ItemTemplate>
   </ListBox>

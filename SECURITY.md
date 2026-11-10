@@ -12,7 +12,8 @@ Security fixes are provided for the latest released version. Enigma.TextEditor f
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.18.x  | :white_check_mark: |
+| 1.19.x  | :white_check_mark: |
+| 1.18.x  | :x:                |
 | 1.17.x  | :x:                |
 | 1.16.x  | :x:                |
 | 1.15.x  | :x:                |
@@ -59,7 +60,7 @@ This keeps the report private between you and the maintainers while it is triage
 The following are in scope:
 
 - the way Enigma.TextEditor reads a file: the binary and size checks, the encoding detection and decoding, and the
-  hex viewer;
+  hex viewer, including the bytes it copies to the clipboard from a selection and the 1 MB limit on those copies;
 - the way it writes a file back, in its encoding and with its line endings;
 - the file explorer: how it lists a folder, the names it accepts for a new or renamed file or folder, how it creates,
   renames and deletes them, and how it moves them to the Recycle Bin or the trash — on Linux by running `gio trash`,
