@@ -1,6 +1,6 @@
 # FEATURE-4158 — Save the session every 5 seconds
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** FEATURE
 **Branch (PHASE01):** `feature/feature-4158-phase01-session-writer`
 **Branch (PHASE02):** `feature/feature-4158-phase02-autosave-wiring`
@@ -50,7 +50,7 @@ up to date while the editor runs, so that a crash loses at most the changes of t
 
 ## PHASE01 — Background session writer
 
-**Status:** TODO
+**Status:** DONE
 
 ### Steps
 

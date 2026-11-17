@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Enigma.TextEditor.Core.Layout;
 
@@ -45,4 +46,28 @@ public sealed record SessionState(
     /// The format this editor writes, and the only one it reads.
     /// </summary>
     public const int CurrentVersion = 1;
+
+    /// <summary>
+    /// Whether another session holds the same: the same layout, panes, buffers and explorer, the lists compared item by
+    /// item rather than as references.
+    /// </summary>
+    /// <param name="other">The other session.</param>
+    /// <returns>Whether writing either would write the same file.</returns>
+    /// <remarks>
+    /// What tells the autosave a session has changed since it was last written. Unsaved text is compared as strings:
+    /// the same string — a buffer that has not changed hands out the one it holds — compares at once.
+    /// </remarks>
+    public bool Equals(SessionState? other)
+        => (other is not null)
+           && (Version == other.Version)
+           && (ActivePane == other.ActivePane)
+           && (ExplorerVisible == other.ExplorerVisible)
+           && string.Equals(ExplorerFolder, other.ExplorerFolder, StringComparison.Ordinal)
+           && Equals(Layout, other.Layout)
+           && SessionLists.SameItems(Panes, other.Panes)
+           && SessionLists.SameItems(Documents, other.Documents);
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+        => HashCode.Combine(Version, ActivePane, ExplorerVisible, ExplorerFolder, Layout, Panes?.Count, Documents?.Count);
 }
