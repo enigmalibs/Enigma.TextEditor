@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Enigma.Configuration;
 using Enigma.TextEditor.Core.Settings;
 using Enigma.TextEditor.Desktop.Services;
@@ -43,9 +44,22 @@ internal sealed class EditorHarness : IDisposable
             Path.Combine(sessionFolder ?? Folder.Root, AppPaths.SessionFileName),
             Path.Combine(sessionFolder ?? Folder.Root, AppPaths.SessionLockFileName),
             NullLogger<SessionStore>.Instance);
+
+        // Written on the spot rather than on the thread pool: a tick is over once the dispatcher has run it.
+        Autosave = new SessionAutosave(Session, Clock, NullLogger<SessionAutosave>.Instance, work => Task.FromResult(work()));
         Window = new MainWindowViewModel(
-            Workspace, Explorer, StatusBar, Tools, SettingsMenu, Shell, PreferencesPage, About, Help, firstRun ?? FirstRunState.Returning, FirstRunDialog, Shutdown, Session);
+            Workspace, Explorer, StatusBar, Tools, SettingsMenu, Shell, PreferencesPage, About, Help, firstRun ?? FirstRunState.Returning, FirstRunDialog, Shutdown, Session, Autosave);
     }
+
+    /// <summary>
+    /// Gets the clock the autosave ticks on: it moves only when a test moves it.
+    /// </summary>
+    public ManualTimeProvider Clock { get; } = new();
+
+    /// <summary>
+    /// Gets what keeps the session while the editor runs.
+    /// </summary>
+    public SessionAutosave Autosave { get; }
 
     /// <summary>
     /// Gets where the session is kept — in the temporary folder, never the user's own.
@@ -124,6 +138,7 @@ internal sealed class EditorHarness : IDisposable
     public void Dispose()
     {
         // The lock first: the folder it sits in cannot be removed while it is held.
+        Autosave.Dispose();
         Session.Dispose();
         Folder.Dispose();
     }

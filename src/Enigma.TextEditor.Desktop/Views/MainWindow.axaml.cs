@@ -338,6 +338,15 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <inheritdoc />
+    protected override void OnClosed(EventArgs e)
+    {
+        // The close's write is the session the next start gets: nothing the autosave captures after it may replace it.
+        (DataContext as MainWindowViewModel)?.WindowClosed();
+
+        base.OnClosed(e);
+    }
+
     private async Task ConfirmAndCloseAsync(MainWindowViewModel viewModel)
     {
         _confirming = true;

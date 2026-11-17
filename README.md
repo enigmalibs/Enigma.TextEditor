@@ -104,8 +104,9 @@ several can run side by side. The editor reads each file the way it is written, 
 Closing a document with unsaved changes asks whether to save them. Quitting does not: the tabs, the splits and every
 unsaved change, untitled documents included, are kept, and the next start brings them back as they were, files named
 on the command line opening beside them. The explorer comes back shown or hidden as you left it, with its folder if
-that folder still exists. `:qa!` keeps the tabs but throws the changes away. A second window started while one is open
-starts empty, and asks about unsaved changes when it closes.
+that folder still exists. While the editor runs, all of this is also kept every five seconds when something changed, so
+a crash loses no more than the last few seconds of typing. `:qa!` keeps the tabs but throws the changes away. A second
+window started while one is open starts empty, and asks about unsaved changes when it closes.
 
 **Syntax highlighting** comes from the TextMate grammars [TextMateSharp](https://github.com/danipen/TextMateSharp)
 ships, chosen by the file's extension. **Tools → Set Language…**, or the language on the status bar, picks another
@@ -155,8 +156,8 @@ The editor keeps four things of its own, in a per-user application-data folder:
 - its log;
 - `instance.json`, which names the window you used last, so that a file opened from the system goes to it. That
   window removes the file when it closes.
-- `session.json`, what was open when you last quit: the tabs, the splits, the explorer's folder, and the text of every
-  unsaved change.
+- `session.json`, what was open when you last quit, kept up to date every few seconds while the editor runs: the
+  tabs, the splits, the explorer's folder, and the text of every unsaved change.
   `session.lock` marks the window that keeps it.
 
 Your documents are the files you open and save — and, until you save them, the unsaved changes `session.json` keeps.
