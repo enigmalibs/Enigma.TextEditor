@@ -1,5 +1,75 @@
 # Release notes
 
+## 1.20.0 — 2026-11-17
+
+A minor release about the session:
+
+- the explorer comes back with it, shown or hidden as you left it, with its folder;
+- it is kept every five seconds while the editor runs, so a crash loses no more than the last few seconds of typing.
+
+### The explorer comes back with the session
+
+- **Quitting keeps the explorer:** its folder, and whether it was shown. The next start brings it back as you left
+  it, shown or hidden, with its folder listed.
+- **It comes back last,** after the tabs and the files named on the command line, so listing a large folder does not
+  keep your documents waiting.
+- **The keyboard stays in the pane you were in,** even when the explorer comes back shown.
+- **A folder that no longer exists is not reopened.** The explorer starts with no folder, the tabs still come back,
+  and nothing asks you about it. The log notes it.
+- **A folder you open before the start has finished** is the one that stays.
+- The explorer's width, its expanded folders and its selection are not kept.
+
+### The session is kept while the editor runs
+
+- **Every five seconds, if something changed,** the session is written again: the tabs, the splits, the explorer and
+  the text of every unsaved change, untitled documents included. A crash, a kill or a power cut loses no more than
+  the last few seconds, and the next start brings the session back as it brings back one you quit.
+- **Quitting works as before** and has the last word: nothing written in the background replaces what quitting
+  keeps.
+- **After `:qa!`**, the tabs and splits are kept but the changes are not, as when quitting.
+- **A second window** started while one is open still keeps nothing.
+- **The write runs in the background,** one at a time, so writing the file does not hold up typing. A write that
+  fails is tried again five seconds later. The log records the first failure and the next success.
+- The interval is fixed at five seconds. It is not a setting.
+
+### Upgrading from 1.19
+
+- **Your settings carry over** unchanged. 1.20 adds no settings key and no file.
+- **`session.json` gains the explorer's folder** and whether it was shown. The first start of 1.20 finds a 1.19
+  session without them, and starts with no folder open and the explorer hidden, as before.
+- **Going back to 1.19 reads the same settings and the same session.** 1.19 ignores the explorer's folder.
+- **`session.json` is now written while the editor runs,** every few seconds when something changed, not only when
+  it closes.
+- **On Windows, an MSI built from 1.20 upgrades the installed version** in place, 1.19.0 included.
+  `packaging\windows\buildmsi.ps1` names it `Enigma.TextEditor.1.20.0.msi`.
+- **On Linux,** run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- Microsoft.Extensions.Hosting **10.0.14 → 10.0.15**. Its 11.0.0 belongs to .NET 11 and is not taken: the editor
+  runs on .NET 10.
+- **The Avalonia set is held back at 12.1.4**, with Enigma.Avalonia.Desktop 1.3.0. Avalonia 12.1.6 is out, but the
+  set moves as a whole, and Enigma.Avalonia.Desktop has not moved.
+- Nothing else has an update.
+
+### Compatibility
+
+- Unchanged from 1.19.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.20.0** is a minor release under Semantic Versioning. It adds:
+  - the explorer in the session;
+  - keeping the session while the editor runs.
+
+  The settings file and every default setting stay as they were. The session file stays at format version 1: its
+  two new members are optional, and both 1.19 and 1.20 read what the other writes.
+
 ## 1.19.0 — 2026-11-10
 
 A minor release with three additions:
