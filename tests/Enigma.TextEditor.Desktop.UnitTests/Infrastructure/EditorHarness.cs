@@ -33,7 +33,7 @@ internal sealed class EditorHarness : IDisposable
         Preferences = new EditorPreferences(Settings);
         Vim = new VimSession(Settings, StatusLine);
         Workspace = new WorkspaceViewModel(Documents, Registry, Prompts, Unsaved, StatusLine, Vim, VimShared, Shutdown, Preferences, Help, Languages, LanguagePicker);
-        Explorer = new FileExplorerViewModel(Workspace, Prompts, ExplorerPrompts, Messages, Trash);
+        Explorer = new FileExplorerViewModel(Workspace, Prompts, ExplorerPrompts, Messages, Trash, NullLogger<FileExplorerViewModel>.Instance);
         StatusBar = new StatusBarViewModel(Workspace, StatusLine);
         Tools = new ToolsViewModel(Workspace, LanguagePicker, EncodingPicker, Confirm, Documents);
         SettingsWriter = new SettingsWriter(Settings, Messages, NullLogger<SettingsWriter>.Instance);

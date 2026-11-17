@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Enigma.TextEditor.Core;
 using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Core.Sessions;
 using Enigma.TextEditor.Desktop.Services;
 
 namespace Enigma.TextEditor.Desktop.ViewModels;
@@ -149,36 +150,72 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand ExitCommand { get; }
 
     /// <summary>
+    /// Gets a value indicating whether <see cref="StartAsync"/> is still bringing the editor up. What it shows
+    /// meanwhile — the explorer of the previous session — does not take the keyboard from the active pane.
+    /// </summary>
+    public bool IsStarting { get; private set; }
+
+    /// <summary>
     /// Runs what needs the window on screen: the welcome dialog of a first start, then the session the editor last
-    /// closed with, then the files named on the command line.
+    /// closed with, then the files named on the command line, then the session's explorer.
     /// </summary>
     /// <param name="startup">The files and folders named on the command line.</param>
-    /// <returns>A task that completes once the files are open.</returns>
+    /// <returns>A task that completes once the files are open and the explorer's folder is listed.</returns>
     /// <remarks>
     /// In that order: the window has one dialog host, so a file that fails to open must not ask its
     /// question while the welcome dialog is up — and the files then open with the editor set up as chosen. The
-    /// session comes back first, so the files named now open beside it, in the pane that had the keyboard.
+    /// session comes back first, so the files named now open beside it, in the pane that had the keyboard. The
+    /// explorer comes last: listing a large folder must not keep the documents waiting.
     /// </remarks>
     public async Task StartAsync(StartupFiles startup)
     {
         ArgumentNullException.ThrowIfNull(startup);
 
-        if (_firstRun.IsFirstRun)
-        {
-            await _firstRunDialog.ShowAsync();
-        }
+        IsStarting = true;
 
-        if (_session.Load() is { } session)
+        try
         {
-            await Workspace.RestoreSessionAsync(session);
-        }
+            if (_firstRun.IsFirstRun)
+            {
+                await _firstRunDialog.ShowAsync();
+            }
 
-        await Workspace.OpenStartupFilesAsync(startup);
+            SessionState? session = _session.Load();
+
+            if (session is not null)
+            {
+                await Workspace.RestoreSessionAsync(session);
+            }
+
+            await Workspace.OpenStartupFilesAsync(startup);
+
+            if (session is not null)
+            {
+                await Explorer.RestoreAsync(session.ExplorerFolder, session.ExplorerVisible);
+            }
+        }
+        finally
+        {
+            IsStarting = false;
+        }
     }
 
     /// <summary>
-    /// Keeps what the editor area shows for the next start as the window closes — its splits, its tabs and every
-    /// unsaved change — so that closing need not ask about any of them.
+    /// Captures what the window shows, for the next start: the editor area — its splits, its tabs and, when asked,
+    /// its unsaved changes — and the explorer, with its folder.
+    /// </summary>
+    /// <param name="keepUnsaved">Whether unsaved changes are kept, as <see cref="WorkspaceViewModel.CaptureSession"/> keeps them.</param>
+    /// <returns>The session.</returns>
+    public SessionState CaptureSession(bool keepUnsaved = false)
+        => Workspace.CaptureSession(keepUnsaved) with
+        {
+            ExplorerFolder = Explorer.FolderPath,
+            ExplorerVisible = Explorer.IsVisible,
+        };
+
+    /// <summary>
+    /// Keeps what the window shows for the next start as it closes — its splits, its tabs, every unsaved change and
+    /// the explorer — so that closing need not ask about any of them.
     /// </summary>
     /// <returns>
     /// Whether the session was kept. Not when this instance does not own the session, or the write failed: the
@@ -187,14 +224,14 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <remarks>
     /// After <c>:qa!</c> the changes are not kept — the user said to throw them away — but the tabs and splits are.
     /// </remarks>
-    public bool KeepSessionOnClose() => _session.Save(Workspace.CaptureSession(keepUnsaved: !_shutdown.DiscardChangesOnExit));
+    public bool KeepSessionOnClose() => _session.Save(CaptureSession(keepUnsaved: !_shutdown.DiscardChangesOnExit));
 
     /// <summary>
-    /// Keeps the splits and tabs for the next start, without unsaved changes — after every one has been asked about
-    /// and saved or thrown away.
+    /// Keeps the splits, the tabs and the explorer for the next start, without unsaved changes — after every one has
+    /// been asked about and saved or thrown away.
     /// </summary>
     /// <returns>Whether it was kept; not when this instance does not own the session, or the write failed.</returns>
-    public bool SaveSession() => _session.Save(Workspace.CaptureSession());
+    public bool SaveSession() => _session.Save(CaptureSession());
 
     /// <summary>
     /// Opens the files another launch of the editor handed over to this one, as if they had been named on its own

@@ -1,6 +1,6 @@
 # FEATURE-768C — Explorer folder in the session
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-768c-explorer-folder`
 **Run:** feature/2026-11-16-session-explorer-autosave

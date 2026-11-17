@@ -149,7 +149,8 @@ public partial class MainWindow : Window
     internal ColumnDefinition ExplorerColumn => FilesPage.ColumnDefinitions[0];
 
     // Shown, the explorer takes the keyboard — the way in to the tree from the keys — once it is laid out. Hidden, it
-    // gives the keyboard back to the pane when it had it, rather than leaving it nowhere.
+    // gives the keyboard back to the pane when it had it, rather than leaving it nowhere. Shown by the start, as the
+    // previous session left it, it does not take it: the editor starts with the keyboard in its pane.
     private void OnExplorerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if ((e.PropertyName != nameof(FileExplorerViewModel.IsVisible)) || (_viewModel is null))
@@ -161,7 +162,7 @@ public partial class MainWindow : Window
         bool hadKeyboard = !shown && Explorer.IsKeyboardFocusWithin;
         SizeExplorer(shown);
 
-        if (shown)
+        if (shown && !_viewModel.IsStarting)
         {
             Dispatcher.UIThread.Post(
                 () =>
