@@ -12,7 +12,8 @@ Security fixes are provided for the latest released version. Enigma.TextEditor f
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.19.x  | :white_check_mark: |
+| 1.20.x  | :white_check_mark: |
+| 1.19.x  | :x:                |
 | 1.18.x  | :x:                |
 | 1.17.x  | :x:                |
 | 1.16.x  | :x:                |
@@ -68,8 +69,9 @@ The following are in scope:
 - the syntax highlighting it runs over a file's text;
 - the Vim engine's handling of what is typed into it, including search and substitution patterns;
 - the way it reads and writes its settings file, its log, and its session: `session.json`, which holds the text of
-  every unsaved change, what it reopens from it at the start, and `session.lock`, which decides the window that keeps
-  it;
+  every unsaved change and the explorer's folder, and is written every few seconds in the background while the
+  editor runs; what it reopens from it at the start, the explorer's folder included; and `session.lock`, which
+  decides the window that keeps it;
 - the error dialog it shows when a failure is not handled elsewhere: what that dialog shows and what *Copy details*
   puts on the clipboard;
 - the way a running window takes files from a later launch: the named pipe each window listens on, who may connect

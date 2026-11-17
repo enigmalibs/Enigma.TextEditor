@@ -1,6 +1,6 @@
 # FEATURE-96BA — Release 1.20.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-96ba-release-1-20-0`
 **Run:** feature/2026-11-17-release-1-20-0
