@@ -136,6 +136,32 @@ public sealed class SessionFileTests : IDisposable
     }
 
     [Fact]
+    public void AFileWrittenBeforeTheExplorerWasKept_Loads_WithNoFolder_AndTheExplorerHidden()
+    {
+        Directory.CreateDirectory(Folder);
+        File.WriteAllText(
+            SessionPath,
+            "{\"version\":1,\"layout\":{\"pane\":0},\"activePane\":0,\"panes\":[{\"id\":0,\"tabs\":[],\"activeTab\":-1}],\"documents\":[]}");
+
+        SessionState? state = SessionFile.Read(SessionPath).State;
+
+        Assert.NotNull(state);
+        Assert.Null(state.ExplorerFolder);
+        Assert.False(state.ExplorerVisible);
+    }
+
+    [Fact]
+    public void AnExplorerFolderThatIsNotAFullPath_IsNoReasonToSetTheSessionAside()
+    {
+        SessionFile.Write(SessionPath, Valid() with { ExplorerFolder = "project" });
+
+        SessionLoadResult result = SessionFile.Read(SessionPath);
+
+        Assert.Null(result.Failure);
+        Assert.Equal("project", result.State?.ExplorerFolder);
+    }
+
+    [Fact]
     public void AMovedAsideFile_ReplacesAnOlderOne()
     {
         Directory.CreateDirectory(Folder);
@@ -173,7 +199,9 @@ public sealed class SessionFileTests : IDisposable
                 new SessionDocument(FullPath("a.txt"), "Untitled-1", CodePage: TextEncodings.Utf16LeCodePage, ByteOrderMark: true, LineEndings: LineEndingStyle.CrLf, IndentWithTabs: true, IndentSize: 8, Language: "csharp", UnsavedText: "changed\n"),
                 new SessionDocument(null, "Untitled-2", UnsavedText: "draft"),
                 new SessionDocument(FullPath("b.bin"), "Untitled-3", IsHex: true),
-            ]);
+            ],
+            ExplorerFolder: FullPath("project"),
+            ExplorerVisible: true);
 
     private static SessionState OnePane(SessionDocument document)
         => new(SessionState.CurrentVersion, new LayoutSnapshot(Pane: 0), 0, [new SessionPane(0, [new SessionTab(0)], 0)], [document]);

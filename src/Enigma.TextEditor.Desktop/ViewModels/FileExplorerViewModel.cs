@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using Enigma.TextEditor.Core.Files;
 using Enigma.TextEditor.Desktop.Extensions;
 using Enigma.TextEditor.Desktop.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Enigma.TextEditor.Desktop.ViewModels;
 
@@ -43,6 +44,7 @@ public sealed class FileExplorerViewModel : ObservableObject
     private readonly IFileExplorerPrompts _questions;
     private readonly IMessageService _messages;
     private readonly ITrashService _trash;
+    private readonly ILogger<FileExplorerViewModel> _logger;
     private CancellationTokenSource _work = new();
 
     /// <summary>
@@ -53,18 +55,21 @@ public sealed class FileExplorerViewModel : ObservableObject
     /// <param name="questions">Asks for names, and for confirmations.</param>
     /// <param name="messages">Reports an operation that failed.</param>
     /// <param name="trash">Where a deleted entry goes, when the platform has somewhere to put it.</param>
+    /// <param name="logger">Where a folder the session could not reopen is noted.</param>
     public FileExplorerViewModel(
         WorkspaceViewModel workspace,
         IFilePrompts prompts,
         IFileExplorerPrompts questions,
         IMessageService messages,
-        ITrashService trash)
+        ITrashService trash,
+        ILogger<FileExplorerViewModel> logger)
     {
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         _prompts = prompts ?? throw new ArgumentNullException(nameof(prompts));
         _questions = questions ?? throw new ArgumentNullException(nameof(questions));
         _messages = messages ?? throw new ArgumentNullException(nameof(messages));
         _trash = trash ?? throw new ArgumentNullException(nameof(trash));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         ToggleCommand = new RelayCommand(() => IsVisible = !IsVisible);
         OpenFolderCommand = new AsyncRelayCommand(OpenFolderFromPromptAsync);
@@ -209,19 +214,47 @@ public sealed class FileExplorerViewModel : ObservableObject
     /// </summary>
     /// <param name="folder">The folder.</param>
     /// <returns>A task that completes when its top level has been listed.</returns>
-    public async Task OpenFolderAsync(string folder)
+    public Task OpenFolderAsync(string folder)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(folder);
 
-        CancellationToken token = Restart();
-        string full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder));
+        return ShowFolderAsync(folder, show: true);
+    }
 
-        Roots.Clear();
-        SelectedNode = null;
-        FolderPath = full;
-        IsVisible = true;
+    /// <summary>
+    /// Brings back the explorer the previous session left: shown or hidden as it was, with its folder when that is
+    /// still a folder.
+    /// </summary>
+    /// <param name="folder">The folder it showed, or <see langword="null"/> for none.</param>
+    /// <param name="visible">Whether it was shown.</param>
+    /// <returns>A task that completes when the folder's top level has been listed, or when there is none to list.</returns>
+    /// <remarks>
+    /// A folder that is gone — or a path that is not a full one, which only a file edited by hand holds — leaves the
+    /// explorer with no folder, without a word: there is nothing the user could do about it at a start. A folder the
+    /// user opened while the restore was looking is the one they want, and stays.
+    /// </remarks>
+    public async Task RestoreAsync(string? folder, bool visible)
+    {
+        IsVisible = visible;
 
-        await ListAsync(full, Roots, token);
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            return;
+        }
+
+        // Off the UI thread: asked about a network share that is no longer reachable, the system can take seconds.
+        bool exists = Path.IsPathFullyQualified(folder) && await Task.Run(() => Directory.Exists(folder));
+
+        if (!exists)
+        {
+            _logger.LogInformation("The explorer's folder {Folder} is no longer there; the explorer starts with no folder.", folder);
+            return;
+        }
+
+        if (!HasFolder)
+        {
+            await ShowFolderAsync(folder, show: false);
+        }
     }
 
     /// <summary>
@@ -476,6 +509,23 @@ public sealed class FileExplorerViewModel : ObservableObject
         }
 
         return null;
+    }
+
+    private async Task ShowFolderAsync(string folder, bool show)
+    {
+        CancellationToken token = Restart();
+        string full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder));
+
+        Roots.Clear();
+        SelectedNode = null;
+        FolderPath = full;
+
+        if (show)
+        {
+            IsVisible = true;
+        }
+
+        await ListAsync(full, Roots, token);
     }
 
     private async Task OpenFolderFromPromptAsync()

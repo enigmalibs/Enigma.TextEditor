@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using Enigma.TextEditor.Core.Sessions;
 using Microsoft.Extensions.Logging;
 
@@ -9,16 +10,25 @@ namespace Enigma.TextEditor.Desktop.Services;
 /// Keeps the session in its file, for the instance that holds the session's lock.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The lock is taken on first use — the start's <see cref="Load"/> — and held for the life of the application:
 /// disposing the store, as the container does when the application ends, lets the next instance take it.
+/// </para>
+/// <para>
+/// Safe to use from any thread: the autosave writes from the thread pool while the window may write from its own.
+/// The session is written every few seconds, so a folder that refuses it would fill the log: the first failure of a run
+/// is logged as an error, the ones after it at Debug, and the next success says the session is written again.
+/// </para>
 /// </remarks>
 public sealed class SessionStore : ISessionStore, IDisposable
 {
     private readonly string _sessionFile;
     private readonly string _lockFile;
     private readonly ILogger<SessionStore> _logger;
+    private readonly Lock _gate = new();
     private SessionLock? _lock;
     private bool _claimed;
+    private bool _failing;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SessionStore"/> class.
@@ -79,19 +89,39 @@ public sealed class SessionStore : ISessionStore, IDisposable
             return false;
         }
 
-        try
+        lock (_gate)
         {
-            SessionFile.Write(_sessionFile, state);
+            try
+            {
+                SessionFile.Write(_sessionFile, state);
+            }
+            catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                // ArgumentException too: the serializer refuses text it cannot write as UTF-8 — a lone surrogate — and
+                // a window that is closing must not be stopped by that.
+                if (_failing)
+                {
+                    _logger.LogDebug(failure, "The session still could not be written to {SessionFile}.", _sessionFile);
+                }
+                else
+                {
+                    _failing = true;
+                    _logger.LogError(
+                        failure,
+                        "The session could not be written to {SessionFile}. Until it is written again, further failures are logged at Debug.",
+                        _sessionFile);
+                }
+
+                return false;
+            }
+
+            if (_failing)
+            {
+                _failing = false;
+                _logger.LogInformation("The session is written to {SessionFile} again.", _sessionFile);
+            }
 
             return true;
-        }
-        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            // ArgumentException too: the serializer refuses text it cannot write as UTF-8 — a lone surrogate — and
-            // a window that is closing must not be stopped by that.
-            _logger.LogError(failure, "The session could not be written to {SessionFile}.", _sessionFile);
-
-            return false;
         }
     }
 
@@ -100,23 +130,29 @@ public sealed class SessionStore : ISessionStore, IDisposable
     /// </summary>
     public void Dispose()
     {
-        _lock?.Dispose();
-        _lock = null;
+        lock (_gate)
+        {
+            _lock?.Dispose();
+            _lock = null;
+        }
     }
 
     private void Claim()
     {
-        if (_claimed)
+        lock (_gate)
         {
-            return;
-        }
+            if (_claimed)
+            {
+                return;
+            }
 
-        _claimed = true;
-        _lock = SessionLock.TryAcquire(_lockFile);
+            _claimed = true;
+            _lock = SessionLock.TryAcquire(_lockFile);
 
-        if (_lock is null)
-        {
-            _logger.LogInformation("Another instance owns the session at {SessionFile}; this one neither restores nor saves it.", _sessionFile);
+            if (_lock is null)
+            {
+                _logger.LogInformation("Another instance owns the session at {SessionFile}; this one neither restores nor saves it.", _sessionFile);
+            }
         }
     }
 }

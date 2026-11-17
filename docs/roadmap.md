@@ -151,5 +151,10 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01    | Ctrl+wheel zoom                      | DONE        | (in FEATURE-A47C.md)      |
 | - PHASE02    | Touchpad pinch gesture               | DONE        | (in FEATURE-A47C.md)      |
 | FEATURE-F4F8 | Release 1.19.0                       | DONE        | docs/plan/FEATURE-F4F8.md |
+| FEATURE-768C | Explorer folder in the session       | DONE        | docs/plan/FEATURE-768C.md |
+| FEATURE-4158 | Save the session every 5 seconds     | DONE        | docs/plan/FEATURE-4158.md |
+| - PHASE01    | Background session writer            | DONE        | (in FEATURE-4158.md)      |
+| - PHASE02    | Autosave from start to close         | DONE        | (in FEATURE-4158.md)      |
+| FEATURE-96BA | Release 1.20.0                       | DONE        | docs/plan/FEATURE-96BA.md |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

@@ -86,6 +86,10 @@ public static class ServiceCollectionExtensions
                 sessionFilePath,
                 lockFilePath,
                 provider.GetRequiredService<ILogger<SessionStore>>()));
+
+            // One writer of the session while the editor runs, so that a crash loses no more than a few seconds of it.
+            services.TryAddSingleton(TimeProvider.System);
+            services.AddSingleton<SessionAutosave>();
         }
 
         /// <summary>

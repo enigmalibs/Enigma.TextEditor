@@ -11,6 +11,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Enigma.Avalonia.Desktop.Services;
+using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Desktop.Services;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Enigma.TextEditor.Desktop.ViewModels;
@@ -105,6 +106,28 @@ public sealed class FileExplorerViewTests(HeadlessAvaloniaFixture fixture)
 
             Assert.False(harness.Explorer.IsVisible);
             Assert.True(pane.EditorControl.TextArea.IsKeyboardFocusWithin);
+            window.Close();
+        });
+
+    [Fact]
+    public void TheExplorerThePreviousSessionLeftShown_ComesBackShown_LeavingTheKeyboardInThePane()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness before = new();
+            await before.Workspace.OpenAsync(before.Folder.Write("a.txt", "a\n"));
+            await before.Explorer.OpenFolderAsync(Project(before));
+            Assert.True(before.Window.SaveSession());
+            before.Session.Dispose();
+
+            using EditorHarness after = new(sessionFolder: before.Folder.Root);
+            MainWindow window = Show(after);
+            await after.Window.StartAsync(new StartupFiles([], []));
+            await UntilAsync(() => Rows(window).Length > 0);
+            await SettleAsync();
+
+            Assert.True(ExplorerOf(window).IsVisible);
+            Assert.Equal(MainWindow.ExplorerDefaultWidth, window.ExplorerColumn.ActualWidth, 1.0);
+            Assert.False(ExplorerOf(window).IsKeyboardFocusWithin);
             window.Close();
         });
 
