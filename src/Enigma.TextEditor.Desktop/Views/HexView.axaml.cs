@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -275,52 +275,36 @@ public partial class HexView : UserControl
         Rows.Focus();
     }
 
-    // The selected bytes as one of the two columns shows them. Read from the file when copied, up to a limit: a
-    // selection can reach across gigabytes, and its text is built whole before the clipboard takes it.
+    // The selected bytes as one of the two columns shows them: the tab reads and formats them.
+    // Not awaited: a click or a keystroke has nowhere to return a task to, and a failure reaches the safety net.
     private void CopyBytes(HexColumn format)
     {
-        if (DataContext is not EditorTabViewModel { HexSelection: { } selection, Document.Hex: { } hex })
+        if (DataContext is EditorTabViewModel tab)
         {
-            return;
+            ToClipboardAsync(tab.CopyHexSelectionAsync(format)).Forget();
         }
-
-        if (selection.Length > HexDocument.MaxCopyBytes)
-        {
-            _session?.ReportStatus(
-                $"The selection is too large to copy as {(format == HexColumn.Hex ? "hex" : "text")}: "
-                + $"the limit is {HexDocument.FormatSize(HexDocument.MaxCopyBytes)}");
-            return;
-        }
-
-        byte[] bytes;
-
-        try
-        {
-            bytes = hex.Read(selection.Start, (int)selection.Length);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            _session?.ReportStatus($"Could not read the selection: {exception.Message}");
-            return;
-        }
-
-        SetClipboard(format == HexColumn.Hex ? HexFormatter.FormatHexString(bytes) : HexFormatter.FormatText(bytes));
     }
 
     private void CopyRange()
     {
-        if (DataContext is EditorTabViewModel { HexSelection: { } selection, Document.Hex: { } hex })
+        if (DataContext is EditorTabViewModel tab)
         {
-            SetClipboard(HexFormatter.FormatAddressRange(selection.Start, selection.End, hex.OffsetDigits));
+            ToClipboardAsync(Task.FromResult(tab.CopyHexRange())).Forget();
         }
     }
 
-    // Not awaited: a click or a keystroke has nowhere to return a task to, and a failure reaches the safety net.
-    private void SetClipboard(string text)
+    private async Task ToClipboardAsync(Task<HexCopyResult> copying)
     {
-        if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+        HexCopyResult result = await copying;
+
+        if (result.Message is { } message)
         {
-            clipboard.SetTextAsync(text).Forget();
+            _session?.ReportStatus(message);
+        }
+
+        if ((result.Text is { } text) && (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard))
+        {
+            await clipboard.SetTextAsync(text);
         }
     }
 

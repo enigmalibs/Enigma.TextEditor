@@ -205,7 +205,7 @@ Locations: `src/Enigma.TextEditor.Core/Documents/DocumentFile.cs:172`.
 
 ## PHASE07 — [Medium] XAML-02 The hex view's copy moves into the tab's view-model
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `src/Enigma.TextEditor.Desktop/Views/HexView.axaml.cs:281-309` (and PERF-02's `:299`).
 
