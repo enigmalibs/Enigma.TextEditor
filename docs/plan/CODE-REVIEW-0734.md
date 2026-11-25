@@ -403,7 +403,7 @@ Locations: `VimEngine.cs:3237-3616`.
 
 ## PHASE17 — [Medium] SOLID-03 The key tables leave `KeySequenceParser`
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `src/Enigma.TextEditor.Core/Vim/KeySequenceParser.cs:99` (tables `:462-700`).
 
