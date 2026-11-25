@@ -22,6 +22,7 @@
 **Branch (PHASE18):** `review/code-review-0734-phase18-session-side-files`
 **Branch (PHASE19):** `review/code-review-0734-phase19-changed-text-capture`
 **Branch (PHASE20):** `review/code-review-0734-phase20-io-off-ui-thread`
+**Branch (PHASE21):** `review/code-review-0734-phase21-ui-waits-3`
 **Run:** review/2026-11-19-high-medium-review-fixes
 
 ## Objective
@@ -80,11 +81,13 @@ Locations: `tests/Enigma.TextEditor.Core.UnitTests/Instances/InstanceServerTests
 
 ## PHASE02 — [Medium] TEST-02 UI tests wait on conditions, not fixed rounds (part 1)
 
-**Status:** TODO
+**Status:** DONE
 
 Locations (part 1): `ViewModels/MoveTabTests.cs:238`, `ViewModels/WindowCommandTests.cs:490`,
 `Views/AboutDialogTests.cs:54`, `Views/DialogKeyboardTests.cs:157`, `Views/EditorContextMenuTests.cs:207`,
-`Views/FileExplorerViewTests.cs:566`, `Views/FirstRunDialogTests.cs:156`.
+`Views/FileExplorerViewTests.cs:566`, `Views/FirstRunDialogTests.cs:156`; added at build time:
+`Views/FileDropViewTests.cs` (its four-round `DrainAsync` made the long-known flake
+`ThePaneWithNoTab_TakesFilesWhole_EvenNearItsEdge` fail this phase's suite).
 
 ### Steps
 
@@ -480,6 +483,24 @@ Locations: `MainWindowViewModel.cs:190` (now the lifecycle), `DocumentFile.cs:17
 - None of the listed call sites touches the disk or encodes on the UI thread.
 - Zero warnings; whole suite green.
 
+## PHASE21 — [Medium] TEST-02 UI tests wait on conditions, not fixed rounds (part 3)
+
+**Status:** TODO
+
+Added at build time (PHASE02): the review listed the `Task.Delay`-based helpers ("at least four names"); four more
+files pump a fixed four rounds of `Task.Yield` — `Views/HelpViewTests.cs`, `Views/SettingsPageTests.cs`,
+`Views/TabDragViewTests.cs`, `Views/TabStripViewTests.cs` (about 55 call sites) — the shape that made
+`FileDropViewTests` flaky.
+
+### Steps
+
+1. The four files move to `UiWait`, as in PHASE02; their private `DrainAsync` helpers are removed.
+
+### Acceptance criteria
+
+- No private pump helper left anywhere in the Desktop test project; no assertion weakened.
+- Zero warnings; whole suite green.
+
 ## Out of scope
 
 - The eight Low findings, and the 5–7 parameter classes of SOLID-01 beyond `MainWindowViewModel` and
@@ -496,6 +517,7 @@ Locations: `MainWindowViewModel.cs:190` (now the lifecycle), `DocumentFile.cs:17
 | Order within Medium | Test waits → LOG/EXC/XAML → DI/SRP → Vim → PERF | A steadier suite first; PERF lands in the classes the refactors create, not twice | The review's listing order |
 | TEST-01 fix | Explicit buffers + drain until close | The review's inferred deadlock: each side blocked writing; a short write must not need the peer | Server reading the whole stranger request (unbounded) |
 | TEST-02 for call sites with nothing to wait on | A bounded dispatcher settle, no fixed `Task.Delay` count | Negative assertions need a quiet dispatcher, not a condition | Converting every negative check into a condition (none exists) |
+| Yield-based fixed-round helpers the review did not list | A PHASE21 for four files; `FileDropViewTests` pulled into PHASE02 | Same smell, and `FileDropViewTests` was a real flake blocking PHASE02; 55 more call sites would double PHASE03 | Leaving them (a known flake stays); folding into PHASE03 |
 | Double-click wait | A click the platform cannot pair, no sleep | Deterministic | Lowering a global double-click time |
 | LOG-02 fallback | `logs/early-errors.log`, full exception, capped 1 MiB, guarded | The review's fix; bounded growth; never throws from a handler | Event log (Windows only); unbounded append |
 | EXC-01 strategy | Temp + flush + `File.Replace`/`Move`, links followed, Unix mode kept, in-place fallback only when refused | Never truncate the original; never lose the ability to save a file that saved before | Always atomic (breaks saves in non-writable folders / shared files); in place (the finding) |

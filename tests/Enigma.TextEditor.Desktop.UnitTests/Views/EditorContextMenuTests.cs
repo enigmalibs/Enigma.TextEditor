@@ -127,13 +127,13 @@ public sealed class EditorContextMenuTests(HeadlessAvaloniaFixture fixture)
 
             RightClick(window, pane);
             Click(Item(pane, "MenuCut"));
-            await PumpAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.Document.Text == "beta\n", "Cut took the selection");
             Assert.Equal("beta\n", pane.EditorControl.Document.Text);
 
             pane.EditorControl.CaretOffset = 4;
             RightClick(window, pane);
             Click(Item(pane, "MenuPaste"));
-            await PumpAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.Document.Text == "betaalpha \n", "Paste put it back");
 
             Assert.Equal("betaalpha \n", pane.EditorControl.Document.Text);
             window.Close();
@@ -198,15 +198,6 @@ public sealed class EditorContextMenuTests(HeadlessAvaloniaFixture fixture)
     }
 
     private static EditorPaneView[] Panes(MainWindow window) => [.. window.GetVisualDescendants().OfType<EditorPaneView>()];
-
-    private static async Task PumpAsync()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
-    }
 
     private static MainWindow Show(EditorHarness harness)
     {

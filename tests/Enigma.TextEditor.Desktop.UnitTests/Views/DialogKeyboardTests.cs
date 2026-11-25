@@ -29,7 +29,7 @@ public sealed class DialogKeyboardTests(HeadlessAvaloniaFixture fixture)
             (MainWindow window, ContentDialogService dialogs) = Show(harness);
 
             Task<UnsavedChangesChoice> asked = new UnsavedChangesPrompt(dialogs).AskAsync("a.txt");
-            await DrainAsync();
+            await UiWait.UntilAsync(() => Focused(window) == "Save", "the question opened with Save focused");
 
             Assert.Equal("Save", Focused(window));
 
@@ -43,11 +43,11 @@ public sealed class DialogKeyboardTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal("Save", Focused(window));
 
             window.KeyPress(Key.Tab, RawInputModifiers.Shift, PhysicalKey.Tab, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => Focused(window) == "Cancel", "Shift+Tab wrapped round to Cancel");
             Assert.Equal("Cancel", Focused(window));
 
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => asked.IsCompleted, "Escape answered the question");
             Assert.Equal(UnsavedChangesChoice.Cancel, await asked);
             window.Close();
         });
@@ -61,12 +61,12 @@ public sealed class DialogKeyboardTests(HeadlessAvaloniaFixture fixture)
             (MainWindow window, ContentDialogService dialogs) = Show(harness);
             EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
             pane.FocusEditor();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.TextArea.IsFocused, "the editor took the keyboard");
 
             Task<UnsavedChangesChoice> asked = new UnsavedChangesPrompt(dialogs).AskAsync("a.txt");
-            await DrainAsync();
+            await UiWait.UntilAsync(() => Focused(window) == "Save", "the question opened with Save focused");
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => asked.IsCompleted && !window.HostDialog.IsOpen && pane.EditorControl.TextArea.IsFocused, "Escape closed the question and gave the editor its keyboard back");
 
             Assert.Equal(UnsavedChangesChoice.Cancel, await asked);
             Assert.False(window.HostDialog.IsOpen);
@@ -83,10 +83,10 @@ public sealed class DialogKeyboardTests(HeadlessAvaloniaFixture fixture)
             (MainWindow window, ContentDialogService dialogs) = Show(harness);
 
             Task<UnsavedChangesChoice> asked = new UnsavedChangesPrompt(dialogs).AskAsync("a.txt");
-            await DrainAsync();
+            await UiWait.UntilAsync(() => Focused(window) == "Save", "the question opened with Save focused");
             Tab(window);
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => asked.IsCompleted, "Enter answered the question");
 
             Assert.Equal(UnsavedChangesChoice.Discard, await asked);
             window.Close();
@@ -100,12 +100,12 @@ public sealed class DialogKeyboardTests(HeadlessAvaloniaFixture fixture)
             (MainWindow window, ContentDialogService dialogs) = Show(harness);
 
             Task<bool> asked = new ConfirmationPrompt(dialogs).ConfirmAsync("Discard unsaved changes?", "They are lost.", "Discard and reopen");
-            await DrainAsync();
+            await UiWait.UntilAsync(() => Focused(window) == "Cancel", "the confirmation opened with Cancel focused");
 
             Assert.Equal("Cancel", Focused(window));
 
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => asked.IsCompleted, "Escape answered the confirmation");
             Assert.False(await asked);
             window.Close();
         });
@@ -118,12 +118,12 @@ public sealed class DialogKeyboardTests(HeadlessAvaloniaFixture fixture)
             (MainWindow window, ContentDialogService dialogs) = Show(harness);
 
             Task<LanguageInfo?> picked = new LanguagePicker(dialogs, harness.Languages).PickAsync(LanguageInfo.PlainText);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => window.FocusManager?.GetFocusedElement() is TextBox, "the language list opened with its filter focused");
 
             Assert.IsType<TextBox>(window.FocusManager!.GetFocusedElement());
 
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => picked.IsCompleted, "Escape closed the language list");
             Assert.Null(await picked);
             window.Close();
         });
@@ -147,14 +147,5 @@ public sealed class DialogKeyboardTests(HeadlessAvaloniaFixture fixture)
         dialogs.RegisterHost(window.HostDialog);
 
         return (window, dialogs);
-    }
-
-    private static async Task DrainAsync()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
     }
 }

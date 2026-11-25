@@ -34,7 +34,7 @@ public sealed class FirstRunDialogTests(HeadlessAvaloniaFixture fixture)
             (MainWindow window, ContentDialogService dialogs) = Show(harness);
 
             Task shown = Service(harness, dialogs).ShowAsync();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => window.HostDialog.IsOpen && window.HostDialog.Content is FirstRunView, "the welcome dialog opened");
 
             Assert.Equal("Welcome", window.HostDialog.Title);
             Assert.NotNull(window.HostDialog.IconData);
@@ -66,14 +66,14 @@ public sealed class FirstRunDialogTests(HeadlessAvaloniaFixture fixture)
             using EditorHarness harness = new();
             (MainWindow window, ContentDialogService dialogs) = Show(harness);
             Task shown = Service(harness, dialogs).ShowAsync();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => window.HostDialog.IsOpen && window.HostDialog.Content is FirstRunView, "the welcome dialog opened");
             FirstRunView view = (FirstRunView)window.HostDialog.Content!;
 
             view.FindControl<ComboBox>("ThemeChoice")!.SelectedItem = AppTheme.Dark;
             view.FindControl<ToggleSwitch>("VimSwitch")!.IsChecked = false;
             view.FindControl<ToggleSwitch>("MinimapSwitch")!.IsChecked = false;
             view.FindControl<ToggleSwitch>("WordWrapSwitch")!.IsChecked = false;
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Theme.Applied.Count > 0, "the theme chosen was applied");
 
             // The theme repaints the window at once; nothing else is applied before the dialog closes.
             Assert.Equal([AppTheme.Dark], harness.Theme.Applied);
@@ -82,7 +82,7 @@ public sealed class FirstRunDialogTests(HeadlessAvaloniaFixture fixture)
 
             // The keyboard is on the default button, Get started.
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => !window.HostDialog.IsOpen, "Enter closed the welcome dialog");
             bool open = window.HostDialog.IsOpen;
             if (open)
             {
@@ -110,10 +110,10 @@ public sealed class FirstRunDialogTests(HeadlessAvaloniaFixture fixture)
             using EditorHarness harness = new();
             (MainWindow window, ContentDialogService dialogs) = Show(harness);
             Task shown = Service(harness, dialogs).ShowAsync();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => window.HostDialog.IsOpen && window.HostDialog.Content is FirstRunView, "the welcome dialog opened");
 
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => !window.HostDialog.IsOpen, "Escape closed the welcome dialog");
             bool open = window.HostDialog.IsOpen;
             if (open)
             {
@@ -121,7 +121,7 @@ public sealed class FirstRunDialogTests(HeadlessAvaloniaFixture fixture)
             }
 
             await shown;
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.False(open, "Esc leaves the welcome dialog open.");
             Assert.Same(FirstRunState.Returning, FirstRunState.Detect(harness.Settings.FilePath));
@@ -146,14 +146,5 @@ public sealed class FirstRunDialogTests(HeadlessAvaloniaFixture fixture)
         dialogs.RegisterHost(window.HostDialog);
 
         return (window, dialogs);
-    }
-
-    private static async Task DrainAsync()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
     }
 }
