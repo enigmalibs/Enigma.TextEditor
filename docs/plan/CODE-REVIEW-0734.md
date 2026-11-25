@@ -351,7 +351,7 @@ Locations: `src/Enigma.TextEditor.Desktop/Views/EditorPaneView.axaml.cs:53` (tab
 
 ## PHASE14 — [Medium] SOLID-03 The Vim command line and ex commands leave `VimEngine`
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `src/Enigma.TextEditor.Core/Vim/VimEngine.cs:2450-3090`.
 

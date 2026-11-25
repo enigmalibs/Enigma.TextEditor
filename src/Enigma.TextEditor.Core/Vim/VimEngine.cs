@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Enigma.TextEditor.Core.Vim;
 
@@ -85,20 +84,11 @@ namespace Enigma.TextEditor.Core.Vim;
 /// and the scroll commands.
 /// </para>
 /// </remarks>
-public sealed class VimEngine
+public sealed class VimEngine : IVimEngineContext
 {
     private const int NoDesiredColumn = -1;
     private const int NoAnchor = -1;
 
-    // Vim's own wording, down to the capitals: someone who knows vim reads these without reading
-    // them, and someone who does not is told which way the search went round.
-    private const string HitBottom = "search hit BOTTOM, continuing at TOP";
-    private const string HitTop = "search hit TOP, continuing at BOTTOM";
-    private const string HitBottomNoWrap = "search hit BOTTOM without match for: ";
-    private const string HitTopNoWrap = "search hit TOP without match for: ";
-    private const string NoPreviousSearch = "No previous search pattern";
-    private const string MarkNotSet = "Mark not set";
-    private const string NoRangeAllowed = "No range allowed";
     private const string NothingInRegister = "Nothing in the register";
     private const string NoPreviousMacro = "No previously used register";
     private const string MacroNestingTooDeep = "Macro nesting too deep";
@@ -116,12 +106,13 @@ public sealed class VimEngine
     private readonly VimSharedState _shared;
     private readonly KeySequenceParser _parser = new();
 
+    // The command line while it is up, the ex lines it runs, and where a search typed on it lands: each its own part.
+    private readonly VimCommandLine _commandLine;
+    private readonly VimExCommands _ex;
+    private readonly VimSearchMotion _search;
+
     // Set by Ctrl+W, until the next key says which window command it was.
     private bool _windowPending;
-
-    // Where the view's top line was when a '/' or '?' line opened, to go back to if it is cancelled:
-    // incsearch scrolls the view to the match being typed, and Esc takes that back.
-    private int _incSearchViewTop;
 
     // The column j and k aim for, kept across a run of them so that passing through a short line does
     // not cost the column the caret started in. NoDesiredColumn means "read it off the caret";
@@ -136,14 +127,6 @@ public sealed class VimEngine
     // this document. Lines and columns rather than offsets — vim's own marks are — so that a change
     // the operator made under it, a '>' that indented the lines, does not move it off them.
     private RememberedSelection? _lastVisual;
-
-    // The command line as it is being typed, first character and all, or null when it is not open.
-    // One field rather than a mode, because nothing else about the engine changes while it is up.
-    private StringBuilder? _commandLine;
-
-    // The command that opened the line now up — the operator, count and register a '/' or '?' was
-    // typed behind — read when Enter closes it. Meaningful only while _commandLine is not null.
-    private VimCommand _commandLineOpener;
 
 
 
@@ -197,6 +180,9 @@ public sealed class VimEngine
         _buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
         Options = options ?? new VimOptions();
         _shared = shared ?? new VimSharedState();
+        _commandLine = new VimCommandLine(_buffer, Options, _shared, () => IncSearchChanged?.Invoke(this, EventArgs.Empty));
+        _ex = new VimExCommands(_buffer, Options, _shared, this);
+        _search = new VimSearchMotion(_buffer, Options, _shared, this);
 
         _buffer.Changed += OnBufferChanged;
     }
@@ -242,7 +228,7 @@ public sealed class VimEngine
     /// <see langword="null"/> when none is being typed, the pattern so far does not compile or matches
     /// nothing.
     /// </summary>
-    public VimIncSearch? IncSearch { get; private set; }
+    public VimIncSearch? IncSearch => _commandLine.IncSearch;
 
     /// <summary>
     /// Gets the mode the engine is in.
@@ -294,13 +280,13 @@ public sealed class VimEngine
     /// character to write, <c>"</c>, <c>q</c> or <c>@</c> for the register, or a command line still
     /// being written.
     /// </summary>
-    public bool HasPendingSequence => _parser.HasPendingSequence || (_commandLine is not null) || _windowPending;
+    public bool HasPendingSequence => _parser.HasPendingSequence || _commandLine.IsOpen || _windowPending;
 
     /// <summary>
     /// Gets the command line as it stands, including the <c>:</c>, <c>/</c> or <c>?</c> that opened
     /// it, or <see langword="null"/> when none is open.
     /// </summary>
-    public string? CommandLine => _commandLine?.ToString();
+    public string? CommandLine => _commandLine.Text;
 
     /// <summary>
     /// Offers the engine a keystroke.
@@ -389,7 +375,7 @@ public sealed class VimEngine
 
     private bool StepFromMenu(VimKey key)
     {
-        if (_commandLine is not null)
+        if (_commandLine.IsOpen)
         {
             return false;
         }
@@ -430,7 +416,7 @@ public sealed class VimEngine
 
         // Before the parser and before Esc: while a command line is open every key belongs to it,
         // including the ones that would otherwise cancel a half-typed command or start a new one.
-        if (_commandLine is not null)
+        if (_commandLine.IsOpen)
         {
             return HandleCommandLineKey(key);
         }
@@ -573,7 +559,7 @@ public sealed class VimEngine
         EndInsertGroup();
         _parser.Reset();
         _windowPending = false;
-        CloseCommandLine();
+        _commandLine.Close();
         _desiredColumn = NoDesiredColumn;
         ClearStatus();
 
@@ -610,7 +596,7 @@ public sealed class VimEngine
             return;
         }
 
-        CancelCommandLine();
+        _commandLine.Cancel();
         _parser.Reset();
         _windowPending = false;
 
@@ -641,7 +627,7 @@ public sealed class VimEngine
     /// </remarks>
     public void PlaceCaret()
     {
-        if ((Mode == VimMode.Insert) || (_commandLine is not null))
+        if ((Mode == VimMode.Insert) || _commandLine.IsOpen)
         {
             return;
         }
@@ -680,7 +666,7 @@ public sealed class VimEngine
     /// </remarks>
     public void AdoptSelection(int anchor, int active, bool linewise)
     {
-        if ((Mode == VimMode.Insert) || (_commandLine is not null))
+        if ((Mode == VimMode.Insert) || _commandLine.IsOpen)
         {
             return;
         }
@@ -980,7 +966,7 @@ public sealed class VimEngine
                 break;
 
             case VimAction.BeginCommandLine:
-                OpenCommandLine(command);
+                _commandLine.Open(command);
                 break;
 
             case VimAction.Undo:
@@ -1347,7 +1333,7 @@ public sealed class VimEngine
             case VimMotion.SearchWordBackward:
 
                 // A search that finds nothing has already said why, and left the caret alone.
-                if (SearchTarget(command) is { } landing)
+                if (_search.Target(command) is { } landing)
                 {
                     SetCaret(landing);
                 }
@@ -1408,7 +1394,7 @@ public sealed class VimEngine
             // Resolved here rather than in VimRanges, because where a search lands depends on state
             // only the engine has — the options, the last pattern — and on a compile that may fail
             // and has to say so.
-            resolved = SearchTarget(command) is { } landing ? VimRanges.Search(_buffer, caret, landing) : null;
+            resolved = _search.Target(command) is { } landing ? VimRanges.Search(_buffer, caret, landing) : null;
         }
         else
         {
@@ -2440,186 +2426,17 @@ public sealed class VimEngine
         _desiredColumn = NoDesiredColumn;
     }
 
-    /// <summary>
-    /// Opens the command line — <c>:</c>, <c>/</c> or <c>?</c>.
-    /// </summary>
-    /// <param name="opener">
-    /// The command that opened it. Its argument is the key, which is also the line's first character;
-    /// its operator, count and register are what a search typed on the line will run with.
-    /// </param>
-    private void OpenCommandLine(VimCommand opener)
-    {
-        _commandLineOpener = opener;
-        _commandLine = new StringBuilder().Append(opener.Argument);
-        _incSearchViewTop = _buffer.FirstVisibleLine;
-        _buffer.ShowCommandLine(_commandLine.ToString());
-    }
-
-    private void CloseCommandLine()
-    {
-        if (_commandLine is null)
-        {
-            return;
-        }
-
-        _commandLine = null;
-        SetIncSearch(null);
-        _buffer.ShowCommandLine(null);
-    }
-
-    /// <summary>
-    /// Closes the command line without running it — <c>Esc</c> in it.
-    /// </summary>
-    private void CancelCommandLine()
-    {
-        bool searching = _commandLine is { Length: > 0 } line && (line[0] is '/' or '?');
-
-        CloseCommandLine();
-
-        // A cancelled search leaves the view where it was before it was typed.
-        if (searching)
-        {
-            _buffer.ScrollToLine(_incSearchViewTop, VimScrollAlignment.Top);
-        }
-    }
-
-    /// <summary>
-    /// incsearch: shows the matches of the pattern typed so far, and brings the one Enter would land
-    /// on into view — without moving the caret, which only moves on Enter.
-    /// </summary>
-    /// <remarks>
-    /// A pattern that does not compile yet — <c>foo(</c> on its way to <c>foo(x)</c> — shows nothing
-    /// and says nothing: the error is for Enter to report. The view goes back to where it was when
-    /// the line opened whenever there is nothing to show, and when the line is cancelled.
-    /// </remarks>
-    private void UpdateIncSearch()
-    {
-        if ((_commandLine is not { Length: > 0 } line) || (line[0] is not ('/' or '?')) || !_shared.IncSearch)
-        {
-            return;
-        }
-
-        string pattern = line.ToString(1, line.Length - 1);
-        VimIncSearch? preview = null;
-
-        if ((pattern.Length > 0)
-            && VimPattern.TryCompile(pattern, Options, smartCase: true, ignoreCase: null, out Regex? regex, out _))
-        {
-            try
-            {
-                if (VimSearch.FindMatch(_buffer, regex, _buffer.CaretOffset, forward: line[0] == '/') is { } match)
-                {
-                    preview = new VimIncSearch(regex, match.Offset, match.Length);
-                }
-            }
-            catch (RegexMatchTimeoutException)
-            {
-                // A pattern too slow to finish shows nothing; Enter reports it.
-            }
-        }
-
-        if (preview is null)
-        {
-            _buffer.ScrollToLine(_incSearchViewTop, VimScrollAlignment.Top);
-        }
-        else
-        {
-            BringIntoView(preview.MatchOffset);
-        }
-
-        SetIncSearch(preview);
-    }
-
-    private void BringIntoView(int offset)
-    {
-        int lineNumber = _buffer.GetLineByOffset(offset).Number;
-        int top = _buffer.FirstVisibleLine;
-
-        if ((lineNumber < top) || (lineNumber >= (top + _buffer.VisibleLineCount)))
-        {
-            _buffer.ScrollToLine(lineNumber, VimScrollAlignment.Center);
-        }
-    }
-
-    private void SetIncSearch(VimIncSearch? preview)
-    {
-        if (ReferenceEquals(IncSearch, preview))
-        {
-            return;
-        }
-
-        IncSearch = preview;
-        IncSearchChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    /// <summary>
-    /// Reads one keystroke into the open command line.
-    /// </summary>
-    /// <param name="key">What was pressed.</param>
-    /// <returns>The same answer <see cref="HandleKey"/> gives: whether the engine took the key.</returns>
-    /// <remarks>
-    /// Typing, Backspace, Enter and Esc, and nothing else. The arrows do not move along the line and
-    /// there is no history to page through — both are vim's, both are more command line than this one
-    /// needs, and both would have to be typed blind into a strip that shows no cursor of its own.
-    /// </remarks>
+    // While the line is up every key is its; Enter hands the finished line back to be run.
     private bool HandleCommandLineKey(VimKey key)
     {
-        StringBuilder line = _commandLine!;
+        bool taken = _commandLine.HandleKey(key, out (string Line, VimCommand Opener)? entered);
 
-        // Ctrl and Alt still belong to the window, exactly as they do in normal mode. Ctrl+S while a
-        // command line is open saves the file, which is what the key is for; the line stays up.
-        if (key.HasCommandModifier)
+        if (entered is { } finished)
         {
-            return false;
+            RunCommandLine(finished.Line, finished.Opener);
         }
 
-        switch (key.Special)
-        {
-            case VimSpecialKey.Escape:
-                CancelCommandLine();
-
-                return true;
-
-            case VimSpecialKey.Enter:
-                string typed = line.ToString();
-                VimCommand opener = _commandLineOpener;
-                CloseCommandLine();
-                RunCommandLine(typed, opener);
-
-                return true;
-
-            case VimSpecialKey.Backspace:
-
-                // Rubbing out the ':' itself closes the line, which is vim's answer and the only one
-                // that leaves no way to be stuck in a command line with nothing in it.
-                line.Remove(line.Length - 1, 1);
-
-                if (line.Length == 0)
-                {
-                    CloseCommandLine();
-                    _buffer.ScrollToLine(_incSearchViewTop, VimScrollAlignment.Top);
-                }
-                else
-                {
-                    _buffer.ShowCommandLine(line.ToString());
-                    UpdateIncSearch();
-                }
-
-                return true;
-
-            case VimSpecialKey.None when !char.IsControl(key.Character):
-                line.Append(key.Character);
-                _buffer.ShowCommandLine(line.ToString());
-                UpdateIncSearch();
-
-                return true;
-
-            default:
-
-                // An arrow, a function key, or a control character some platform reported as text.
-                // Swallowed rather than let through: the document is not what is being typed into.
-                return true;
-        }
+        return taken;
     }
 
     /// <summary>
@@ -2633,7 +2450,7 @@ public sealed class VimEngine
     /// A search becomes the motion it always was and goes through <see cref="Execute"/> like any other
     /// command — a move on its own, an operator's noun when one was waiting, and in a visual mode the
     /// far end of the selection — so that everything a motion gets for free, from the highlight to
-    /// <c>.</c> remembering <c>d/foo</c>, holds for it too. An ex line is run here.
+    /// <c>.</c> remembering <c>d/foo</c>, holds for it too. An ex line goes to <see cref="VimExCommands"/>.
     /// </remarks>
     private void RunCommandLine(string line, VimCommand opener)
     {
@@ -2663,429 +2480,7 @@ public sealed class VimEngine
             return;
         }
 
-        RunEx(command);
-    }
-
-    /// <summary>
-    /// Runs an ex line: a jump, a substitute, a <c>:set</c>, or one of the four requests that leave
-    /// the engine.
-    /// </summary>
-    /// <remarks>
-    /// The parser says what was typed and this says what it means, so that "Not an editor command" is
-    /// one answer from one place — for a name the engine does not know, and for a shape it does not
-    /// read. The file requests are the only ones that leave: everything else here is about the text,
-    /// and the text is the engine's.
-    /// </remarks>
-    private void RunEx(string command)
-    {
-        if (ExCommandParser.ParseLine(command) is not { } line)
-        {
-            Fail($"Not an editor command: {command}");
-
-            return;
-        }
-
-        switch (line.Name)
-        {
-            case "" when line.Range is { } range:
-                GoToLine(range);
-                break;
-
-            case "s":
-            case "substitute":
-                Substitute(line, command);
-                break;
-
-            case "se":
-            case "set":
-                Set(line);
-                break;
-
-            // ':noh[lsearch]' — any prefix of 'nohlsearch' from 'noh' on, as vim reads it.
-            case { Length: >= 3 } name when "nohlsearch".StartsWith(name, StringComparison.Ordinal):
-                if (line.Range is not null)
-                {
-                    Fail(NoRangeAllowed);
-                }
-                else
-                {
-                    _shared.SuppressHighlight();
-                }
-
-                break;
-
-            default:
-                if (ExCommandParser.FileCommand(line) is { } request)
-                {
-                    ExCommandRequested?.Invoke(this, request);
-                }
-                else
-                {
-                    Fail($"Not an editor command: {command}");
-                }
-
-                break;
-        }
-    }
-
-    /// <summary>
-    /// Runs a range typed on its own — <c>:42</c>, <c>:$</c>, <c>:'&gt;</c> — a jump to the last line
-    /// it names, at its first non-blank.
-    /// </summary>
-    private void GoToLine(VimExRange range)
-    {
-        if (ResolveRange(range) is not { } lines)
-        {
-            return;
-        }
-
-        SetCaret(_buffer.GetLine(lines.Last).FirstNonBlankOffset);
-        _desiredColumn = NoDesiredColumn;
-        _buffer.ScrollToCaret();
-    }
-
-    /// <summary>
-    /// Runs <c>:s</c>.
-    /// </summary>
-    /// <param name="line">The parsed line.</param>
-    /// <param name="command">The line as typed, for the message when it is not a substitute after all.</param>
-    /// <remarks>
-    /// The pattern becomes the last search pattern, as it does in vim — <c>n</c> after
-    /// <c>:s/foo/bar/</c> finds the next <c>foo</c> — and an empty pattern reads it, so <c>/foo</c>
-    /// then <c>:s//bar/</c> substitutes what was just searched for. It is remembered once it has
-    /// compiled and before it is run, so a substitute that finds nothing still leaves its pattern
-    /// behind. One write for the whole range and one undo step; the caret to the first non-blank of
-    /// the last line a substitution touched, which is vim's landing.
-    /// </remarks>
-    private void Substitute(VimExLine line, string command)
-    {
-        if (!VimSubstitute.TryParse(line.Argument, out VimSubstituteRequest request, out string? trailing))
-        {
-            Fail(trailing ?? $"Not an editor command: {command}");
-
-            return;
-        }
-
-        string? pattern = request.Pattern.Length > 0 ? request.Pattern : _shared.LastSearch?.Pattern;
-
-        if (pattern is null)
-        {
-            Fail(NoPreviousSearch);
-
-            return;
-        }
-
-        (int First, int Last) lines;
-
-        if (line.Range is { } range)
-        {
-            if (ResolveRange(range) is not { } resolved)
-            {
-                return;
-            }
-
-            lines = resolved;
-        }
-        else
-        {
-            int current = CurrentLine.Number;
-            lines = (current, current);
-        }
-
-        if (!VimPattern.TryCompile(pattern, Options, smartCase: true, request.IgnoreCase, out Regex? regex, out string? error))
-        {
-            Fail($"Invalid pattern: {error}");
-
-            return;
-        }
-
-        // The direction is left as it was: ':s' has none of its own, and 'n' afterwards goes on the
-        // way the last '/' or '?' went.
-        _shared.LastSearch = new VimLastSearch(pattern, _shared.LastSearch?.Forward ?? true, SmartCase: true);
-        _shared.Highlight(regex);
-
-        VimSubstitution? result;
-
-        try
-        {
-            result = VimSubstitute.Apply(_buffer, regex, request.Replacement, request.Global, lines.First, lines.Last);
-        }
-        catch (RegexMatchTimeoutException)
-        {
-            Fail($"Invalid pattern: {VimPattern.TimedOut}");
-
-            return;
-        }
-
-        if (result is not { } substitution)
-        {
-            Fail($"Pattern not found: {pattern}");
-
-            return;
-        }
-
-        _buffer.Replace(substitution.Offset, substitution.Length, substitution.Text);
-        SetCaret(_buffer.GetLineByOffset(substitution.Offset + substitution.Caret).FirstNonBlankOffset);
-        _desiredColumn = NoDesiredColumn;
-        _buffer.ShowStatus(substitution.Message);
-        _buffer.ScrollToCaret();
-    }
-
-    /// <summary>
-    /// Runs <c>:set</c>.
-    /// </summary>
-    private void Set(VimExLine line)
-    {
-        // Vim's answer to ':3set': an option is not a thing lines have.
-        if (line.Range is not null)
-        {
-            Fail(NoRangeAllowed);
-
-            return;
-        }
-
-        (int ShiftWidth, bool ExpandTab) before = (Options.ShiftWidth, Options.ExpandTab);
-        List<string> fileOptions = [];
-        bool applied = VimSet.TryApply(line.Argument, Options, _shared, fileOptions, out string? message);
-
-        // Told even when a later argument was refused: what came before it was applied, Vim's rule.
-        if ((Options.ShiftWidth, Options.ExpandTab) != before)
-        {
-            OptionsChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        // The file's options are the application's to apply, and to answer for.
-        if (fileOptions.Count > 0)
-        {
-            ExCommandRequested?.Invoke(this, new VimExRequest(VimExCommand.SetFileOptions, string.Join(' ', fileOptions)));
-        }
-
-        if (!applied)
-        {
-            Fail(message!);
-
-            return;
-        }
-
-        if (message is not null)
-        {
-            _buffer.ShowStatus(message);
-        }
-    }
-
-    /// <summary>
-    /// Turns a range into line numbers the buffer has: <c>.</c> and <c>$</c> read now, the marks read
-    /// off the last selection, the offsets added, both ends clamped, and the two put in order.
-    /// </summary>
-    /// <returns>
-    /// The lines, or <see langword="null"/> — with the reason shown — when a mark names a selection
-    /// that has not been made.
-    /// </returns>
-    private (int First, int Last)? ResolveRange(VimExRange range)
-    {
-        if ((ResolveAddress(range.Start) is not { } one) || (ResolveAddress(range.End) is not { } other))
-        {
-            return null;
-        }
-
-        int first = Math.Clamp(one, 1, _buffer.LineCount);
-        int last = Math.Clamp(other, 1, _buffer.LineCount);
-
-        // Vim asks whether to swap a backwards range. There is no way to ask here, and the lines
-        // meant are the same either way.
-        return (Math.Min(first, last), Math.Max(first, last));
-    }
-
-    private int? ResolveAddress(VimExAddress address)
-    {
-        int line;
-
-        switch (address.Kind)
-        {
-            case VimExAddressKind.Line:
-                line = address.Line;
-                break;
-
-            case VimExAddressKind.Current:
-                line = CurrentLine.Number;
-                break;
-
-            case VimExAddressKind.Last:
-                line = _buffer.LineCount;
-                break;
-
-            default:
-
-                // '< and '>: the last selection's first and last lines, whichever end was the anchor.
-                if (_lastVisual is not { } selection)
-                {
-                    Fail(MarkNotSet);
-
-                    return null;
-                }
-
-                line = address.Kind == VimExAddressKind.VisualStart
-                    ? Math.Min(selection.AnchorLine, selection.CaretLine)
-                    : Math.Max(selection.AnchorLine, selection.CaretLine);
-                break;
-        }
-
-        return line + address.Offset;
-    }
-
-    /// <summary>
-    /// Works out where a search motion lands, and remembers what it looked for.
-    /// </summary>
-    /// <param name="command">The command, whose motion is one of the six searches.</param>
-    /// <returns>
-    /// The offset of the match, or <see langword="null"/> when there is none — with the reason already
-    /// on the status bar, and the macro stopped.
-    /// </returns>
-    /// <remarks>
-    /// The one place the memory is written. <c>/</c>, <c>?</c>, <c>*</c> and <c>#</c> write it — the
-    /// pattern, and the way they went; <c>n</c> reads it as it is and <c>N</c> reads it the other way
-    /// round without turning it, so that <c>N</c> then <c>n</c> still goes the original way, exactly
-    /// as <c>,</c> and <c>;</c> do for a find. A <c>/</c> with nothing typed after it reads the pattern
-    /// back and writes only the direction, which is vim's <c>/</c> and Enter. <c>*</c> and <c>#</c>
-    /// start from the word's first character rather than the caret's, so that the word under the caret
-    /// is the one skipped, and they mark the pattern as one <c>smartcase</c> must leave alone, because
-    /// a capital in a word taken off the page was not typed. A pattern that does not compile is not
-    /// remembered: there is nothing for <c>n</c> to do with it.
-    /// </remarks>
-    private int? SearchTarget(VimCommand command)
-    {
-        int from = _buffer.CaretOffset;
-        VimLastSearch search;
-        bool remember;
-
-        switch (command.Motion)
-        {
-            case VimMotion.SearchForward:
-            case VimMotion.SearchBackward:
-                bool forward = command.Motion == VimMotion.SearchForward;
-
-                if (command.Pattern is { } typed)
-                {
-                    search = new VimLastSearch(typed, forward, SmartCase: true);
-                }
-                else if (_shared.LastSearch is { } previous)
-                {
-                    search = previous with { Forward = forward };
-                }
-                else
-                {
-                    Fail(NoPreviousSearch);
-
-                    return null;
-                }
-
-                remember = true;
-                break;
-
-            case VimMotion.SearchNext:
-            case VimMotion.SearchPrevious:
-                if (_shared.LastSearch is not { } last)
-                {
-                    Fail(NoPreviousSearch);
-
-                    return null;
-                }
-
-                search = command.Motion == VimMotion.SearchNext ? last : last with { Forward = !last.Forward };
-                remember = false;
-                break;
-
-            case VimMotion.SearchWordForward:
-            case VimMotion.SearchWordBackward:
-                if (VimSearch.WordUnderCaret(_buffer, from) is not { } word)
-                {
-                    // Nothing on the line to look for. Silent, as a motion that cannot go anywhere is
-                    // — and, like a find that misses, the end of any macro it was part of.
-                    _macroFailed = true;
-
-                    return null;
-                }
-
-                search = new VimLastSearch(word.Pattern, command.Motion == VimMotion.SearchWordForward, SmartCase: false);
-                from = word.Start;
-                remember = true;
-                break;
-
-            default:
-                return null;
-        }
-
-        if (!VimPattern.TryCompile(search.Pattern, Options, search.SmartCase, ignoreCase: null, out Regex? regex, out string? error))
-        {
-            Fail($"Invalid pattern: {error}");
-
-            return null;
-        }
-
-        if (remember)
-        {
-            _shared.LastSearch = search;
-        }
-
-        // hlsearch: the pattern every search goes by is the one highlighted — n and N included, which
-        // is also what lifts a :nohlsearch.
-        _shared.Highlight(regex);
-
-        return Search(regex, search.Pattern, from, search.Forward, command.EffectiveCount);
-    }
-
-    /// <summary>
-    /// Walks <paramref name="count"/> matches along from <paramref name="from"/>, or says why it
-    /// could not.
-    /// </summary>
-    /// <remarks>
-    /// A count walks match by match rather than jumping, because each step has to start from where the
-    /// last one landed for the wrap to be right. Nothing is moved here: a <c>3n</c> that runs out of
-    /// matches leaves the caret where it was rather than two thirds of the way there, and the caller
-    /// puts the caret — or the operator's range — where the answer says. With <c>wrapscan</c> off, the
-    /// step that would have gone round the end is the step that fails, and the message says which end
-    /// it hit; with it on, the message says the search went round.
-    /// </remarks>
-    private int? Search(Regex regex, string pattern, int from, bool forward, int count)
-    {
-        int at = from;
-        bool wrapped = false;
-
-        try
-        {
-            for (int index = 0; index < count; index++)
-            {
-                if (VimSearch.Find(_buffer, regex, at, forward) is not { } hit)
-                {
-                    Fail($"Pattern not found: {pattern}");
-
-                    return null;
-                }
-
-                if (hit.Wrapped && !Options.WrapScan)
-                {
-                    Fail((forward ? HitBottomNoWrap : HitTopNoWrap) + pattern);
-
-                    return null;
-                }
-
-                at = hit.Offset;
-                wrapped |= hit.Wrapped;
-            }
-        }
-        catch (RegexMatchTimeoutException)
-        {
-            Fail($"Invalid pattern: {VimPattern.TimedOut}");
-
-            return null;
-        }
-
-        if (wrapped)
-        {
-            _buffer.ShowStatus(forward ? HitBottom : HitTop);
-        }
-
-        return at;
+        _ex.Run(command);
     }
 
     private void Rewind(int count, bool forward)
@@ -3215,6 +2610,29 @@ public sealed class VimEngine
         _buffer.ShowStatus(message);
         _macroFailed = true;
     }
+
+    /// <inheritdoc />
+    (int AnchorLine, int CaretLine)? IVimEngineContext.LastSelection
+        => _lastVisual is { } selection ? (selection.AnchorLine, selection.CaretLine) : null;
+
+    /// <inheritdoc />
+    void IVimEngineContext.Fail(string message) => Fail(message);
+
+    /// <inheritdoc />
+    void IVimEngineContext.StopMacro() => _macroFailed = true;
+
+    /// <inheritdoc />
+    void IVimEngineContext.MoveCaret(int offset)
+    {
+        SetCaret(offset);
+        _desiredColumn = NoDesiredColumn;
+    }
+
+    /// <inheritdoc />
+    void IVimEngineContext.Request(VimExRequest request) => ExCommandRequested?.Invoke(this, request);
+
+    /// <inheritdoc />
+    void IVimEngineContext.RaiseOptionsChanged() => OptionsChanged?.Invoke(this, EventArgs.Empty);
 
     /// <summary>
     /// Takes the message off the status bar — or, while a recording is open, puts
