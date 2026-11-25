@@ -369,7 +369,7 @@ Locations: `src/Enigma.TextEditor.Core/Vim/VimEngine.cs:2450-3090`.
 
 ## PHASE15 — [Medium] SOLID-03 Visual mode leaves `VimEngine`
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `VimEngine.cs:1494-2047`.
 

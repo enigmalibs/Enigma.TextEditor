@@ -87,7 +87,6 @@ namespace Enigma.TextEditor.Core.Vim;
 public sealed class VimEngine : IVimEngineContext
 {
     private const int NoDesiredColumn = -1;
-    private const int NoAnchor = -1;
 
     private const string NothingInRegister = "Nothing in the register";
     private const string NoPreviousMacro = "No previously used register";
@@ -119,14 +118,9 @@ public sealed class VimEngine : IVimEngineContext
     // int.MaxValue is what '$' leaves behind, so that j and k walk down the ends of the lines.
     private int _desiredColumn = NoDesiredColumn;
 
-    // The end of the visual selection that does not move, or NoAnchor when nothing is selected. The
-    // moving end is the caret itself, which is why a visual mode needs one value here and not two.
-    private int _visualAnchor = NoAnchor;
+    // The visual selection's anchor, and the selection made last, for 'gv' and the '< and '> marks.
+    private readonly VimVisualSelection _visual;
 
-    // Where the last selection was, for 'gv' to go back to, or null when there has not been one in
-    // this document. Lines and columns rather than offsets — vim's own marks are — so that a change
-    // the operator made under it, a '>' that indented the lines, does not move it off them.
-    private RememberedSelection? _lastVisual;
 
 
 
@@ -146,7 +140,7 @@ public sealed class VimEngine : IVimEngineContext
     // The command that opened the insert session now running, and the selection it was typed over,
     // waiting for the Esc that closes the record and makes it the last change.
     private VimCommand? _insertCommand;
-    private VisualExtent? _insertVisual;
+    private VimVisualExtent? _insertVisual;
 
     // Set while '.' is replaying: nothing the replay does is a change of its own to remember.
     private bool _replaying;
@@ -183,6 +177,7 @@ public sealed class VimEngine : IVimEngineContext
         _commandLine = new VimCommandLine(_buffer, Options, _shared, () => IncSearchChanged?.Invoke(this, EventArgs.Empty));
         _ex = new VimExCommands(_buffer, Options, _shared, this);
         _search = new VimSearchMotion(_buffer, Options, _shared, this);
+        _visual = new VimVisualSelection(_buffer);
 
         _buffer.Changed += OnBufferChanged;
     }
@@ -569,7 +564,7 @@ public sealed class VimEngine : IVimEngineContext
 
         // After LeaveVisual, which would have just remembered it. A selection is a place in a
         // document, and the document may be a different one now — vim's marks are the buffer's too.
-        _lastVisual = null;
+        _visual.Forget();
     }
 
     /// <summary>
@@ -682,7 +677,7 @@ public sealed class VimEngine : IVimEngineContext
         _parser.Reset();
         _windowPending = false;
 
-        _visualAnchor = OnTheLine(to > from ? from : from - 1);
+        _visual.Anchor = OnTheLine(to > from ? from : from - 1);
         SetCaret(to > from ? to - 1 : to);
         _desiredColumn = NoDesiredColumn;
 
@@ -794,7 +789,7 @@ public sealed class VimEngine : IVimEngineContext
 
         // Measured before the command runs and leaves the mode: how far the selection reached is what
         // '.' has to reproduce from wherever the caret is by then.
-        VisualExtent? extent = (change && IsVisual) ? CurrentExtent() : null;
+        VimVisualExtent? extent = (change && IsVisual) ? _visual.Extent(Mode) : null;
 
         // Resolved before the switch because it is the one motion that writes state as it is read:
         // 'f' and its three siblings are what ';' repeats, and both the move and the operator paths
@@ -1492,7 +1487,7 @@ public sealed class VimEngine : IVimEngineContext
         // charwise selection had reached into rather than starting again from the caret.
         if (!IsVisual)
         {
-            _visualAnchor = _buffer.CaretOffset;
+            _visual.Anchor = _buffer.CaretOffset;
         }
 
         SetMode(mode);
@@ -1510,41 +1505,19 @@ public sealed class VimEngine : IVimEngineContext
     {
         if (IsVisual)
         {
-            _lastVisual = CurrentSelection();
+            _visual.Remember(Mode);
         }
 
-        _visualAnchor = NoAnchor;
-
-        _buffer.ClearSelection();
+        _visual.Clear();
         SetMode(VimMode.Normal);
     }
 
-    /// <summary>
-    /// Hands the editor the selection the anchor and the caret describe between them.
-    /// </summary>
-    private void ShowSelection()
-    {
-        VimTextRange range = VisualRange();
+    // Hands the editor the selection the anchor and the caret describe between them.
+    private void ShowSelection() => _visual.Show(Mode == VimMode.VisualLine);
 
-        if (!range.IsLinewise)
-        {
-            _buffer.SetSelection(range.Start, range.End);
+    private VimTextRange VisualRange() => _visual.Range(Mode == VimMode.VisualLine);
 
-            return;
-        }
-
-        // The line break goes into the highlight, though not into the range an operator works on, so
-        // that a linewise selection reads as whole lines rather than as text that happens to reach
-        // both edges of them. The last line of the buffer has none to add.
-        VimLine last = _buffer.GetLineByOffset(range.End);
-
-        _buffer.SetSelection(range.Start, last.EndOffset + last.DelimiterLength);
-    }
-
-    private VimTextRange VisualRange() => VisualRange(Mode == VimMode.VisualLine);
-
-    private VimTextRange VisualRange(bool linewise)
-        => VimRanges.Selection(_buffer, _visualAnchor, _buffer.CaretOffset, linewise);
+    private VimTextRange VisualRange(bool linewise) => _visual.Range(linewise);
 
     /// <summary>
     /// Selects what a text object covers — <c>viw</c>, <c>va(</c> — and stays in the visual mode.
@@ -1565,7 +1538,7 @@ public sealed class VimEngine : IVimEngineContext
             return;
         }
 
-        _visualAnchor = range.Start;
+        _visual.Anchor = range.Start;
 
         // On the last character the object covers rather than one past it: in a visual mode the caret
         // is inside the selection, and the range the operator gets is taken from where it sits. An
@@ -1979,10 +1952,7 @@ public sealed class VimEngine : IVimEngineContext
     /// </summary>
     private void SwapVisualEnds()
     {
-        int anchor = _visualAnchor;
-
-        _visualAnchor = _buffer.CaretOffset;
-        SetCaret(anchor);
+        SetCaret(_visual.Swap());
         _desiredColumn = NoDesiredColumn;
     }
 
@@ -1998,43 +1968,14 @@ public sealed class VimEngine : IVimEngineContext
     /// </remarks>
     private void ReselectVisual()
     {
-        if (_lastVisual is not { } previous)
+        if (_visual.Reselect(Mode) is not { } back)
         {
             return;
         }
 
-        if (IsVisual)
-        {
-            _lastVisual = CurrentSelection();
-        }
-
-        _visualAnchor = OffsetOf(previous.AnchorLine, previous.AnchorColumn);
-        SetCaret(OffsetOf(previous.CaretLine, previous.CaretColumn));
-        SetMode(previous.Mode);
+        SetCaret(back.Caret);
+        SetMode(back.Mode);
         _desiredColumn = NoDesiredColumn;
-    }
-
-    private RememberedSelection CurrentSelection()
-    {
-        VimLine anchorLine = _buffer.GetLineByOffset(_visualAnchor);
-        VimLine caretLine = CurrentLine;
-
-        return new RememberedSelection(
-            anchorLine.Number,
-            _visualAnchor - anchorLine.Offset,
-            caretLine.Number,
-            _buffer.CaretOffset - caretLine.Offset,
-            Mode);
-    }
-
-    /// <summary>
-    /// The offset of a line and column, pulled onto the nearest line and character the buffer still has.
-    /// </summary>
-    private int OffsetOf(int lineNumber, int column)
-    {
-        VimLine line = _buffer.GetLine(Math.Clamp(lineNumber, 1, _buffer.LineCount));
-
-        return Math.Min(line.Offset + column, line.LastCaretOffset);
     }
 
     /// <summary>
@@ -2613,7 +2554,7 @@ public sealed class VimEngine : IVimEngineContext
 
     /// <inheritdoc />
     (int AnchorLine, int CaretLine)? IVimEngineContext.LastSelection
-        => _lastVisual is { } selection ? (selection.AnchorLine, selection.CaretLine) : null;
+        => _visual.Last is { } selection ? (selection.AnchorLine, selection.CaretLine) : null;
 
     /// <inheritdoc />
     void IVimEngineContext.Fail(string message) => Fail(message);
@@ -2840,46 +2781,12 @@ public sealed class VimEngine : IVimEngineContext
     }
 
     /// <summary>
-    /// How far the selection reaches, as <c>.</c> will need it: how many lines, and on one line how
-    /// many characters, over several the column the last line reaches to.
-    /// </summary>
-    private VisualExtent CurrentExtent()
-    {
-        VimTextRange range = VisualRange();
-        VimLine first = _buffer.GetLineByOffset(range.Start);
-        VimLine last = _buffer.GetLineByOffset(range.IsLinewise ? range.End : Math.Max(range.Start, range.End - 1));
-        int lines = (last.Number - first.Number) + 1;
-
-        return new VisualExtent(Mode, lines, lines == 1 ? range.Length : range.End - last.Offset);
-    }
-
-    /// <summary>
     /// Selects again, from the caret, as much as a remembered selection covered — vim's rule for
     /// <c>.</c> after a visual command.
     /// </summary>
-    private void Reselect(VisualExtent extent)
+    private void Reselect(VimVisualExtent extent)
     {
-        int anchor = _buffer.CaretOffset;
-        VimLine line = CurrentLine;
-        int caret;
-
-        if (extent.Lines > 1)
-        {
-            VimLine last = _buffer.GetLine(Math.Min((line.Number + extent.Lines) - 1, _buffer.LineCount));
-
-            caret = extent.Mode == VimMode.VisualLine
-                ? last.Offset
-                : Math.Min(last.Offset + Math.Max(extent.Column - 1, 0), last.LastCaretOffset);
-        }
-        else
-        {
-            caret = extent.Mode == VimMode.VisualLine
-                ? anchor
-                : Math.Min(anchor + Math.Max(extent.Column - 1, 0), line.LastCaretOffset);
-        }
-
-        _visualAnchor = anchor;
-        SetCaret(caret);
+        SetCaret(_visual.Repeat(extent));
         SetMode(extent.Mode);
     }
 
@@ -3102,26 +3009,9 @@ public sealed class VimEngine : IVimEngineContext
     }
 
     /// <summary>
-    /// Where a selection was: both ends as a line and a column, and the mode it was made in.
-    /// </summary>
-    private readonly record struct RememberedSelection(
-        int AnchorLine,
-        int AnchorColumn,
-        int CaretLine,
-        int CaretColumn,
-        VimMode Mode);
-
-    /// <summary>
-    /// How far a selection reached, as a size rather than a place, so that it can be made again
-    /// from wherever the caret is: the mode, how many lines, and — characterwise — how many
-    /// characters on one line or the column the last line reaches to over several.
-    /// </summary>
-    private readonly record struct VisualExtent(VimMode Mode, int Lines, int Column);
-
-    /// <summary>
     /// What <c>.</c> repeats: the command, the text typed after it when it entered insert mode, and
     /// the selection it was over when it was one of the visual commands.
     /// </summary>
-    private readonly record struct RecordedChange(VimCommand Command, string? Text, VisualExtent? Visual);
+    private readonly record struct RecordedChange(VimCommand Command, string? Text, VimVisualExtent? Visual);
 
 }

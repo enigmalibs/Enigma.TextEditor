@@ -171,7 +171,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE12        | [Medium] File intake out of workspace    | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE13        | [Medium] Split the pane view code-behind | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE14        | [Medium] Vim command line out of engine  | DONE        | (in CODE-REVIEW-0734.md)      |
-| - PHASE15        | [Medium] Vim visual mode out of engine   | TODO        | (in CODE-REVIEW-0734.md)      |
+| - PHASE15        | [Medium] Vim visual mode out of engine   | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE16        | [Medium] Vim repeat and macros out       | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE17        | [Medium] Key tables out of the parser    | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE18        | [Medium] Unsaved text in side files      | TODO        | (in CODE-REVIEW-0734.md)      |
