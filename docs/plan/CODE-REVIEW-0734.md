@@ -249,7 +249,7 @@ Locations: `MainWindow.axaml:218-268`, `:335-340`, `:375-378`; `SettingsMenuView
 
 ## PHASE09 — [Medium] SOLID-02 The workspace no longer builds its command handlers
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `src/Enigma.TextEditor.Desktop/ViewModels/WorkspaceViewModel.cs:83-90`.
 

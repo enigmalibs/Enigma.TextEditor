@@ -153,6 +153,11 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<DocumentRegistry>();
             services.AddSingleton<IDocumentService, DocumentService>();
             services.AddSingleton<EditorPreferences>();
+
+            // What the panes' engines hand over — ex commands and window commands — carried out on whichever editor
+            // area is passed in: the handlers hold none, so they are built as any other service.
+            services.AddSingleton<ExCommandHandler>();
+            services.AddSingleton<WindowCommandHandler>();
             services.AddSingleton<WorkspaceViewModel>();
             services.AddSingleton<IFileExplorerPrompts, FileExplorerPrompts>();
 

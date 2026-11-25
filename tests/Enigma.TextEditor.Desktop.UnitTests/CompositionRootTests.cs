@@ -34,6 +34,8 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
     [InlineData(typeof(IAppShutdown))]
     [InlineData(typeof(MainWindowViewModel))]
     [InlineData(typeof(WorkspaceViewModel))]
+    [InlineData(typeof(ExCommandHandler))]
+    [InlineData(typeof(WindowCommandHandler))]
     [InlineData(typeof(StatusBarViewModel))]
     [InlineData(typeof(IDocumentService))]
     [InlineData(typeof(ToolsViewModel))]

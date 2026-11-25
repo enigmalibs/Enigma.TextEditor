@@ -165,7 +165,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE06        | [Medium] Save documents atomically       | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE07        | [Medium] Hex copy moves to the tab model | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE08        | [Medium] Radio menus as choice lists     | DONE        | (in CODE-REVIEW-0734.md)      |
-| - PHASE09        | [Medium] Command handlers from DI        | TODO        | (in CODE-REVIEW-0734.md)      |
+| - PHASE09        | [Medium] Command handlers from DI        | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE10        | [Medium] Start-up lifecycle service      | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE11        | [Medium] Workspace session service       | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE12        | [Medium] File intake out of workspace    | TODO        | (in CODE-REVIEW-0734.md)      |

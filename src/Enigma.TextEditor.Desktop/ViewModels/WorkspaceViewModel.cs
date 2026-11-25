@@ -54,11 +54,9 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// <param name="status">The status bar's message line.</param>
     /// <param name="vim">The Vim session every pane's engine reports to.</param>
     /// <param name="vimShared">What every pane's Vim engine shares.</param>
-    /// <param name="shutdown">Ends the application, for <c>:qa</c>.</param>
     /// <param name="preferences">How every editor looks.</param>
-    /// <param name="help">The key-binding help, for <c>:help</c>.</param>
-    /// <param name="languages">The languages <c>:set filetype</c> can name.</param>
-    /// <param name="languagePicker">The language list, for <c>:set language</c>.</param>
+    /// <param name="ex">Carries out the ex commands the panes' engines recognise.</param>
+    /// <param name="window">Carries out the window commands the panes' engines recognise.</param>
     public WorkspaceViewModel(
         IDocumentService documents,
         DocumentRegistry registry,
@@ -67,11 +65,9 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         StatusMessages status,
         IVimSession vim,
         VimSharedState vimShared,
-        IAppShutdown shutdown,
         EditorPreferences preferences,
-        IHelpDialogService help,
-        LanguageCatalog languages,
-        ILanguagePicker languagePicker)
+        ExCommandHandler ex,
+        WindowCommandHandler window)
     {
         _documents = documents ?? throw new ArgumentNullException(nameof(documents));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
@@ -80,14 +76,8 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         _status = status ?? throw new ArgumentNullException(nameof(status));
         Vim = vim ?? throw new ArgumentNullException(nameof(vim));
         VimShared = vimShared ?? throw new ArgumentNullException(nameof(vimShared));
-        _ex = new ExCommandHandler(
-            this,
-            shutdown ?? throw new ArgumentNullException(nameof(shutdown)),
-            status,
-            help ?? throw new ArgumentNullException(nameof(help)),
-            languages ?? throw new ArgumentNullException(nameof(languages)),
-            languagePicker ?? throw new ArgumentNullException(nameof(languagePicker)));
-        _window = new WindowCommandHandler(this, _ex, status);
+        _ex = ex ?? throw new ArgumentNullException(nameof(ex));
+        _window = window ?? throw new ArgumentNullException(nameof(window));
         Preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
 
         Layout = new LayoutTree();
@@ -883,10 +873,10 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         => CloseTabAsync(pane, tab, discard, keepEmptyPane: false);
 
     /// <inheritdoc />
-    public Task ExecuteExAsync(EditorPaneViewModel pane, VimExRequest request) => _ex.ExecuteAsync(pane, request);
+    public Task ExecuteExAsync(EditorPaneViewModel pane, VimExRequest request) => _ex.ExecuteAsync(this, pane, request);
 
     /// <inheritdoc />
-    public Task ExecuteWindowAsync(EditorPaneViewModel pane, VimWindowCommand command) => _window.ExecuteAsync(pane, command);
+    public Task ExecuteWindowAsync(EditorPaneViewModel pane, VimWindowCommand command) => _window.ExecuteAsync(this, pane, command);
 
     /// <inheritdoc />
     /// <remarks>
