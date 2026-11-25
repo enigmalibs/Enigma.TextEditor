@@ -5,9 +5,12 @@ A cross-platform desktop text editor with **Vim key bindings**, built with [Aval
 [Enigma.Avalonia.Desktop](https://www.nuget.org/packages/Enigma.Avalonia.Desktop) and
 [Enigma.Icons.Avalonia](https://www.nuget.org/packages/Enigma.Icons.Avalonia).
 
-> **What's new in 1.20** — the explorer comes back with the session, shown or hidden as you left it, with its
-> folder; and the session is kept every five seconds while the editor runs, so a crash loses no more than the last
-> few seconds of typing. 1.19 brought the hex view selecting bytes, in the hex or the text column, and copying them
+> **What's new in 1.21** — saving can no longer leave a file empty or cut short: the new contents are written beside
+> it and put in its place in one step; the window keeps responding while files are read and written on a slow disk
+> or a network path; and the session writes the text of an unsaved change only when it changed, in a file of its
+> own. 1.20 brought the explorer coming back with the session, shown or hidden as you left it, with its folder; and
+> the session kept every five seconds while the editor runs, so a crash loses no more than the last few seconds of
+> typing. 1.19 brought the hex view selecting bytes, in the hex or the text column, and copying them
 > as a hex string, as text or as an address range, from its right-click menu or with Ctrl+C; Ctrl+wheel and the
 > touchpad's zoom gesture changing the font size; and `:set lang` opening the language list. 1.18 brought the
 > previous session

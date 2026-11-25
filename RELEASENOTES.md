@@ -1,5 +1,113 @@
 # Release notes
 
+## 1.21.0 — 2026-11-25
+
+A minor release from the code review of 2026-11-19. It adds no command and no setting:
+
+- saving can no longer leave a file empty or cut short, whatever happens part-way through;
+- the window keeps responding while files are read and written on a slow disk or a network path;
+- the session writes the text of an unsaved change only when it changed, in a file of its own.
+
+### Saving cannot leave a file cut short
+
+- **A save writes the new contents beside the file first,** as `.<name>.<random>.tmp`, flushes them to the disk,
+  and only then puts them in the file's place, in one step. A full disk, a network share that drops or a crash
+  part-way through leaves the file as it was. Before, it could be left empty or cut short.
+- **The file stays what it was:** a symbolic link stays a link, and the file it points to is the one saved. On
+  Windows the file keeps its creation time and its attributes, and on Linux and macOS its permissions.
+- **A file that cannot be saved is refused as before,** read-only, not yours to write or locked by another program,
+  and before anything is written.
+- **Where the new contents cannot go beside the file,** in a folder that refuses new files, or for a file another
+  program lets you write but not replace, the save writes in place, as before.
+
+### The window keeps responding during file work
+
+On a large file, or a slow or disconnected network path, the window used to stop responding while it waited for the
+disk. This work now runs in the background, and the window keeps responding:
+
+- reading the session at the start;
+- a save: turning the text into bytes in the document's encoding, and writing them;
+- opening a hex view, by hand or with the session;
+- checking the files dropped on a pane, named on the command line or handed over by another launch;
+- copying bytes from the hex view: reading them and formatting them.
+
+A key typed while a save is writing still leaves the document marked as changed.
+
+### The session writes only what changed
+
+- **Each unsaved change is now a file of its own,** plain text in an `unsaved` folder beside `session.json`.
+  `session.json` keeps the tabs, the splits and the explorer, and names those files.
+- **The check every five seconds writes only what changed.** After a caret move or a tab switch, only the small
+  `session.json` is written. After typing, only the text of the document you typed in is. A large unsaved document
+  is no longer written again every few seconds.
+- **A text file that has gone costs only that change.** Its tab comes back without it, the rest of the session comes
+  back, and the log names what is missing.
+- **A session that cannot be used is moved aside with its texts,** to `session.invalid.json` and `unsaved.invalid`,
+  and the editor starts without it, as before.
+
+### Fixes and diagnostics
+
+- **A program that sends a window's pipe more than the window reads is refused at once.** It used to hold the pipe
+  until its five-second time-out, and a file opened from the system meanwhile waited its turn.
+- **A failed create, rename, delete or move to the trash in the explorer is logged** in `app.log`, with the path and
+  the error, as well as shown in a dialog. Before, only the dialog said so.
+- **A failure before the log is ready,** while the settings are read or the editor is set up, is written in full to
+  `logs/early-errors.log`, beside `app.log`. Before, it was lost. The file starts again once it passes 1 MB.
+
+### Under the hood
+
+The review's other findings change how the editor is built, not what it does:
+
+- each radio group of the menus — the theme, the pane resize step, the indentation and the line endings — is one
+  list of choices;
+- the ex and window commands, the editor's start and close, the session's capture and restore, and the opening of
+  files from outside the panes are each a service of their own;
+- a pane's tab dragging, file dropping and context menu are each a helper of their own;
+- the Vim engine's command line, ex commands, search motions, visual selection, macros and `.` repeat are each a
+  class of their own, and the key tables are apart from the key parser;
+- the user-interface tests wait for what they check, not for a fixed number of rounds, so a busy machine no longer
+  fails them.
+
+### Upgrading from 1.20
+
+- **Your settings carry over** unchanged. 1.21 adds no settings key.
+- **The session moves to format version 2,** with the unsaved texts in the `unsaved` folder. The first start of 1.21
+  brings back a 1.20 session, unsaved changes included, and writes it again in the new format.
+- **Going back to 1.20 does not bring back a 1.21 session.** 1.20 reads only format version 1: it moves
+  `session.json` aside to `session.invalid.json` and starts without it. The unsaved texts stay in `unsaved` as plain
+  text files until 1.21 next writes its session. Save your changes before going back.
+- **`logs/early-errors.log`** appears only after a failure that came before the log was ready.
+- **On Windows, an MSI built from 1.21 upgrades the installed version** in place, 1.20.0 included.
+  `packaging\windows\buildmsi.ps1` names it `Enigma.TextEditor.1.21.0.msi`.
+- **On Linux,** run `packaging/linux/install.sh` again to upgrade in place.
+
+### Dependencies
+
+- **The Avalonia set is held back at 12.1.4,** with Enigma.Avalonia.Desktop 1.3.0. Avalonia 12.1.6 and 12.2.0 are
+  out, but the set moves as a whole, and Enigma.Avalonia.Desktop has not moved.
+- Microsoft.Extensions.Hosting stays at **10.0.15**, the latest 10.0 patch. Its 11.0.0 belongs to .NET 11 and is not
+  taken: the editor runs on .NET 10.
+- Nothing else has an update.
+
+### Compatibility
+
+- Unchanged from 1.20.0: Windows 10/11, Linux (X11) and macOS; .NET 10; Avalonia 12.1.4 and AvaloniaEdit 12.0.0.
+
+### Known issue
+
+- Some lines can still lose their syntax colours after a scroll, until they are edited or scrolled out and back. The
+  fix is not in this release.
+
+### Version
+
+- **1.21.0** is a minor release under Semantic Versioning. It:
+  - makes saving atomic;
+  - moves file work off the UI thread;
+  - keeps each unsaved change in a file of its own.
+
+  The settings file and every default setting stay as they were. The session file moves to format version 2: 1.21
+  reads both versions, and 1.20 sets a version 2 file aside.
+
 ## 1.20.0 — 2026-11-17
 
 A minor release about the session:

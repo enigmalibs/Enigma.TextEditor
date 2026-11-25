@@ -1,6 +1,6 @@
 # FEATURE-6C0E — Release 1.21.0
 
-**Status:** TODO
+**Status:** DONE
 **Type:** FEATURE
 **Branch:** `feature/feature-6c0e-release-1-21-0`
 **Run:** feature/2026-11-25-release-1-21-0
