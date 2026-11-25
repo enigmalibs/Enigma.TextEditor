@@ -22,7 +22,14 @@ namespace Enigma.TextEditor.Core.Sessions;
 /// <param name="Language">The language the user chose, by id; <see langword="null"/> when the file's name decides.</param>
 /// <param name="UnsavedText">
 /// The text, when the buffer held changes its file does not — or any text, for an untitled buffer; with line
-/// feeds alone, as the editor holds it. <see langword="null"/> when the file is to be read again.
+/// feeds alone, as the editor holds it. <see langword="null"/> when the file is to be read again. A session read back
+/// has it here whichever way it was kept; a session written by this editor keeps it in <paramref name="UnsavedTextFile"/>
+/// instead, and a version 1 session here.
+/// </param>
+/// <param name="UnsavedTextFile">
+/// The name of the file, in the session's unsaved-text folder, that holds the text (format version 2). A text changing
+/// as the user types is written there, not into the session file, so that a caret moving does not rewrite every unsaved
+/// buffer.
 /// </param>
 public sealed record SessionDocument(
     string? FilePath,
@@ -34,4 +41,5 @@ public sealed record SessionDocument(
     bool IndentWithTabs = false,
     int IndentSize = 4,
     string? Language = null,
-    string? UnsavedText = null);
+    string? UnsavedText = null,
+    string? UnsavedTextFile = null);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Enigma.TextEditor.Core.Sessions;
 
@@ -8,11 +9,12 @@ namespace Enigma.TextEditor.Core.Sessions;
 /// </summary>
 public sealed class SessionLoadResult
 {
-    private SessionLoadResult(SessionState? state, Exception? failure, string? quarantinedFilePath)
+    private SessionLoadResult(SessionState? state, Exception? failure, string? quarantinedFilePath, IReadOnlyList<string>? missingTexts = null)
     {
         State = state;
         Failure = failure;
         QuarantinedFilePath = quarantinedFilePath;
+        MissingTexts = missingTexts ?? [];
     }
 
     /// <summary>
@@ -32,7 +34,14 @@ public sealed class SessionLoadResult
 
     internal static SessionLoadResult None { get; } = new(null, null, null);
 
-    internal static SessionLoadResult Loaded(SessionState state) => new(state, null, null);
+    /// <summary>
+    /// Gets the unsaved-text files the session names but that could not be read: those buffers come back without their
+    /// text — a file read again from the disk, an untitled buffer empty. The session itself is still used.
+    /// </summary>
+    public IReadOnlyList<string> MissingTexts { get; }
+
+    internal static SessionLoadResult Loaded(SessionState state, IReadOnlyList<string>? missingTexts = null)
+        => new(state, null, null, missingTexts);
 
     internal static SessionLoadResult Failed(Exception failure, string? quarantinedFilePath)
         => new(null, failure, quarantinedFilePath);

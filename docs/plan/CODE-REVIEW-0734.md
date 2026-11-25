@@ -419,7 +419,7 @@ Locations: `src/Enigma.TextEditor.Core/Vim/KeySequenceParser.cs:99` (tables `:46
 
 ## PHASE18 — [Medium] PERF-01 Unsaved text is kept in side files beside the session
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `src/Enigma.TextEditor.Core/Sessions/SessionFile.cs:57-62` (and the records).
 

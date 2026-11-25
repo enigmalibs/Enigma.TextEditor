@@ -174,7 +174,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE15        | [Medium] Vim visual mode out of engine   | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE16        | [Medium] Vim repeat and macros out       | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE17        | [Medium] Key tables out of the parser    | DONE        | (in CODE-REVIEW-0734.md)      |
-| - PHASE18        | [Medium] Unsaved text in side files      | TODO        | (in CODE-REVIEW-0734.md)      |
+| - PHASE18        | [Medium] Unsaved text in side files      | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE19        | [Medium] Autosave writes changed text    | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE20        | [Medium] File I/O off the UI thread      | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE21        | [Medium] UI tests wait on conditions (3) | TODO        | (in CODE-REVIEW-0734.md)      |

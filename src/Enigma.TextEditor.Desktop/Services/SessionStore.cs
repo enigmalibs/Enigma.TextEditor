@@ -76,6 +76,13 @@ public sealed class SessionStore : ISessionStore, IDisposable
                 result.QuarantinedFilePath ?? "(not moved)");
         }
 
+        if (result.MissingTexts.Count > 0)
+        {
+            _logger.LogWarning(
+                "The previous session names unsaved text that could not be read, and those buffers come back without it: {MissingTexts}.",
+                string.Join(", ", result.MissingTexts));
+        }
+
         return result.State;
     }
 
