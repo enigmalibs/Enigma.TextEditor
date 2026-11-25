@@ -310,7 +310,7 @@ Locations: `WorkspaceViewModel.cs:977-1114`, `:1273-1331`.
 
 ## PHASE12 — [Medium] SOLID-01 / SOLID-03 File intake leaves `WorkspaceViewModel`
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `WorkspaceViewModel.cs:607-673`, `:904-945`, `:1116-1180`, `:1218-1256`.
 

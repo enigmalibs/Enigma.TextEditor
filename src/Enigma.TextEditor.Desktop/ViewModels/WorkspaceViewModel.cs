@@ -35,7 +35,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 {
     private readonly IDocumentService _documents;
     private readonly DocumentRegistry _registry;
-    private readonly IFilePrompts _prompts;
+    private readonly FileIntake _intake;
     private readonly IUnsavedChangesPrompt _unsaved;
     private readonly StatusMessages _status;
     private readonly ExCommandHandler _ex;
@@ -48,7 +48,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// </summary>
     /// <param name="documents">Opens and saves buffers.</param>
     /// <param name="registry">The open buffers.</param>
-    /// <param name="prompts">The open picker.</param>
+    /// <param name="intake">Opens files picked, dropped or named on a command line.</param>
     /// <param name="unsaved">Asks about unsaved changes before a buffer is closed.</param>
     /// <param name="status">The status bar's message line.</param>
     /// <param name="vim">The Vim session every pane's engine reports to.</param>
@@ -59,7 +59,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     public WorkspaceViewModel(
         IDocumentService documents,
         DocumentRegistry registry,
-        IFilePrompts prompts,
+        FileIntake intake,
         IUnsavedChangesPrompt unsaved,
         StatusMessages status,
         IVimSession vim,
@@ -70,7 +70,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     {
         _documents = documents ?? throw new ArgumentNullException(nameof(documents));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
-        _prompts = prompts ?? throw new ArgumentNullException(nameof(prompts));
+        _intake = intake ?? throw new ArgumentNullException(nameof(intake));
         _unsaved = unsaved ?? throw new ArgumentNullException(nameof(unsaved));
         _status = status ?? throw new ArgumentNullException(nameof(status));
         Vim = vim ?? throw new ArgumentNullException(nameof(vim));
@@ -91,7 +91,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 
         NewCommand = new RelayCommand(() => NewDocument());
         OpenCommand = new AsyncRelayCommand(OpenFromPromptAsync);
-        OpenHexCommand = new AsyncRelayCommand(OnOpenHexAsync);
+        OpenHexCommand = new AsyncRelayCommand(() => _intake.OpenHexFromPromptAsync(this));
         SaveCommand = new AsyncRelayCommand(() => SaveAsync(ActiveDocument), () => ActiveDocument is { IsHex: false });
         SaveAsCommand = new AsyncRelayCommand(() => SaveAsAsync(ActiveDocument), () => ActiveDocument is { IsHex: false });
         SaveAllCommand = new AsyncRelayCommand(SaveAllAsync, () => _registry.Documents.Count > 0);
@@ -603,7 +603,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
             return null;
         }
 
-        if (!paths.Any(File.Exists))
+        if (!_intake.AnyFile(paths))
         {
             await OpenDroppedAsync(target, paths);
 
@@ -650,16 +650,10 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 
     /// <summary>
     /// Asks which files to open, starting in the active buffer's folder, and opens each in the active
-    /// pane — <em>File → Open…</em>.
+    /// pane — <em>File → Open…</em> (<see cref="FileIntake.OpenFromPromptAsync"/>).
     /// </summary>
     /// <returns>A task that completes when every chosen file has been opened or reported.</returns>
-    public async Task OpenFromPromptAsync()
-    {
-        foreach (string path in await _prompts.AskFilesToOpenAsync(ActiveFolder()))
-        {
-            await OpenAsync(path);
-        }
-    }
+    public Task OpenFromPromptAsync() => _intake.OpenFromPromptAsync(this);
 
     /// <summary>
     /// Opens a file in the hex viewer in the active pane, or shows its hex view there when it is open.
@@ -878,60 +872,8 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     public Task ExecuteWindowAsync(EditorPaneViewModel pane, VimWindowCommand command) => _window.ExecuteAsync(this, pane, command);
 
     /// <inheritdoc />
-    /// <remarks>
-    /// <para>
-    /// The pane takes the keyboard first, so every file opens where it was dropped, each through the same
-    /// door as <em>File → Open</em>. Folders and paths that have gone are skipped and named once on the
-    /// status line, as the command line's are.
-    /// </para>
-    /// <para>
-    /// A drop on a new tab — an untitled buffer nothing has been typed into, which no other tab shows —
-    /// puts the first file that opens in its place rather than beside it: a new pane or a new window
-    /// starts with such a tab, and it is not what the user dropped a file on to keep.
-    /// </para>
-    /// </remarks>
-    public async Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths)
-    {
-        ArgumentNullException.ThrowIfNull(pane);
-        ArgumentNullException.ThrowIfNull(paths);
-
-        Activate(pane);
-
-        List<string> problems = [];
-        EditorTabViewModel? fresh = pane.ActiveTab is { } target && IsFresh(target) ? target : null;
-
-        foreach (string path in paths)
-        {
-            if (Directory.Exists(path))
-            {
-                problems.Add($"{NameOf(path)} is a folder");
-            }
-            else if (File.Exists(path) && (fresh is not null))
-            {
-                if (await OpenInPlaceOfAsync(pane, fresh, path))
-                {
-                    fresh = null;
-                }
-            }
-            else if (File.Exists(path))
-            {
-                await OpenAsync(path);
-            }
-            else
-            {
-                problems.Add($"{NameOf(path)} does not exist");
-            }
-        }
-
-        if (problems.Count > 0)
-        {
-            _status.Show($"Not opened: {string.Join("; ", problems)}.");
-        }
-
-        // A drive root has no name of its own.
-        static string NameOf(string path)
-            => Path.GetFileName(Path.TrimEndingDirectorySeparator(path)) is { Length: > 0 } name ? name : path;
-    }
+    /// <remarks>As <see cref="FileIntake.OpenDroppedAsync"/> opens them.</remarks>
+    public Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths) => _intake.OpenDroppedAsync(this, pane, paths);
 
     /// <inheritdoc />
     public void ShowStatus(string message) => _status.Show(message);
@@ -965,62 +907,11 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 
     /// <summary>
     /// Opens the files named on the command line — this launch's, or another's that handed them over — in the
-    /// active pane, the last one active.
+    /// active pane, the last one active (<see cref="FileIntake.OpenStartupFilesAsync"/>).
     /// </summary>
     /// <param name="startup">The files, as read from the arguments.</param>
     /// <returns>A task that completes when every file has been opened or reported.</returns>
-    /// <remarks>
-    /// <para>
-    /// A missing file becomes an empty buffer the first save creates, unless its folder does not exist
-    /// either, which no save could fix. With nothing to open, an untitled buffer is ready to type into,
-    /// as Vim starts.
-    /// </para>
-    /// <para>
-    /// A new tab showing — untitled, empty, unchanged — gives its place to the first file that opens, as it does
-    /// to a dropped one: a window that has just been opened has one, and it is not what the files were sent to.
-    /// </para>
-    /// </remarks>
-    public async Task OpenStartupFilesAsync(StartupFiles startup)
-    {
-        ArgumentNullException.ThrowIfNull(startup);
-
-        List<string> problems = [.. startup.Skipped.Select(skipped => $"{skipped} is not a file")];
-        EditorPaneViewModel pane = ActivePane;
-        EditorTabViewModel? fresh = pane.ActiveTab is { } target && IsFresh(target) ? target : null;
-
-        foreach (StartupFile file in startup.Files)
-        {
-            if (file.Exists && (fresh is not null))
-            {
-                if (await OpenInPlaceOfAsync(pane, fresh, file.Path))
-                {
-                    fresh = null;
-                }
-            }
-            else if (file.Exists)
-            {
-                await OpenAsync(file.Path);
-            }
-            else if (Directory.Exists(Path.GetDirectoryName(file.Path)))
-            {
-                Show(_documents.CreateForMissingFile(file.Path));
-            }
-            else
-            {
-                problems.Add($"{file.Path} is in a folder that does not exist");
-            }
-        }
-
-        if (ActiveTab is null)
-        {
-            NewDocument();
-        }
-
-        if (problems.Count > 0)
-        {
-            _status.Show($"Not opened: {string.Join("; ", problems)}.");
-        }
-    }
+    public Task OpenStartupFilesAsync(StartupFiles startup) => _intake.OpenStartupFilesAsync(this, startup);
 
     /// <summary>
     /// The folder a picker starts in: the active buffer's.
@@ -1065,44 +956,31 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     private EditorPaneViewModel? PaneOf(EditorTabViewModel tab)
         => _byId.Values.FirstOrDefault(pane => pane.Tabs.Contains(tab));
 
-    // Untitled, text, empty, never changed, and shown by this tab alone: nothing would be lost with it.
-    private bool IsFresh(EditorTabViewModel tab)
-        => tab.Document is { IsUntitled: true, IsHex: false, IsDirty: false, Document.TextLength: 0 }
-           && (_registry.ViewCount(tab.Document) <= 1);
-
     /// <summary>
-    /// Opens a file in a new tab's place.
+    /// Puts a buffer in a tab's place, without asking about the buffer it replaces — a new tab giving its place to the
+    /// first file opened into it.
     /// </summary>
-    /// <returns>Whether the file took the tab's place; it may still have opened elsewhere.</returns>
-    /// <remarks>
-    /// The tab is checked again once the file has opened, since a question (a binary file) may have come
-    /// in between. A file already on the pane is shown where it is, and the new tab is left for the next.
-    /// </remarks>
-    private async Task<bool> OpenInPlaceOfAsync(EditorPaneViewModel pane, EditorTabViewModel fresh, string path)
+    /// <param name="pane">The pane the tab is on.</param>
+    /// <param name="tab">The tab.</param>
+    /// <param name="document">The buffer, already in the registry.</param>
+    /// <returns>The tab showing the buffer: the pane's own when it already showed it.</returns>
+    internal EditorTabViewModel ReplaceTab(EditorPaneViewModel pane, EditorTabViewModel tab, DocumentViewModel document)
     {
-        if (await _documents.OpenAsync(path) is not { } document)
-        {
-            return false;
-        }
+        ArgumentNullException.ThrowIfNull(pane);
+        ArgumentNullException.ThrowIfNull(tab);
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (!pane.Tabs.Contains(fresh) || !IsFresh(fresh) || pane.Tabs.Any(tab => ReferenceEquals(tab.Document, document)))
-        {
-            Show(document);
-
-            return false;
-        }
-
-        pane.Replace(fresh, document, out bool created);
+        EditorTabViewModel replacement = pane.Replace(tab, document, out bool created);
 
         if (created)
         {
             _registry.Retain(document);
         }
 
-        _registry.Release(fresh.Document);
+        _registry.Release(tab.Document);
         RefreshCommands();
 
-        return true;
+        return replacement;
     }
 
     private async Task<bool> ResolveUnsavedAsync(DocumentViewModel document)
@@ -1267,14 +1145,6 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         EqualizeCommand.NotifyCanExecuteChanged();
         FocusNextPaneCommand.NotifyCanExecuteChanged();
         FocusPreviousPaneCommand.NotifyCanExecuteChanged();
-    }
-
-    private async Task OnOpenHexAsync()
-    {
-        foreach (string path in await _prompts.AskFilesToOpenAsync(ActiveFolder()))
-        {
-            await OpenHexAsync(path);
-        }
     }
 
     private Task OnCloseActiveTabAsync()

@@ -35,7 +35,8 @@ internal sealed class EditorHarness : IDisposable
         Vim = new VimSession(Settings, StatusLine);
         ExCommands = new ExCommandHandler(Shutdown, StatusLine, Help, Languages, LanguagePicker);
         WindowCommands = new WindowCommandHandler(ExCommands, StatusLine);
-        Workspace = new WorkspaceViewModel(Documents, Registry, Prompts, Unsaved, StatusLine, Vim, VimShared, Preferences, ExCommands, WindowCommands);
+        Intake = new FileIntake(Documents, Registry, Prompts, StatusLine);
+        Workspace = new WorkspaceViewModel(Documents, Registry, Intake, Unsaved, StatusLine, Vim, VimShared, Preferences, ExCommands, WindowCommands);
         Explorer = new FileExplorerViewModel(Workspace, Prompts, ExplorerPrompts, Messages, Trash, ExplorerLog);
         StatusBar = new StatusBarViewModel(Workspace, StatusLine);
         Tools = new ToolsViewModel(Workspace, LanguagePicker, EncodingPicker, Confirm, Documents);
@@ -148,6 +149,8 @@ internal sealed class EditorHarness : IDisposable
     public WorkspaceViewModel Workspace { get; }
 
     public ExCommandHandler ExCommands { get; }
+
+    public FileIntake Intake { get; }
 
     public WindowCommandHandler WindowCommands { get; }
 

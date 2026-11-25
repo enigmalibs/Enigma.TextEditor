@@ -162,6 +162,9 @@ public static class ServiceCollectionExtensions
             // area is passed in: the handlers hold none, so they are built as any other service.
             services.AddSingleton<ExCommandHandler>();
             services.AddSingleton<WindowCommandHandler>();
+
+            // Files picked, dropped or named on a command line, opened into whichever editor area is passed in.
+            services.AddSingleton<FileIntake>();
             services.AddSingleton<WorkspaceViewModel>();
             services.AddSingleton<IFileExplorerPrompts, FileExplorerPrompts>();
 
