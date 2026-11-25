@@ -74,7 +74,7 @@ public sealed class VimEditingTests(HeadlessAvaloniaFixture fixture)
             Assert.True(window.FindControl<TextBlock>("CommandLine")?.IsVisible);
 
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            await UiWait.UntilAsync(() => File.ReadAllText(path) == "bc", "the save landed");
+            await UiWait.UntilAsync(() => harness.Workspace.ActiveDocument is { IsDirty: false }, "the save finished");
 
             Assert.Equal("bc", File.ReadAllText(path));
             Assert.False(window.FindControl<TextBlock>("CommandLine")?.IsVisible);
@@ -92,7 +92,7 @@ public sealed class VimEditingTests(HeadlessAvaloniaFixture fixture)
 
             window.KeyTextInput("x");
             window.KeyPressQwerty(PhysicalKey.S, RawInputModifiers.Control);
-            await UiWait.UntilAsync(() => File.ReadAllText(path) == "bc", "the save landed");
+            await UiWait.UntilAsync(() => harness.Workspace.ActiveDocument is { IsDirty: false }, "the save finished");
 
             Assert.Equal("bc", File.ReadAllText(path));
             window.Close();

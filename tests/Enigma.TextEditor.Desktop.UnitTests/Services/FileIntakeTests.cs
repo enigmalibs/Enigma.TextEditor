@@ -46,15 +46,15 @@ public sealed class FileIntakeTests(HeadlessAvaloniaFixture fixture)
 
     [Fact]
     public void OnlyAFile_IsWorthAPaneOfItsOwn()
-        => fixture.Run(() =>
+        => fixture.RunAsync(async () =>
         {
             using EditorHarness harness = new();
             string file = harness.Folder.Write("a.txt", "a");
             string folder = Directory.CreateDirectory(harness.Folder.PathOf("notes")).FullName;
             string gone = harness.Folder.PathOf("gone.txt");
 
-            Assert.True(harness.Intake.AnyFile([folder, file]));
-            Assert.False(harness.Intake.AnyFile([folder, gone]));
-            Assert.False(harness.Intake.AnyFile([]));
+            Assert.True(await harness.Intake.AnyFileAsync([folder, file]));
+            Assert.False(await harness.Intake.AnyFileAsync([folder, gone]));
+            Assert.False(await harness.Intake.AnyFileAsync([]));
         });
 }

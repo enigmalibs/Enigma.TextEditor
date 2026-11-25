@@ -176,7 +176,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE17        | [Medium] Key tables out of the parser    | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE18        | [Medium] Unsaved text in side files      | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE19        | [Medium] Autosave writes changed text    | DONE        | (in CODE-REVIEW-0734.md)      |
-| - PHASE20        | [Medium] File I/O off the UI thread      | TODO        | (in CODE-REVIEW-0734.md)      |
+| - PHASE20        | [Medium] File I/O off the UI thread      | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE21        | [Medium] UI tests wait on conditions (3) | TODO        | (in CODE-REVIEW-0734.md)      |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.

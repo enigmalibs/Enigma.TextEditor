@@ -109,24 +109,27 @@ public sealed class FileIntake
 
         foreach (string path in paths)
         {
-            if (Directory.Exists(path))
+            switch (await _documents.ProbeAsync(path))
             {
-                problems.Add($"{NameOf(path)} is a folder");
-            }
-            else if (File.Exists(path) && (fresh is not null))
-            {
-                if (await OpenInPlaceOfAsync(workspace, pane, fresh, path))
-                {
-                    fresh = null;
-                }
-            }
-            else if (File.Exists(path))
-            {
-                await workspace.OpenAsync(path);
-            }
-            else
-            {
-                problems.Add($"{NameOf(path)} does not exist");
+                case PathKind.Folder:
+                    problems.Add($"{NameOf(path)} is a folder");
+                    break;
+
+                case PathKind.File when fresh is not null:
+                    if (await OpenInPlaceOfAsync(workspace, pane, fresh, path))
+                    {
+                        fresh = null;
+                    }
+
+                    break;
+
+                case PathKind.File:
+                    await workspace.OpenAsync(path);
+                    break;
+
+                default:
+                    problems.Add($"{NameOf(path)} does not exist");
+                    break;
             }
         }
 
@@ -145,11 +148,19 @@ public sealed class FileIntake
     /// </summary>
     /// <param name="paths">The paths.</param>
     /// <returns>Whether one is a file; with none, nothing is worth a split.</returns>
-    public bool AnyFile(IReadOnlyList<string> paths)
+    public async Task<bool> AnyFileAsync(IReadOnlyList<string> paths)
     {
         ArgumentNullException.ThrowIfNull(paths);
 
-        return paths.Any(File.Exists);
+        foreach (string path in paths)
+        {
+            if (await _documents.ProbeAsync(path) == PathKind.File)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -191,7 +202,7 @@ public sealed class FileIntake
             {
                 await workspace.OpenAsync(file.Path);
             }
-            else if (Directory.Exists(Path.GetDirectoryName(file.Path)))
+            else if ((Path.GetDirectoryName(file.Path) is { } folder) && (await _documents.ProbeAsync(folder) == PathKind.Folder))
             {
                 workspace.Show(_documents.CreateForMissingFile(file.Path));
             }

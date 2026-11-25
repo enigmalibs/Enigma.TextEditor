@@ -603,7 +603,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
             return null;
         }
 
-        if (!_intake.AnyFile(paths))
+        if (!await _intake.AnyFileAsync(paths))
         {
             await OpenDroppedAsync(target, paths);
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -82,8 +83,9 @@ public partial class App : Application
 
             // Posted, so the window is on screen before the welcome dialog of a first start and the first
             // file read, and any dialog either raises has a window to appear in.
-            StartupFiles startup = StartupFiles.Parse(desktop.Args ?? [], Environment.CurrentDirectory, File.Exists, Directory.Exists);
-            Dispatcher.UIThread.Post(() => viewModel.StartAsync(startup).Forget(UnhandledErrorSource.Startup));
+            string[] args = desktop.Args ?? [];
+            string folder = Environment.CurrentDirectory;
+            Dispatcher.UIThread.Post(() => StartAsync(viewModel, args, folder).Forget(UnhandledErrorSource.Startup));
             logger.LogInformation("{DisplayName} {Version} started.", AppInfo.DisplayName, AppInfo.Version);
 
             // Files another launch hands over — a double-click on a file while this window is open — open here.
@@ -169,13 +171,24 @@ public partial class App : Application
         services.GetRequiredService<UnhandledErrorReporter>().RegisterHost(window.HostDialog);
     }
 
+    // The arguments are looked at on the disk — file, folder or nothing — away from the UI thread, before the start runs.
+    private static async Task StartAsync(MainWindowViewModel viewModel, IReadOnlyList<string> args, string folder)
+    {
+        StartupFiles startup = await Task.Run(() => StartupFiles.Parse(args, folder, File.Exists, Directory.Exists));
+        await viewModel.StartAsync(startup);
+    }
+
     // Read against this instance's own folder: the paths came full from the launch that handed them over.
     private static void OpenForwarded(MainWindow window, MainWindowViewModel viewModel, IReadOnlyList<string> files)
     {
         window.BringToFront();
+        OpenForwardedAsync(viewModel, files, Environment.CurrentDirectory).Forget();
+    }
 
-        StartupFiles startup = StartupFiles.Parse(files, Environment.CurrentDirectory, File.Exists, Directory.Exists);
-        viewModel.OpenForwardedAsync(startup).Forget();
+    private static async Task OpenForwardedAsync(MainWindowViewModel viewModel, IReadOnlyList<string> files, string folder)
+    {
+        StartupFiles startup = await Task.Run(() => StartupFiles.Parse(files, folder, File.Exists, Directory.Exists));
+        await viewModel.OpenForwardedAsync(startup);
     }
 
     private static void OnExit(IHost host, ILogger<App> logger, RunningInstance instance)

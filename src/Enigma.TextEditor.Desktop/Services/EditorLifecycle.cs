@@ -97,7 +97,8 @@ public sealed class EditorLifecycle
                 await _firstRunDialog.ShowAsync();
             }
 
-            SessionState? session = _session.Load();
+            // Read and checked away from the UI thread: it can hold many unsaved texts, and the window is on screen.
+            SessionState? session = await Task.Run(_session.Load);
 
             if (session is not null)
             {

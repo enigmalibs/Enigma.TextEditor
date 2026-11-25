@@ -87,4 +87,12 @@ public interface IDocumentService
     /// <param name="encoding">The encoding to read it in.</param>
     /// <returns>Whether the file was read.</returns>
     Task<bool> ReopenWithEncodingAsync(DocumentViewModel document, TextEncoding encoding);
+
+    /// <summary>
+    /// Finds out what is at a path — a file, a folder, or nothing — away from the UI thread: a slow or disconnected
+    /// network path must not stop the window while it is asked.
+    /// </summary>
+    /// <param name="path">The path.</param>
+    /// <returns>What is there.</returns>
+    Task<PathKind> ProbeAsync(string path);
 }

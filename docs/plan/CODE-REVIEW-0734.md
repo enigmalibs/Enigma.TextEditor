@@ -464,7 +464,7 @@ Locations: `SessionAutosave.cs:132-140`, `WorkspaceSession` capture (was `Worksp
 
 ## PHASE20 — [Medium] PERF-02 File I/O and encoding leave the UI thread
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `MainWindowViewModel.cs:190` (now the lifecycle), `DocumentFile.cs:170`, `DocumentService.cs:153`, `:188`,
 `WorkspaceViewModel.cs:617`, `:916-927`, `:1154` (now `FileIntake`), `App.axaml.cs:85`, `:177`.
