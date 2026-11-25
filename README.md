@@ -177,6 +177,8 @@ Your documents are the files you open and save — and, until you save them, the
   `session.invalid.json`, the log says so, and the editor starts without it.
 - `logs/app.log` is the log, one file per day, with two weeks kept.
 
+- `logs/early-errors.log` exists only when a failure came before the log was ready — while the settings were read,
+  say — and holds each such failure in full.
 ## Requirements
 
 - .NET SDK 10.0.100 or later to build (pinned in `global.json`, rolls forward to newer feature bands). The Linux

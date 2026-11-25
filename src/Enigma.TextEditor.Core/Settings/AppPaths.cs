@@ -29,6 +29,12 @@ public static class AppPaths
     public const string LogFileName = "app.log";
 
     /// <summary>
+    /// The name of the file, beside the log, that an exception goes to when it comes before the log exists — while
+    /// the settings are read or the host is built.
+    /// </summary>
+    public const string EarlyErrorsFileName = "early-errors.log";
+
+    /// <summary>
     /// The name of the file pointing at the instance used last, which a launch with files hands them to.
     /// </summary>
     public const string ActiveInstanceFileName = "instance.json";
@@ -71,6 +77,12 @@ public static class AppPaths
     /// </summary>
     public static string SessionFile
         => ConfigPaths.InApplicationData(AppInfo.AppDataFolderName, SessionFileName);
+
+    /// <summary>
+    /// Gets the full path of the file an exception goes to before the log exists.
+    /// </summary>
+    public static string EarlyErrorsFile
+        => ConfigPaths.InApplicationData(AppInfo.AppDataFolderName, Path.Combine(LogsFolderName, EarlyErrorsFileName));
 
     /// <summary>
     /// Gets the full path of the session's lock file.

@@ -153,7 +153,7 @@ Locations: `src/Enigma.TextEditor.Desktop/ViewModels/FileExplorerViewModel.cs:39
 
 ## PHASE05 — [Medium] LOG-02 An exception before the safety net is attached reaches a file
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `src/Enigma.TextEditor.Desktop/Services/UnhandledExceptionHooks.cs:142-146` (`App.axaml.cs:45-56`).
 
