@@ -1,6 +1,6 @@
 # CODE-REVIEW-0734 — Review 2026-11-19: high and medium fixes
 
-**Status:** TODO
+**Status:** IN PROGRESS
 **Type:** CODE-REVIEW
 **Branch (PHASE01):** `review/code-review-0734-phase01-instance-pipe`
 **Branch (PHASE02):** `review/code-review-0734-phase02-ui-waits-1`
@@ -57,7 +57,7 @@ file, a window that no longer stalls on I/O). Each finding becomes one or more p
 
 ## PHASE01 — [High] TEST-01 The instance pipe stalls on a client that sends more than the server reads
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `tests/Enigma.TextEditor.Core.UnitTests/Instances/InstanceServerTests.cs:87-104`,
 `src/Enigma.TextEditor.Core/Instances/InstanceServer.cs:100`, `:158-165`, `InstanceProtocol.cs:87-93`.

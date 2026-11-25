@@ -156,8 +156,8 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01        | Background session writer                | DONE        | (in FEATURE-4158.md)          |
 | - PHASE02        | Autosave from start to close             | DONE        | (in FEATURE-4158.md)          |
 | FEATURE-96BA     | Release 1.20.0                           | DONE        | docs/plan/FEATURE-96BA.md     |
-| CODE-REVIEW-0734 | Review 2026-11-19: high & medium fixes   | TODO        | docs/plan/CODE-REVIEW-0734.md |
-| - PHASE01        | [High] Pipe stalls on an unknown client  | TODO        | (in CODE-REVIEW-0734.md)      |
+| CODE-REVIEW-0734 | Review 2026-11-19: high & medium fixes   | IN PROGRESS | docs/plan/CODE-REVIEW-0734.md |
+| - PHASE01        | [High] Pipe stalls on an unknown client  | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE02        | [Medium] UI tests wait on conditions (1) | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE03        | [Medium] UI tests wait on conditions (2) | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE04        | [Medium] Log explorer operation failures | TODO        | (in CODE-REVIEW-0734.md)      |

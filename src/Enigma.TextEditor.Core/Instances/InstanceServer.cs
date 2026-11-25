@@ -30,6 +30,11 @@ public sealed class InstanceServer : IAsyncDisposable
 
     private const PipeOptions Options = PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly;
 
+    // Room for a short write on either side without the other end reading it. Without it a pipe may have no buffer at
+    // all, and a write waits for the peer's read: a client still writing a request the server has stopped reading, and
+    // a server writing its refusal, then wait for each other until the deadline drops the connection.
+    private const int BufferSize = 4096;
+
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(500);
 
     private readonly string _pipeName;
@@ -97,7 +102,7 @@ public sealed class InstanceServer : IAsyncDisposable
 
     // Two instances of the pipe: the one being served, and the next one, already listening.
     private NamedPipeServerStream CreatePipe()
-        => new(_pipeName, PipeDirection.InOut, 2, PipeTransmissionMode.Byte, Options);
+        => new(_pipeName, PipeDirection.InOut, 2, PipeTransmissionMode.Byte, Options, BufferSize, BufferSize);
 
     private async Task ListenAsync(NamedPipeServerStream first, CancellationToken stopping)
     {
@@ -160,9 +165,17 @@ public sealed class InstanceServer : IAsyncDisposable
 
         await InstanceProtocol.WriteReplyAsync(pipe, accepted, deadline.Token).ConfigureAwait(false);
 
-        // Held open until the other end has read the answer and let go: closed any sooner, the answer could be
-        // lost with the pipe. The other end closes; anything else it sends is not read.
-        _ = await pipe.ReadAsync(new byte[1], deadline.Token).ConfigureAwait(false);
+        // Held open until the other end has read the answer and let go: closed any sooner, the answer could be lost with
+        // the pipe. What the other end sent beyond what was read — a request refused at its length — is read and thrown
+        // away, until it closes: a client still writing it would otherwise never get to read the answer.
+        byte[] drain = new byte[BufferSize];
+        int read;
+
+        do
+        {
+            read = await pipe.ReadAsync(drain, deadline.Token).ConfigureAwait(false);
+        }
+        while (read > 0);
     }
 
     private bool Handle(IReadOnlyList<string> files)
