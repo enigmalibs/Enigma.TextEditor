@@ -75,7 +75,7 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             Assert.Null(window.SettingsPage);
 
             rail.SelectedItem = harness.Shell.SettingsItem;
-            await DrainAsync();
+            await UiWait.UntilAsync(() => SettingsShown(window), "the settings page took the keyboard");
 
             Assert.True(harness.Shell.IsSettingsPage);
             Assert.False(window.FindControl<Panel>("FilesPage")!.IsVisible);
@@ -90,7 +90,7 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             Assert.All(cards, expander => Assert.True(expander.IsExpanded));
 
             rail.SelectedItem = harness.Shell.FilesItem;
-            await DrainAsync();
+            await UiWait.UntilAsync(() => Editor(window).TextArea.IsKeyboardFocusWithin, "the files page gave the keyboard back to the editor");
 
             Assert.True(harness.Shell.IsFilesPage);
             Assert.False(page.IsEffectivelyVisible);
@@ -108,7 +108,7 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             MainWindow window = await ShowAsync(harness);
 
             harness.Shell.ShowSettings();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => SettingsShown(window), "the settings page took the keyboard");
             TextBlock[] hints = [.. window.SettingsPage!.GetVisualDescendants().OfType<TextBlock>().Where(text => text.Classes.Contains("preferenceHint"))];
 
             Assert.True(window.TryFindResource("EnigmaForegroundSecondaryBrush", out object? secondary));
@@ -124,12 +124,12 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             MainWindow window = await ShowAsync(harness);
 
             harness.Shell.ShowSettings();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => SettingsShown(window), "the settings page took the keyboard");
             SettingsPageView? first = window.SettingsPage;
             harness.Shell.ShowFiles();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => first?.IsEffectivelyVisible != true, "the files page hid the settings");
             harness.Shell.ShowSettings();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => SettingsShown(window), "the settings page took the keyboard");
 
             Assert.NotNull(first);
             Assert.Same(first, window.SettingsPage);
@@ -151,17 +151,17 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             Assert.IsType<Separator>(settings.Items[settings.Items.Count - 2]);
 
             allSettings.Command!.Execute(null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => SettingsShown(window), "the settings page took the keyboard");
             Assert.True(harness.Shell.IsSettingsPage);
 
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Shell.IsFilesPage && Editor(window).TextArea.IsKeyboardFocusWithin, "Esc went back to the files and gave the editor the keyboard");
             Assert.True(harness.Shell.IsFilesPage, "Esc on the settings page goes back to the files.");
             Assert.True(Editor(window).TextArea.IsKeyboardFocusWithin);
 
             // Typed in the editor: Ctrl+, is no Vim key, and the window's own binding has it.
             window.KeyPress(Key.OemComma, RawInputModifiers.Control, PhysicalKey.Comma, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => SettingsShown(window), "Ctrl+, showed the settings page");
 
             Assert.True(harness.Shell.IsSettingsPage);
             Assert.Equal("text\n", harness.Workspace.ActiveDocument?.Document.Text);
@@ -176,7 +176,7 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
             MainWindow window = await ShowAsync(harness);
             harness.Shell.ShowSettings();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => SettingsShown(window), "the settings page took the keyboard");
             SettingsPageView view = window.SettingsPage!;
 
             Assert.Equal(PreferencesViewModel.DefaultFontLabel, view.FindControl<ComboBox>("FontChoice")!.SelectedItem);
@@ -194,7 +194,7 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             view.FindControl<ToggleSwitch>("TabsSwitch")!.IsChecked = true;
             view.FindControl<NumericUpDown>("IndentSizeEditor")!.Value = 2;
             view.FindControl<ComboBox>("LineEndingChoice")!.SelectedItem = LineEndingStyle.CrLf;
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Settings.Value.DefaultLineEnding == LineEndingStyle.CrLf, "the page's last change reached the settings");
 
             AppSettings settings = harness.Settings.Value;
             Assert.Equal(AppTheme.Dark, settings.Theme);
@@ -242,12 +242,12 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             Assert.Null(reset.Command);
 
             flyout.ShowAt(reset);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => flyout.IsOpen, "the reset flyout opened");
             MenuItem confirm = Assert.Single(flyout.Items.OfType<MenuItem>());
             Assert.Equal(20, harness.Settings.Value.PaneResizeStep);
 
             confirm.Command!.Execute(null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => step.Value == AppSettings.DefaultPaneResizeStep, "the reset put the resize step back");
 
             Assert.Equal(AppSettings.DefaultPaneResizeStep, harness.Settings.Value.PaneResizeStep);
             Assert.Equal(AppSettings.DefaultPaneResizeStep, step.Value);
@@ -261,7 +261,7 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             using EditorHarness harness = new();
             MainWindow window = await ShowAsync(harness, width: 1600, height: 500);
             harness.Shell.ShowSettings();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => SettingsShown(window), "the settings page took the keyboard");
             SettingsPageView page = window.SettingsPage!;
             ScrollViewer scroller = page.ScrollArea;
             StackPanel cards = page.FindControl<StackPanel>("Cards")!;
@@ -282,11 +282,13 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
             MainWindow window = await ShowAsync(harness);
             harness.Shell.ShowSettings();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => SettingsShown(window), "the settings page took the keyboard");
             Assert.True(window.SettingsPage!.IsKeyboardFocusWithin);
 
             window.KeyPress(Key.N, RawInputModifiers.Control, PhysicalKey.N, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(
+                () => harness.Shell.IsFilesPage && (harness.Workspace.ActiveDocument?.FilePath is null) && Editor(window).TextArea.IsKeyboardFocusWithin,
+                "Ctrl+N showed the files with the new tab's editor focused");
 
             Assert.True(harness.Shell.IsFilesPage);
             Assert.True(window.FindControl<Panel>("FilesPage")!.IsVisible);
@@ -303,19 +305,19 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "text\n"));
             MainWindow window = await ShowAsync(harness);
             harness.Shell.ShowSettings();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => SettingsShown(window), "the settings page took the keyboard");
 
             Assert.Null(window.ActiveEditor);
             MenuItem edit = window.FindControl<Menu>("MainMenu")!.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "_Edit");
             MenuItem selectAll = edit.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Select _All");
             selectAll.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Equal(0, Editor(window).SelectionLength);
             Assert.True(harness.Shell.IsSettingsPage);
 
             harness.Shell.ShowFiles();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => ReferenceEquals(Editor(window), window.ActiveEditor), "the files page made the editor the active one again");
             Assert.Same(Editor(window), window.ActiveEditor);
             window.Close();
         });
@@ -329,19 +331,14 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
         window.Show();
         Dispatcher.UIThread.RunJobs();
         window.GetVisualDescendants().OfType<EditorPaneView>().Single().FocusEditor();
-        await DrainAsync();
+
+        // The tests that follow look at different things, some with no tab to take the keyboard: what the window
+        // posted as it opened is let run out instead.
+        await UiWait.SettleAsync();
 
         return window;
     }
 
-    private static async Task DrainAsync()
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Yield();
-        }
-
-        Dispatcher.UIThread.RunJobs();
-    }
+    // The page is shown last of all: it takes the keyboard once it is visible and laid out.
+    private static bool SettingsShown(MainWindow window) => window.SettingsPage?.IsKeyboardFocusWithin == true;
 }

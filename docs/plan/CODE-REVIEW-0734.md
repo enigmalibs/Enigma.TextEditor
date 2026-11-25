@@ -1,6 +1,6 @@
 # CODE-REVIEW-0734 — Review 2026-11-19: high and medium fixes
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Type:** CODE-REVIEW
 **Branch (PHASE01):** `review/code-review-0734-phase01-instance-pipe`
 **Branch (PHASE02):** `review/code-review-0734-phase02-ui-waits-1`
@@ -485,7 +485,7 @@ Locations: `MainWindowViewModel.cs:190` (now the lifecycle), `DocumentFile.cs:17
 
 ## PHASE21 — [Medium] TEST-02 UI tests wait on conditions, not fixed rounds (part 3)
 
-**Status:** TODO
+**Status:** DONE
 
 Added at build time (PHASE02): the review listed the `Task.Delay`-based helpers ("at least four names"); four more
 files pump a fixed four rounds of `Task.Yield` — `Views/HelpViewTests.cs`, `Views/SettingsPageTests.cs`,

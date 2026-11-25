@@ -156,7 +156,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE01        | Background session writer                | DONE        | (in FEATURE-4158.md)          |
 | - PHASE02        | Autosave from start to close             | DONE        | (in FEATURE-4158.md)          |
 | FEATURE-96BA     | Release 1.20.0                           | DONE        | docs/plan/FEATURE-96BA.md     |
-| CODE-REVIEW-0734 | Review 2026-11-19: high & medium fixes   | IN PROGRESS | docs/plan/CODE-REVIEW-0734.md |
+| CODE-REVIEW-0734 | Review 2026-11-19: high & medium fixes   | DONE        | docs/plan/CODE-REVIEW-0734.md |
 | - PHASE01        | [High] Pipe stalls on an unknown client  | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE02        | [Medium] UI tests wait on conditions (1) | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE03        | [Medium] UI tests wait on conditions (2) | DONE        | (in CODE-REVIEW-0734.md)      |
@@ -177,6 +177,6 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE18        | [Medium] Unsaved text in side files      | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE19        | [Medium] Autosave writes changed text    | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE20        | [Medium] File I/O off the UI thread      | DONE        | (in CODE-REVIEW-0734.md)      |
-| - PHASE21        | [Medium] UI tests wait on conditions (3) | TODO        | (in CODE-REVIEW-0734.md)      |
+| - PHASE21        | [Medium] UI tests wait on conditions (3) | DONE        | (in CODE-REVIEW-0734.md)      |
 
 > `BUG-4A17` quarantined by `/vibe` run `feature/2026-10-21-minimap-keys-dialogs` — stand-in test still finds 14 plain lines after 3 fix cycles; branch `bugfix/bug-4a17-scroll-colours` unmerged. Finish with `/build BUG-4A17`.
