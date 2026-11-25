@@ -332,7 +332,7 @@ Locations: `WorkspaceViewModel.cs:607-673`, `:904-945`, `:1116-1180`, `:1218-125
 
 ## PHASE13 — [Medium] SOLID-03 The pane view's code-behind is split into view helpers
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `src/Enigma.TextEditor.Desktop/Views/EditorPaneView.axaml.cs:53` (tab drag `:410-660`, context menu
 `:661-693`, file drop `:694-760`).

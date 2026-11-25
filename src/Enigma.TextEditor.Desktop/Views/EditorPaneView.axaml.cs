@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using Avalonia;
@@ -89,16 +88,8 @@ public partial class EditorPaneView : UserControl
     // of the text is on screen, and the one whose offset actually moves the view in AvaloniaEdit 12.
     private ScrollViewer? _scroll;
 
-    // A left press on a tab, kept until the pointer has gone far enough with it to make a drag, or is let go.
-    private EditorTabViewModel? _pressedTab;
-    private Point _tabPressPoint;
-
-    // The tab being carried, once the press has become a drag; the pointer the strip holds for it; the window
-    // listening for the Escape that cancels it; and the pane showing that the tab would land there.
-    private EditorTabViewModel? _draggedTab;
-    private IPointer? _dragPointer;
-    private TopLevel? _dragRoot;
-    private EditorPaneView? _dropTarget;
+    // A tab dragged off the strip to another pane, or to a side of one.
+    private readonly TabStripDrag _tabDrag;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EditorPaneView"/> class.
@@ -125,22 +116,11 @@ public partial class EditorPaneView : UserControl
         Minimap.ScrollRequested += OnMinimapScrollRequested;
         Minimap.PointerWheelChanged += OnMinimapPointerWheelChanged;
 
-        // A file dropped anywhere on the pane opens in it. Handled events too: the text area handles drags
-        // of its own, which move text, and must not hide a drag of files from the pane.
-        DragDrop.SetAllowDrop(this, true);
-        AddHandler(DragDrop.DragEnterEvent, OnDragOver, RoutingStrategies.Bubble, handledEventsToo: true);
-        AddHandler(DragDrop.DragOverEvent, OnDragOver, RoutingStrategies.Bubble, handledEventsToo: true);
-        AddHandler(DragDrop.DragLeaveEvent, OnDragLeave, RoutingStrategies.Bubble, handledEventsToo: true);
-        AddHandler(DragDrop.DropEvent, OnDrop, RoutingStrategies.Bubble, handledEventsToo: true);
-
-        // A tab dragged off the strip moves to the pane it is dropped on. Handled events too: the strip's items
-        // take the press, to show the tab, and the press is where the drag starts from.
-        Tabs.AddHandler(PointerPressedEvent, OnTabsPointerPressed, RoutingStrategies.Bubble, handledEventsToo: true);
-        Tabs.AddHandler(PointerMovedEvent, OnTabsPointerMoved, RoutingStrategies.Bubble, handledEventsToo: true);
-        Tabs.AddHandler(PointerReleasedEvent, OnTabsPointerLetGo, RoutingStrategies.Bubble, handledEventsToo: true);
-
-        // Direct, the only route a lost capture travels: a handler listening on any other is never called.
-        Tabs.AddHandler(PointerCaptureLostEvent, OnTabsPointerCaptureLost, RoutingStrategies.Direct, handledEventsToo: true);
+        // Files dropped on the pane open in it; a tab dragged off the strip moves to the pane it is dropped on; the
+        // editor's own menu acts on the text it was opened on. Each its own helper, listening for the pane's life.
+        _ = new PaneFileDrop(this);
+        _tabDrag = new TabStripDrag(this, Tabs);
+        EditorContextMenu.Attach(EditorMenu, Editor, Undo, Redo);
 
         // A double-click on the strip's empty part opens a new tab there. Handled events too: the list takes the press
         // the double-click is made of.
@@ -153,7 +133,7 @@ public partial class EditorPaneView : UserControl
     /// <summary>
     /// Gets a value indicating whether a tab of this pane is being dragged.
     /// </summary>
-    internal bool IsDraggingTab => _draggedTab is not null;
+    internal bool IsDraggingTab => _tabDrag.IsDragging;
 
     /// <summary>
     /// Gets a value indicating whether a carried tab would land on this pane if let go, which the pane shows: over the
@@ -457,304 +437,6 @@ public partial class EditorPaneView : UserControl
         if (pane.NewTab() is not null)
         {
             Dispatcher.UIThread.Post(FocusEditor, DispatcherPriority.Loaded);
-        }
-    }
-
-    // Not from the close button, whose press is a click on it, and only with the left button, the one that drags.
-    private void OnTabsPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        ForgetTabPress();
-
-        if ((_draggedTab is not null)
-            || !e.GetCurrentPoint(Tabs).Properties.IsLeftButtonPressed
-            || ((e.Source as Visual)?.FindAncestorOfType<Button>(includeSelf: true) is not null)
-            || ((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext is not EditorTabViewModel tab))
-        {
-            return;
-        }
-
-        _pressedTab = tab;
-        _tabPressPoint = e.GetPosition(Tabs);
-    }
-
-    // Past the platform's drag distance — the one beyond which a press is no longer a click — the press becomes a
-    // drag of its tab. Forgotten first: the drag must start once.
-    private void OnTabsPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (_draggedTab is not null)
-        {
-            SteerTab(e);
-            return;
-        }
-
-        if (_pressedTab is not { } tab)
-        {
-            return;
-        }
-
-        if (!e.GetCurrentPoint(Tabs).Properties.IsLeftButtonPressed)
-        {
-            ForgetTabPress();
-            return;
-        }
-
-        Size distance = Application.Current?.PlatformSettings?.GetTapSize(e.Pointer.Type) ?? new Size(4, 4);
-
-        if (!TabDragGesture.IsDrag(e.GetPosition(Tabs) - _tabPressPoint, distance))
-        {
-            return;
-        }
-
-        ForgetTabPress();
-        StartDraggingTab(tab, e);
-    }
-
-    // The release ends the drag, and moves the tab, or splits for it, when it is let go where a pane takes it. Done once
-    // the release has been handled: the strip the tab leaves changes under it, and its whole pane goes when the tab was
-    // its last.
-    private void OnTabsPointerLetGo(object? sender, PointerReleasedEventArgs e)
-    {
-        ForgetTabPress();
-
-        if (_draggedTab is not { } tab)
-        {
-            return;
-        }
-
-        (EditorPaneView? pane, FocusDirection? side) = DropUnder(e);
-
-        StopDraggingTab();
-        e.Handled = true;
-
-        if ((pane?.DataContext is not EditorPaneViewModel target) || !Takes(target, tab, side))
-        {
-            return;
-        }
-
-        if (side is { } edge)
-        {
-            Dispatcher.UIThread.Post(() => target.SplitWithTab(tab, edge));
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(() => target.TakeTab(tab));
-        }
-    }
-
-    // Whoever took the pointer owns it now: the drag ends where it is, dropping nothing, and the capture is left to them.
-    private void OnTabsPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
-    {
-        ForgetTabPress();
-
-        if (_draggedTab is null)
-        {
-            return;
-        }
-
-        _dragPointer = null;
-        StopDraggingTab();
-    }
-
-    private void ForgetTabPress() => _pressedTab = null;
-
-    private void StartDraggingTab(EditorTabViewModel tab, PointerEventArgs e)
-    {
-        _draggedTab = tab;
-
-        // The capture makes the rest of the gesture the strip's: every move, and the release that ends it, are
-        // reported here wherever the pointer goes — and the pointer wears the strip's cursor all the while.
-        _dragPointer = e.Pointer;
-        _dragPointer.Capture(Tabs);
-
-        // A drag that brings no platform session has to bring its own way out. On the window, and tunnelling: the
-        // keyboard may be in any pane's editor, and Vim must not take this Escape as its own.
-        _dragRoot = TopLevel.GetTopLevel(this);
-        _dragRoot?.AddHandler(KeyDownEvent, OnDragKeyDown, RoutingStrategies.Tunnel);
-
-        SteerTab(e);
-    }
-
-    private void OnDragKeyDown(object? sender, KeyEventArgs e)
-    {
-        if ((e.Key != Key.Escape) || (_draggedTab is null))
-        {
-            return;
-        }
-
-        StopDraggingTab();
-        e.Handled = true;
-    }
-
-    // The cursor says a drag is under way; the hint says where it would land: a whole pane it would move to, or the half
-    // of a pane, its own included, that would split off for it.
-    private void SteerTab(PointerEventArgs e)
-    {
-        e.Handled = true;
-
-        (EditorPaneView? pane, FocusDirection? side) = DropUnder(e);
-
-        if (TabDragGesture.CursorFor(pane is not null) is not null)
-        {
-            Tabs.Cursor = CarryingCursor;
-        }
-        else
-        {
-            Tabs.ClearValue(CursorProperty);
-        }
-
-        if ((pane?.DataContext is EditorPaneViewModel target) && (_draggedTab is { } tab) && Takes(target, tab, side))
-        {
-            MarkDropTarget(pane, side);
-        }
-        else
-        {
-            MarkDropTarget(null, null);
-        }
-    }
-
-    // Marked again only when the pane or the side changes: the hint is put in place, not redrawn, on every move.
-    private void MarkDropTarget(EditorPaneView? pane, FocusDirection? side)
-    {
-        if (ReferenceEquals(_dropTarget, pane) && (_dropTarget?.DropSide == side))
-        {
-            return;
-        }
-
-        _dropTarget?.HideDropHint();
-        _dropTarget = pane;
-        _dropTarget?.ShowDropHint(side);
-    }
-
-    // In the middle or on the strip a pane takes a tab from another pane; at an edge it splits for any tab whose pane
-    // keeps another.
-    private static bool Takes(EditorPaneViewModel target, EditorTabViewModel tab, FocusDirection? side)
-        => side is null ? target.CanTakeTab(tab) : target.CanSplitWithTab(tab);
-
-    // Cleared before the capture is let go: letting it go reports a lost capture, which must find no drag left to end.
-    private void StopDraggingTab()
-    {
-        _draggedTab = null;
-
-        Tabs.ClearValue(CursorProperty);
-        MarkDropTarget(null, null);
-
-        _dragRoot?.RemoveHandler(KeyDownEvent, OnDragKeyDown);
-        _dragRoot = null;
-
-        IPointer? pointer = _dragPointer;
-        _dragPointer = null;
-        pointer?.Capture(null);
-    }
-
-    // The pane under the pointer, in this window, and the side of it the pointer is near. Hit-tested: while the strip
-    // holds the pointer, every event comes from the strip, wherever the pointer is.
-    private (EditorPaneView? Pane, FocusDirection? Side) DropUnder(PointerEventArgs e)
-    {
-        EditorPaneView? pane = (TopLevel.GetTopLevel(this) is { } top) && (top.InputHitTest(e.GetPosition(top)) is Visual hit)
-            ? hit.FindAncestorOfType<EditorPaneView>(includeSelf: true)
-            : null;
-
-        return (pane, pane?.SideAt(e.GetPosition(pane)));
-    }
-
-    // What can run is read as the menu opens: the editor's Can* answers are not observable.
-    private void OnEditorMenuOpening(object? sender, CancelEventArgs e)
-    {
-        MenuUndo.IsEnabled = Editor.CanUndo;
-        MenuRedo.IsEnabled = Editor.CanRedo;
-        MenuCut.IsEnabled = Editor.CanCut;
-        MenuCopy.IsEnabled = Editor.CanCopy;
-        MenuPaste.IsEnabled = Editor.CanPaste;
-        MenuDelete.IsEnabled = Editor.CanDelete;
-        MenuSelectAll.IsEnabled = Editor.CanSelectAll;
-    }
-
-    private void OnMenuUndoClick(object? sender, RoutedEventArgs e) => EditFromMenu(_ => Undo());
-
-    private void OnMenuRedoClick(object? sender, RoutedEventArgs e) => EditFromMenu(_ => Redo());
-
-    private void OnMenuCutClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Cut());
-
-    private void OnMenuCopyClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Copy());
-
-    private void OnMenuPasteClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Paste());
-
-    private void OnMenuDeleteClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.Delete());
-
-    private void OnMenuSelectAllClick(object? sender, RoutedEventArgs e) => EditFromMenu(editor => editor.SelectAll());
-
-    // The focus goes back to the text the menu was opened on, which also gives its pane the keyboard.
-    private void EditFromMenu(Action<AvaloniaTextEditor> action)
-    {
-        action(Editor);
-        Editor.TextArea.Focus();
-    }
-
-    // Entering and moving alike: the hint follows the pointer from the strip to the middle to an edge.
-    private void OnDragOver(object? sender, DragEventArgs e)
-    {
-        IReadOnlyList<string> paths = DroppedFiles.ReadPaths(e.DataTransfer);
-
-        if (paths.Count == 0)
-        {
-            // A drag of text is the text area's, which has already said what it would do with it; anywhere
-            // else on the pane it would do nothing, and the cursor says so.
-            if (!e.Handled)
-            {
-                e.DragEffects = DragDropEffects.None;
-            }
-
-            HideDropHint();
-
-            return;
-        }
-
-        e.DragEffects = DroppedFiles.EffectFor(paths);
-        e.Handled = true;
-
-        // Put in place again only when the side changes, as for a tab.
-        FocusDirection? side = FileSideAt(e.GetPosition(this));
-
-        if (!IsDropTarget || (DropSide != side))
-        {
-            ShowDropHint(side);
-        }
-    }
-
-    // Raised on the part of the pane the drag was over, whenever it moves to another part, another pane or out of the
-    // window, and when the drag is cancelled. Moving within the pane, the enter on the new part follows at once and
-    // shows the hint again.
-    private void OnDragLeave(object? sender, DragEventArgs e) => HideDropHint();
-
-    private void OnDrop(object? sender, DragEventArgs e)
-    {
-        // No leave follows a drop.
-        HideDropHint();
-
-        // Read now: the dragged data is only there while the drop event lasts.
-        IReadOnlyList<string> paths = DroppedFiles.ReadPaths(e.DataTransfer);
-        DragDropEffects effect = DroppedFiles.EffectFor(paths);
-
-        if ((effect == DragDropEffects.None) || (_pane is not { } pane))
-        {
-            return;
-        }
-
-        e.DragEffects = effect;
-        e.Handled = true;
-
-        FocusDirection? side = FileSideAt(e.GetPosition(this));
-
-        // Opened once the drop has returned: the platform's drag loop has to be over before a dialog — the
-        // binary-file question, a file that cannot be read — can appear. Not awaited, as the ex commands are
-        // not: failures are reported by the services the opening goes through.
-        if (side is { } edge)
-        {
-            Dispatcher.UIThread.Post(() => pane.SplitWithFilesAsync(paths, edge).Forget());
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(() => pane.OpenDroppedAsync(paths).Forget());
         }
     }
 

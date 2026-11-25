@@ -24,6 +24,18 @@ namespace Enigma.TextEditor.Desktop.UnitTests.Views;
 public sealed class EditorContextMenuTests(HeadlessAvaloniaFixture fixture)
 {
     [Fact]
+    public void AMenuMissingAnItem_IsRefusedWhenAttached_RatherThanLeftHalfWorking()
+        => fixture.Run(() =>
+        {
+            ContextMenu menu = new() { Items = { new MenuItem { Name = "MenuUndo" }, new MenuItem { Name = "MenuRedo" } } };
+
+            System.InvalidOperationException refused = Assert.Throws<System.InvalidOperationException>(
+                () => EditorContextMenu.Attach(menu, new AvaloniaEdit.TextEditor(), () => { }, () => { }));
+
+            Assert.Contains("MenuCut", refused.Message, System.StringComparison.Ordinal);
+        });
+
+    [Fact]
     public void ARightClickInTheText_OpensTheEditingCommands()
         => fixture.RunAsync(async () =>
         {
