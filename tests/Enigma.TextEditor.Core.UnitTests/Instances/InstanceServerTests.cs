@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -94,6 +95,31 @@ public sealed class InstanceServerTests
         {
             await stranger.ConnectAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
             await stranger.WriteAsync(Encoding.UTF8.GetBytes("GET / HTTP/1.1\r\n\r\n"), TestContext.Current.CancellationToken);
+            await stranger.FlushAsync(TestContext.Current.CancellationToken);
+
+            Assert.False(await InstanceProtocol.ReadReplyAsync(stranger, TestContext.Current.CancellationToken));
+        }
+
+        Assert.True(await InstanceClient.TryForwardAsync(pipe, ["/a.txt"], cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(["/a.txt"], Assert.Single(received));
+    }
+
+    [Fact]
+    public async Task AClientSendingFarMoreThanTheServerReads_IsRefused_AndTheServerCarriesOn()
+    {
+        string pipe = NewPipeName();
+        ConcurrentQueue<IReadOnlyList<string>> received = new();
+        await using InstanceServer server = InstanceServer.Start(pipe, files => Take(received, files));
+
+        // A length the server refuses on sight, then far more than any pipe buffer holds: the write completes only once
+        // the server has read it all, so the answer must not wait for the write.
+        byte[] request = new byte[sizeof(int) + (256 * 1024)];
+        BinaryPrimitives.WriteInt32LittleEndian(request, InstanceProtocol.MaxRequestBytes + 1);
+
+        await using (NamedPipeClientStream stranger = Connect(pipe))
+        {
+            await stranger.ConnectAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            await stranger.WriteAsync(request, TestContext.Current.CancellationToken);
             await stranger.FlushAsync(TestContext.Current.CancellationToken);
 
             Assert.False(await InstanceProtocol.ReadReplyAsync(stranger, TestContext.Current.CancellationToken));

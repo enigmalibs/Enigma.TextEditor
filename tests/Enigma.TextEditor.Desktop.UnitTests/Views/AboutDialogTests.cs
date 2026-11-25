@@ -30,7 +30,7 @@ public sealed class AboutDialogTests(HeadlessAvaloniaFixture fixture)
             dialogs.RegisterHost(window.HostDialog);
 
             Task shown = new AboutDialogService(dialogs).ShowAsync();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => (window.FocusManager?.GetFocusedElement() as Button)?.Content is "Close", "the About dialog opened with Close focused");
 
             Assert.Null(window.HostDialog.Title);
             Assert.IsType<AboutView>(window.HostDialog.Content);
@@ -41,17 +41,8 @@ public sealed class AboutDialogTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal("Close", (window.FocusManager?.GetFocusedElement() as Button)?.Content);
 
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => shown.IsCompleted, "Escape closed the About dialog");
             Assert.True(shown.IsCompleted);
             window.Close();
         });
-
-    private static async Task DrainAsync()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
-    }
 }

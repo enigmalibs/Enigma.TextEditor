@@ -8,7 +8,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Enigma.TextEditor.Core.Documents;
 using Enigma.TextEditor.Core.Layout;
-using Enigma.TextEditor.Core.Sessions;
 using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
 
@@ -36,7 +35,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 {
     private readonly IDocumentService _documents;
     private readonly DocumentRegistry _registry;
-    private readonly IFilePrompts _prompts;
+    private readonly FileIntake _intake;
     private readonly IUnsavedChangesPrompt _unsaved;
     private readonly StatusMessages _status;
     private readonly ExCommandHandler _ex;
@@ -49,45 +48,35 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     /// </summary>
     /// <param name="documents">Opens and saves buffers.</param>
     /// <param name="registry">The open buffers.</param>
-    /// <param name="prompts">The open picker.</param>
+    /// <param name="intake">Opens files picked, dropped or named on a command line.</param>
     /// <param name="unsaved">Asks about unsaved changes before a buffer is closed.</param>
     /// <param name="status">The status bar's message line.</param>
     /// <param name="vim">The Vim session every pane's engine reports to.</param>
     /// <param name="vimShared">What every pane's Vim engine shares.</param>
-    /// <param name="shutdown">Ends the application, for <c>:qa</c>.</param>
     /// <param name="preferences">How every editor looks.</param>
-    /// <param name="help">The key-binding help, for <c>:help</c>.</param>
-    /// <param name="languages">The languages <c>:set filetype</c> can name.</param>
-    /// <param name="languagePicker">The language list, for <c>:set language</c>.</param>
+    /// <param name="ex">Carries out the ex commands the panes' engines recognise.</param>
+    /// <param name="window">Carries out the window commands the panes' engines recognise.</param>
     public WorkspaceViewModel(
         IDocumentService documents,
         DocumentRegistry registry,
-        IFilePrompts prompts,
+        FileIntake intake,
         IUnsavedChangesPrompt unsaved,
         StatusMessages status,
         IVimSession vim,
         VimSharedState vimShared,
-        IAppShutdown shutdown,
         EditorPreferences preferences,
-        IHelpDialogService help,
-        LanguageCatalog languages,
-        ILanguagePicker languagePicker)
+        ExCommandHandler ex,
+        WindowCommandHandler window)
     {
         _documents = documents ?? throw new ArgumentNullException(nameof(documents));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
-        _prompts = prompts ?? throw new ArgumentNullException(nameof(prompts));
+        _intake = intake ?? throw new ArgumentNullException(nameof(intake));
         _unsaved = unsaved ?? throw new ArgumentNullException(nameof(unsaved));
         _status = status ?? throw new ArgumentNullException(nameof(status));
         Vim = vim ?? throw new ArgumentNullException(nameof(vim));
         VimShared = vimShared ?? throw new ArgumentNullException(nameof(vimShared));
-        _ex = new ExCommandHandler(
-            this,
-            shutdown ?? throw new ArgumentNullException(nameof(shutdown)),
-            status,
-            help ?? throw new ArgumentNullException(nameof(help)),
-            languages ?? throw new ArgumentNullException(nameof(languages)),
-            languagePicker ?? throw new ArgumentNullException(nameof(languagePicker)));
-        _window = new WindowCommandHandler(this, _ex, status);
+        _ex = ex ?? throw new ArgumentNullException(nameof(ex));
+        _window = window ?? throw new ArgumentNullException(nameof(window));
         Preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
 
         Layout = new LayoutTree();
@@ -102,7 +91,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 
         NewCommand = new RelayCommand(() => NewDocument());
         OpenCommand = new AsyncRelayCommand(OpenFromPromptAsync);
-        OpenHexCommand = new AsyncRelayCommand(OnOpenHexAsync);
+        OpenHexCommand = new AsyncRelayCommand(() => _intake.OpenHexFromPromptAsync(this));
         SaveCommand = new AsyncRelayCommand(() => SaveAsync(ActiveDocument), () => ActiveDocument is { IsHex: false });
         SaveAsCommand = new AsyncRelayCommand(() => SaveAsAsync(ActiveDocument), () => ActiveDocument is { IsHex: false });
         SaveAllCommand = new AsyncRelayCommand(SaveAllAsync, () => _registry.Documents.Count > 0);
@@ -614,7 +603,7 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
             return null;
         }
 
-        if (!paths.Any(File.Exists))
+        if (!await _intake.AnyFileAsync(paths))
         {
             await OpenDroppedAsync(target, paths);
 
@@ -661,16 +650,10 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
 
     /// <summary>
     /// Asks which files to open, starting in the active buffer's folder, and opens each in the active
-    /// pane — <em>File → Open…</em>.
+    /// pane — <em>File → Open…</em> (<see cref="FileIntake.OpenFromPromptAsync"/>).
     /// </summary>
     /// <returns>A task that completes when every chosen file has been opened or reported.</returns>
-    public async Task OpenFromPromptAsync()
-    {
-        foreach (string path in await _prompts.AskFilesToOpenAsync(ActiveFolder()))
-        {
-            await OpenAsync(path);
-        }
-    }
+    public Task OpenFromPromptAsync() => _intake.OpenFromPromptAsync(this);
 
     /// <summary>
     /// Opens a file in the hex viewer in the active pane, or shows its hex view there when it is open.
@@ -883,66 +866,14 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         => CloseTabAsync(pane, tab, discard, keepEmptyPane: false);
 
     /// <inheritdoc />
-    public Task ExecuteExAsync(EditorPaneViewModel pane, VimExRequest request) => _ex.ExecuteAsync(pane, request);
+    public Task ExecuteExAsync(EditorPaneViewModel pane, VimExRequest request) => _ex.ExecuteAsync(this, pane, request);
 
     /// <inheritdoc />
-    public Task ExecuteWindowAsync(EditorPaneViewModel pane, VimWindowCommand command) => _window.ExecuteAsync(pane, command);
+    public Task ExecuteWindowAsync(EditorPaneViewModel pane, VimWindowCommand command) => _window.ExecuteAsync(this, pane, command);
 
     /// <inheritdoc />
-    /// <remarks>
-    /// <para>
-    /// The pane takes the keyboard first, so every file opens where it was dropped, each through the same
-    /// door as <em>File → Open</em>. Folders and paths that have gone are skipped and named once on the
-    /// status line, as the command line's are.
-    /// </para>
-    /// <para>
-    /// A drop on a new tab — an untitled buffer nothing has been typed into, which no other tab shows —
-    /// puts the first file that opens in its place rather than beside it: a new pane or a new window
-    /// starts with such a tab, and it is not what the user dropped a file on to keep.
-    /// </para>
-    /// </remarks>
-    public async Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths)
-    {
-        ArgumentNullException.ThrowIfNull(pane);
-        ArgumentNullException.ThrowIfNull(paths);
-
-        Activate(pane);
-
-        List<string> problems = [];
-        EditorTabViewModel? fresh = pane.ActiveTab is { } target && IsFresh(target) ? target : null;
-
-        foreach (string path in paths)
-        {
-            if (Directory.Exists(path))
-            {
-                problems.Add($"{NameOf(path)} is a folder");
-            }
-            else if (File.Exists(path) && (fresh is not null))
-            {
-                if (await OpenInPlaceOfAsync(pane, fresh, path))
-                {
-                    fresh = null;
-                }
-            }
-            else if (File.Exists(path))
-            {
-                await OpenAsync(path);
-            }
-            else
-            {
-                problems.Add($"{NameOf(path)} does not exist");
-            }
-        }
-
-        if (problems.Count > 0)
-        {
-            _status.Show($"Not opened: {string.Join("; ", problems)}.");
-        }
-
-        // A drive root has no name of its own.
-        static string NameOf(string path)
-            => Path.GetFileName(Path.TrimEndingDirectorySeparator(path)) is { Length: > 0 } name ? name : path;
-    }
+    /// <remarks>As <see cref="FileIntake.OpenDroppedAsync"/> opens them.</remarks>
+    public Task OpenDroppedAsync(EditorPaneViewModel pane, IReadOnlyList<string> paths) => _intake.OpenDroppedAsync(this, pane, paths);
 
     /// <inheritdoc />
     public void ShowStatus(string message) => _status.Show(message);
@@ -975,202 +906,12 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     }
 
     /// <summary>
-    /// Captures what the editor area shows, for the next start to restore: the layout, each pane's tabs and the one
-    /// showing, the pane with the keyboard, and the buffers behind the tabs.
-    /// </summary>
-    /// <param name="keepUnsaved">
-    /// Whether unsaved changes are kept: the text of every buffer with changes its file does not have, and of every
-    /// untitled buffer with text. Without it, they are left out — the close is throwing them away.
-    /// </param>
-    /// <returns>The session.</returns>
-    /// <remarks>
-    /// <para>
-    /// A buffer with a file — text or hex — is stored by its file, with its text when that is kept. An untitled
-    /// buffer is stored when it is empty, or when its text is kept: without it, there is nothing of it to bring
-    /// back. A buffer not stored takes its tabs with it, and a pane whose showing tab went shows its first tab left.
-    /// </para>
-    /// <para>
-    /// Positions are stored as the tabs last recorded them, and clamped to what a session may hold, so the file
-    /// written is one the next start accepts.
-    /// </para>
-    /// </remarks>
-    public SessionState CaptureSession(bool keepUnsaved = false)
-    {
-        List<SessionDocument> documents = [];
-        Dictionary<DocumentViewModel, int> indexes = [];
-
-        foreach (DocumentViewModel document in _registry.Documents)
-        {
-            if (keepUnsaved || !document.IsUntitled || (document.Document.TextLength == 0))
-            {
-                indexes[document] = documents.Count;
-                documents.Add(document.ToSession(keepUnsaved));
-            }
-        }
-
-        List<SessionPane> panes = [];
-
-        foreach (PaneId id in Layout.Panes)
-        {
-            EditorPaneViewModel pane = _byId[id];
-            List<SessionTab> tabs = [];
-            int showing = -1;
-
-            foreach (EditorTabViewModel tab in pane.Tabs)
-            {
-                if (!indexes.TryGetValue(tab.Document, out int index))
-                {
-                    continue;
-                }
-
-                if (ReferenceEquals(tab, pane.ActiveTab))
-                {
-                    showing = tabs.Count;
-                }
-
-                tabs.Add(new SessionTab(
-                    index,
-                    Math.Max(tab.CaretOffset, 0),
-                    Offset(tab.VerticalScrollOffset),
-                    Offset(tab.HorizontalScrollOffset),
-                    Math.Max(tab.HexRow, -1)));
-            }
-
-            panes.Add(new SessionPane(id.Value, tabs, (showing < 0) && (tabs.Count > 0) ? 0 : showing));
-        }
-
-        return new SessionState(SessionState.CurrentVersion, Layout.ToSnapshot(), ActivePaneId.Value, panes, documents);
-
-        static double Offset(double value) => double.IsFinite(value) ? Math.Max(value, 0) : 0;
-    }
-
-    /// <summary>
-    /// Brings a saved session back: the layout and its ratios, every pane's tabs in their order with the one that
-    /// was showing, where each was left, and the pane that had the keyboard.
-    /// </summary>
-    /// <param name="state">The session, as <see cref="SessionFile.Read(string)"/> checked it.</param>
-    /// <returns>The names of the buffers that could not be brought back; none when every one was.</returns>
-    /// <remarks>
-    /// <para>
-    /// Only onto an editor area with no tab, which is what a start has: a session replaces the panes, and must not
-    /// replace anything the user opened. One that has a tab by the time the buffers are read is left as it is.
-    /// </para>
-    /// <para>
-    /// A buffer whose file is gone or unreadable is skipped, and named once on the status line rather than asked
-    /// about: a start is not the moment for a stack of dialogs. A pane left with no tab closes, unless it is the
-    /// last.
-    /// </para>
-    /// </remarks>
-    public async Task<IReadOnlyList<string>> RestoreSessionAsync(SessionState state)
-    {
-        ArgumentNullException.ThrowIfNull(state);
-
-        if (HasTabs)
-        {
-            return [];
-        }
-
-        // Only the buffers a tab shows, each once, read before anything on screen changes.
-        SortedSet<int> shown = [.. state.Panes.SelectMany(pane => pane.Tabs).Select(tab => tab.Document)];
-        DocumentViewModel?[] documents = new DocumentViewModel?[state.Documents.Count];
-        List<string> skipped = [];
-
-        foreach (int index in shown)
-        {
-            SessionDocument saved = state.Documents[index];
-            documents[index] = await _documents.RestoreAsync(saved);
-
-            if (documents[index] is null)
-            {
-                skipped.Add(saved.FilePath is { } path ? Path.GetFileName(path) : saved.UntitledName);
-            }
-        }
-
-        if (HasTabs)
-        {
-            // Something opened while the files were read: what the user opened wins, and the restored buffers,
-            // shown by no tab, are let go.
-            foreach (DocumentViewModel document in documents.OfType<DocumentViewModel>().Distinct())
-            {
-                if (_registry.ViewCount(document) == 0)
-                {
-                    _registry.Release(document);
-                }
-            }
-
-            return [];
-        }
-
-        Batch(() => Rebuild(state, documents));
-        UpdateActiveFlags();
-        RefreshCommands();
-
-        if (skipped.Count > 0)
-        {
-            _status.Show($"Not restored from the previous session: {string.Join(", ", skipped)}.");
-        }
-
-        return skipped;
-    }
-
-    /// <summary>
     /// Opens the files named on the command line — this launch's, or another's that handed them over — in the
-    /// active pane, the last one active.
+    /// active pane, the last one active (<see cref="FileIntake.OpenStartupFilesAsync"/>).
     /// </summary>
     /// <param name="startup">The files, as read from the arguments.</param>
     /// <returns>A task that completes when every file has been opened or reported.</returns>
-    /// <remarks>
-    /// <para>
-    /// A missing file becomes an empty buffer the first save creates, unless its folder does not exist
-    /// either, which no save could fix. With nothing to open, an untitled buffer is ready to type into,
-    /// as Vim starts.
-    /// </para>
-    /// <para>
-    /// A new tab showing — untitled, empty, unchanged — gives its place to the first file that opens, as it does
-    /// to a dropped one: a window that has just been opened has one, and it is not what the files were sent to.
-    /// </para>
-    /// </remarks>
-    public async Task OpenStartupFilesAsync(StartupFiles startup)
-    {
-        ArgumentNullException.ThrowIfNull(startup);
-
-        List<string> problems = [.. startup.Skipped.Select(skipped => $"{skipped} is not a file")];
-        EditorPaneViewModel pane = ActivePane;
-        EditorTabViewModel? fresh = pane.ActiveTab is { } target && IsFresh(target) ? target : null;
-
-        foreach (StartupFile file in startup.Files)
-        {
-            if (file.Exists && (fresh is not null))
-            {
-                if (await OpenInPlaceOfAsync(pane, fresh, file.Path))
-                {
-                    fresh = null;
-                }
-            }
-            else if (file.Exists)
-            {
-                await OpenAsync(file.Path);
-            }
-            else if (Directory.Exists(Path.GetDirectoryName(file.Path)))
-            {
-                Show(_documents.CreateForMissingFile(file.Path));
-            }
-            else
-            {
-                problems.Add($"{file.Path} is in a folder that does not exist");
-            }
-        }
-
-        if (ActiveTab is null)
-        {
-            NewDocument();
-        }
-
-        if (problems.Count > 0)
-        {
-            _status.Show($"Not opened: {string.Join("; ", problems)}.");
-        }
-    }
+    public Task OpenStartupFilesAsync(StartupFiles startup) => _intake.OpenStartupFilesAsync(this, startup);
 
     /// <summary>
     /// The folder a picker starts in: the active buffer's.
@@ -1215,44 +956,31 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
     private EditorPaneViewModel? PaneOf(EditorTabViewModel tab)
         => _byId.Values.FirstOrDefault(pane => pane.Tabs.Contains(tab));
 
-    // Untitled, text, empty, never changed, and shown by this tab alone: nothing would be lost with it.
-    private bool IsFresh(EditorTabViewModel tab)
-        => tab.Document is { IsUntitled: true, IsHex: false, IsDirty: false, Document.TextLength: 0 }
-           && (_registry.ViewCount(tab.Document) <= 1);
-
     /// <summary>
-    /// Opens a file in a new tab's place.
+    /// Puts a buffer in a tab's place, without asking about the buffer it replaces — a new tab giving its place to the
+    /// first file opened into it.
     /// </summary>
-    /// <returns>Whether the file took the tab's place; it may still have opened elsewhere.</returns>
-    /// <remarks>
-    /// The tab is checked again once the file has opened, since a question (a binary file) may have come
-    /// in between. A file already on the pane is shown where it is, and the new tab is left for the next.
-    /// </remarks>
-    private async Task<bool> OpenInPlaceOfAsync(EditorPaneViewModel pane, EditorTabViewModel fresh, string path)
+    /// <param name="pane">The pane the tab is on.</param>
+    /// <param name="tab">The tab.</param>
+    /// <param name="document">The buffer, already in the registry.</param>
+    /// <returns>The tab showing the buffer: the pane's own when it already showed it.</returns>
+    internal EditorTabViewModel ReplaceTab(EditorPaneViewModel pane, EditorTabViewModel tab, DocumentViewModel document)
     {
-        if (await _documents.OpenAsync(path) is not { } document)
-        {
-            return false;
-        }
+        ArgumentNullException.ThrowIfNull(pane);
+        ArgumentNullException.ThrowIfNull(tab);
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (!pane.Tabs.Contains(fresh) || !IsFresh(fresh) || pane.Tabs.Any(tab => ReferenceEquals(tab.Document, document)))
-        {
-            Show(document);
-
-            return false;
-        }
-
-        pane.Replace(fresh, document, out bool created);
+        EditorTabViewModel replacement = pane.Replace(tab, document, out bool created);
 
         if (created)
         {
             _registry.Retain(document);
         }
 
-        _registry.Release(fresh.Document);
+        _registry.Release(tab.Document);
         RefreshCommands();
 
-        return true;
+        return replacement;
     }
 
     private async Task<bool> ResolveUnsavedAsync(DocumentViewModel document)
@@ -1270,64 +998,60 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         }
     }
 
-    // The panes the session had, in place of the ones there are — which have no tab, as RestoreSessionAsync checked.
-    private void Rebuild(SessionState state, DocumentViewModel?[] documents)
+    /// <summary>
+    /// Puts the panes of a restored session in place of the ones there are, which have no tab: the layout, each pane's
+    /// tabs and the one showing, and the pane with the keyboard.
+    /// </summary>
+    /// <param name="layout">The layout, its leaves the panes' ids.</param>
+    /// <param name="panes">Every pane of the layout, with its tabs.</param>
+    /// <param name="active">The pane that had the keyboard; the first pane when it is not there any more.</param>
+    /// <remarks>
+    /// <see cref="WorkspaceSession"/> decides what comes back; here it is taken in, so that every tab keeps its buffer
+    /// open in the registry as any other tab does. A pane whose every tab failed has nothing to show and closes; the
+    /// last pane stays, empty, for a new tab.
+    /// </remarks>
+    internal void ReplacePanes(LayoutSnapshot layout, IReadOnlyList<RestoredPane> panes, PaneId active)
     {
-        Layout.Restore(state.Layout);
+        ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(panes);
 
-        foreach (EditorPaneViewModel old in _byId.Values)
+        Batch(() =>
         {
-            old.PropertyChanged -= OnPanePropertyChanged;
-        }
+            Layout.Restore(layout);
 
-        _byId.Clear();
-
-        foreach (SessionPane saved in state.Panes)
-        {
-            EditorPaneViewModel pane = AddPane(new PaneId(saved.Id));
-            EditorTabViewModel? showing = null;
-
-            for (int index = 0; index < saved.Tabs.Count; index++)
+            foreach (EditorPaneViewModel old in _byId.Values)
             {
-                SessionTab tab = saved.Tabs[index];
+                old.PropertyChanged -= OnPanePropertyChanged;
+            }
 
-                if ((documents[tab.Document] is not { } document) || pane.Tabs.Any(existing => ReferenceEquals(existing.Document, document)))
+            _byId.Clear();
+
+            foreach (RestoredPane restored in panes)
+            {
+                EditorPaneViewModel pane = AddPane(restored.Id);
+
+                foreach (EditorTabViewModel tab in restored.Tabs)
                 {
-                    continue;
+                    pane.Adopt(tab);
+                    _registry.Retain(tab.Document);
                 }
 
-                EditorTabViewModel restored = new(document)
-                {
-                    CaretOffset = Math.Min(tab.CaretOffset, document.Document.TextLength),
-                    VerticalScrollOffset = tab.VerticalScrollOffset,
-                    HorizontalScrollOffset = tab.HorizontalScrollOffset,
-                    HexRow = tab.HexRow,
-                };
+                pane.ActiveTab = restored.Showing;
+            }
 
-                pane.Adopt(restored);
-                _registry.Retain(document);
-
-                // The tab that was showing, or — when it could not come back — the nearest one before it.
-                if ((index <= saved.ActiveTab) || (showing is null))
+            foreach (PaneId id in Layout.Panes.Where(id => _byId[id].Tabs.Count == 0).ToList())
+            {
+                if ((_byId.Count > 1) && Layout.Close(id, out _) && _byId.Remove(id, out EditorPaneViewModel? empty))
                 {
-                    showing = restored;
+                    empty.PropertyChanged -= OnPanePropertyChanged;
                 }
             }
 
-            pane.ActiveTab = showing;
-        }
+            Activate(_byId.ContainsKey(active) ? active : Layout.Panes[0]);
+        });
 
-        // A pane whose every tab failed has nothing to show; the last pane stays, empty, for a new tab.
-        foreach (PaneId id in Layout.Panes.Where(id => _byId[id].Tabs.Count == 0).ToList())
-        {
-            if ((_byId.Count > 1) && Layout.Close(id, out _) && _byId.Remove(id, out EditorPaneViewModel? empty))
-            {
-                empty.PropertyChanged -= OnPanePropertyChanged;
-            }
-        }
-
-        PaneId active = new(state.ActivePane);
-        Activate(_byId.ContainsKey(active) ? active : Layout.Panes[0]);
+        UpdateActiveFlags();
+        RefreshCommands();
     }
 
     private EditorPaneViewModel AddPane(PaneId id)
@@ -1421,14 +1145,6 @@ public sealed class WorkspaceViewModel : ObservableObject, IPaneHost
         EqualizeCommand.NotifyCanExecuteChanged();
         FocusNextPaneCommand.NotifyCanExecuteChanged();
         FocusPreviousPaneCommand.NotifyCanExecuteChanged();
-    }
-
-    private async Task OnOpenHexAsync()
-    {
-        foreach (string path in await _prompts.AskFilesToOpenAsync(ActiveFolder()))
-        {
-            await OpenHexAsync(path);
-        }
     }
 
     private Task OnCloseActiveTabAsync()

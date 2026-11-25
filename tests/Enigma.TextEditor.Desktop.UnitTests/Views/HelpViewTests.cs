@@ -32,17 +32,17 @@ public sealed class HelpViewTests(HeadlessAvaloniaFixture fixture)
 
             window.KeyTextInput(":help");
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Help.Shown >= 1, ":help asked for the help");
             int afterHelp = harness.Help.Shown;
 
             window.KeyTextInput(":h");
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Help.Shown >= 2, ":h asked for the help");
             int afterH = harness.Help.Shown;
 
             // F1 is no Vim key: the editor lets it through to the window's own binding.
             window.KeyPress(Key.F1, RawInputModifiers.None, PhysicalKey.F1, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Help.Shown >= 3, "F1 asked for the help");
 
             Assert.Equal(1, afterHelp);
             Assert.Equal(2, afterH);
@@ -62,12 +62,12 @@ public sealed class HelpViewTests(HeadlessAvaloniaFixture fixture)
             dialogs.RegisterHost(window.HostDialog);
 
             Task shown = new HelpDialogService(dialogs).ShowAsync();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => HelpIn(window)?.ScrollArea.IsFocused == true, "the help opened with the keyboard");
 
             Assert.Equal("Key bindings", window.HostDialog.Title);
             Assert.Equal("Close", window.HostDialog.CloseButtonText);
 
-            HelpView help = window.HostDialog.GetVisualDescendants().OfType<HelpView>().Single();
+            HelpView help = HelpIn(window)!;
             ScrollViewer scroller = help.ScrollArea;
             ScrollViewer? card = help.FindAncestorOfType<ScrollViewer>();
             double bottom = scroller.Extent.Height - scroller.Viewport.Height;
@@ -99,7 +99,7 @@ public sealed class HelpViewTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal(0, scroller.Offset.Y);
 
             window.KeyPress(Key.Q, RawInputModifiers.None, PhysicalKey.Q, "q");
-            await DrainAsync();
+            await UiWait.UntilAsync(() => !window.HostDialog.IsOpen, "q closed the help");
             bool open = window.HostDialog.IsOpen;
 
             // A key that failed to close the dialog must fail the test, not hang it on the open dialog.
@@ -109,12 +109,10 @@ public sealed class HelpViewTests(HeadlessAvaloniaFixture fixture)
             }
 
             await shown;
-            await DrainAsync();
+            await UiWait.UntilAsync(() => Editor(window).TextArea.IsKeyboardFocusWithin, "closing the help gave the editor the keyboard back");
 
             Assert.False(open, "q leaves the help open.");
-            Assert.True(
-                window.GetVisualDescendants().OfType<EditorPaneView>().Single().EditorControl.TextArea.IsKeyboardFocusWithin,
-                "Closing the help gives the keyboard back to the editor.");
+            Assert.True(Editor(window).TextArea.IsKeyboardFocusWithin, "Closing the help gives the keyboard back to the editor.");
             Assert.Equal("text\n", harness.Workspace.ActiveDocument?.Document.Text);
             window.Close();
         });
@@ -130,9 +128,9 @@ public sealed class HelpViewTests(HeadlessAvaloniaFixture fixture)
             dialogs.RegisterHost(window.HostDialog);
 
             Task shown = new HelpDialogService(dialogs).ShowAsync();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => HelpIn(window)?.ScrollArea.IsFocused == true, "the help opened with the keyboard");
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => !window.HostDialog.IsOpen, "Esc closed the help");
             bool open = window.HostDialog.IsOpen;
 
             if (open)
@@ -141,10 +139,10 @@ public sealed class HelpViewTests(HeadlessAvaloniaFixture fixture)
             }
 
             await shown;
-            await DrainAsync();
+            await UiWait.UntilAsync(() => Editor(window).TextArea.IsKeyboardFocusWithin, "closing the help gave the editor the keyboard back");
 
             Assert.False(open, "Esc leaves the help open.");
-            Assert.True(window.GetVisualDescendants().OfType<EditorPaneView>().Single().EditorControl.TextArea.IsKeyboardFocusWithin);
+            Assert.True(Editor(window).TextArea.IsKeyboardFocusWithin);
             window.Close();
         });
 
@@ -159,14 +157,9 @@ public sealed class HelpViewTests(HeadlessAvaloniaFixture fixture)
         return window;
     }
 
-    private static async Task DrainAsync()
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Yield();
-        }
+    private static AvaloniaEdit.TextEditor Editor(MainWindow window)
+        => window.GetVisualDescendants().OfType<EditorPaneView>().Single().EditorControl;
 
-        Dispatcher.UIThread.RunJobs();
-    }
+    private static HelpView? HelpIn(MainWindow window)
+        => window.HostDialog.GetVisualDescendants().OfType<HelpView>().SingleOrDefault();
 }

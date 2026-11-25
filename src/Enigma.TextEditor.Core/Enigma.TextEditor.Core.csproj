@@ -9,7 +9,7 @@
     <RootNamespace>Enigma.TextEditor.Core</RootNamespace>
     <!-- The product version, shared with the Desktop app: this library ships only inside it, so the
          two move together. Distinct from the dependency pins in Directory.Packages.props. -->
-    <Version>1.20.0</Version>
+    <Version>1.21.0</Version>
     <!-- GenerateDocumentationFile is deliberately absent: an app-internal library ships no XML doc
          file, and enabling it under TreatWarningsAsErrors would demand an XML comment on every public
          member (CS1591). -->
@@ -17,6 +17,10 @@
   <ItemGroup>
     <!-- Read/write JSON settings. Brings only Microsoft.Extensions.DependencyInjection.Abstractions. -->
     <PackageReference Include="Enigma.Configuration" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- For the few seams a test needs and the public API should not offer: a file write made to fail half-way. -->
+    <InternalsVisibleTo Include="Enigma.TextEditor.Core.UnitTests" />
   </ItemGroup>
   <!-- LangVersion / Nullable / ImplicitUsings / TreatWarningsAsErrors are deliberately absent: they
        come from Directory.Build.props. No Version attribute on a PackageReference either — versions

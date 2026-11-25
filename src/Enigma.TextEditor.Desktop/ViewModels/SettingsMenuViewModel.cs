@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
@@ -31,6 +32,9 @@ public sealed class SettingsMenuViewModel : ObservableObject
     private readonly EditorPreferences _preferences;
     private readonly ObservableCollection<FontSizeChoice> _fontSizeChoices = [];
 
+    // The menu's steps, in percent: the settings page and settings.json can set any other.
+    private static readonly int[] PaneResizeSteps = [2, 5, 10];
+
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingsMenuViewModel"/> class.
     /// </summary>
@@ -52,20 +56,34 @@ public sealed class SettingsMenuViewModel : ObservableObject
         _vim = vim ?? throw new ArgumentNullException(nameof(vim));
         _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
 
-        UseSystemThemeCommand = Command(() => SetThemeAsync(AppTheme.System));
-        UseLightThemeCommand = Command(() => SetThemeAsync(AppTheme.Light));
-        UseDarkThemeCommand = Command(() => SetThemeAsync(AppTheme.Dark));
+        ThemeChoices =
+        [
+            new MenuChoice("_System", "theme", () => Value.Theme == AppTheme.System, Command(() => SetThemeAsync(AppTheme.System))),
+            new MenuChoice("_Light", "theme", () => Value.Theme == AppTheme.Light, Command(() => SetThemeAsync(AppTheme.Light))),
+            new MenuChoice("_Dark", "theme", () => Value.Theme == AppTheme.Dark, Command(() => SetThemeAsync(AppTheme.Dark))),
+        ];
         ToggleVimCommand = Command(() => SetVimEnabledAsync(!Value.VimEnabled));
         ToggleWordWrapCommand = Command(() => SetWordWrapAsync(!Value.WordWrap));
         ToggleMinimapCommand = Command(() => SetMinimapAsync(!Value.ShowMinimap));
-        ResizeStep2Command = Command(() => SetPaneResizeStepAsync(2));
-        ResizeStep5Command = Command(() => SetPaneResizeStepAsync(5));
-        ResizeStep10Command = Command(() => SetPaneResizeStepAsync(10));
-        DefaultTwoSpacesCommand = Command(() => SetDefaultIndentationAsync(false, 2));
-        DefaultFourSpacesCommand = Command(() => SetDefaultIndentationAsync(false, 4));
-        DefaultTabsCommand = Command(() => SetDefaultIndentationAsync(true, 4));
-        DefaultLfCommand = Command(() => SetDefaultLineEndingAsync(LineEndingStyle.Lf));
-        DefaultCrLfCommand = Command(() => SetDefaultLineEndingAsync(LineEndingStyle.CrLf));
+        PaneResizeStepChoices =
+        [
+            .. PaneResizeSteps.Select(step => new MenuChoice(
+                string.Create(CultureInfo.InvariantCulture, $"{step}%"),
+                "paneResizeStep",
+                () => Value.PaneResizeStep == step,
+                Command(() => SetPaneResizeStepAsync(step)))),
+        ];
+        DefaultIndentationChoices =
+        [
+            new MenuChoice("Spaces: 2", "defaultIndentation", () => !Value.IndentWithTabs && (Value.IndentSize == 2), Command(() => SetDefaultIndentationAsync(false, 2))),
+            new MenuChoice("Spaces: 4", "defaultIndentation", () => !Value.IndentWithTabs && (Value.IndentSize == 4), Command(() => SetDefaultIndentationAsync(false, 4))),
+            new MenuChoice("Tabs", "defaultIndentation", () => Value.IndentWithTabs, Command(() => SetDefaultIndentationAsync(true, 4))),
+        ];
+        DefaultLineEndingChoices =
+        [
+            new MenuChoice("LF", "defaultLineEndings", () => Value.DefaultLineEnding == LineEndingStyle.Lf, Command(() => SetDefaultLineEndingAsync(LineEndingStyle.Lf))),
+            new MenuChoice("CRLF", "defaultLineEndings", () => Value.DefaultLineEnding == LineEndingStyle.CrLf, Command(() => SetDefaultLineEndingAsync(LineEndingStyle.CrLf))),
+        ];
         ZoomInCommand = Command(() => SetFontSizeAsync(Value.EditorFontSize + 1));
         ZoomOutCommand = Command(() => SetFontSizeAsync(Value.EditorFontSize - 1));
         ResetZoomCommand = Command(() => SetFontSizeAsync(AppSettings.DefaultFontSize));
@@ -81,19 +99,28 @@ public sealed class SettingsMenuViewModel : ObservableObject
     public event EventHandler? Changed;
 
     /// <summary>
-    /// Gets <em>Settings → Theme → System</em>.
+    /// Gets <em>Settings → Theme</em>: System, Light, Dark.
     /// </summary>
-    public AsyncRelayCommand UseSystemThemeCommand { get; }
+    public IReadOnlyList<MenuChoice> ThemeChoices { get; }
 
     /// <summary>
-    /// Gets <em>Settings → Theme → Light</em>.
+    /// Gets <em>Settings → Pane Resize Step</em>: how far a resize key moves a splitter, in percent.
     /// </summary>
-    public AsyncRelayCommand UseLightThemeCommand { get; }
+    /// <remarks>
+    /// Any step but these can be set from the settings page or written in settings.json; the menu then shows none of
+    /// them checked.
+    /// </remarks>
+    public IReadOnlyList<MenuChoice> PaneResizeStepChoices { get; }
 
     /// <summary>
-    /// Gets <em>Settings → Theme → Dark</em>.
+    /// Gets <em>Settings → Default Indentation</em>: two spaces, four spaces, tabs.
     /// </summary>
-    public AsyncRelayCommand UseDarkThemeCommand { get; }
+    public IReadOnlyList<MenuChoice> DefaultIndentationChoices { get; }
+
+    /// <summary>
+    /// Gets <em>Settings → Default Line Endings</em>: LF, CRLF.
+    /// </summary>
+    public IReadOnlyList<MenuChoice> DefaultLineEndingChoices { get; }
 
     /// <summary>
     /// Gets <em>Settings → Vim Mode</em>.
@@ -109,46 +136,6 @@ public sealed class SettingsMenuViewModel : ObservableObject
     /// Gets <em>Settings → Minimap</em>.
     /// </summary>
     public AsyncRelayCommand ToggleMinimapCommand { get; }
-
-    /// <summary>
-    /// Gets <em>Settings → Pane Resize Step → 2%</em>.
-    /// </summary>
-    public AsyncRelayCommand ResizeStep2Command { get; }
-
-    /// <summary>
-    /// Gets <em>Settings → Pane Resize Step → 5%</em>.
-    /// </summary>
-    public AsyncRelayCommand ResizeStep5Command { get; }
-
-    /// <summary>
-    /// Gets <em>Settings → Pane Resize Step → 10%</em>.
-    /// </summary>
-    public AsyncRelayCommand ResizeStep10Command { get; }
-
-    /// <summary>
-    /// Gets <em>Settings → Default Indentation → Spaces: 2</em>.
-    /// </summary>
-    public AsyncRelayCommand DefaultTwoSpacesCommand { get; }
-
-    /// <summary>
-    /// Gets <em>Settings → Default Indentation → Spaces: 4</em>.
-    /// </summary>
-    public AsyncRelayCommand DefaultFourSpacesCommand { get; }
-
-    /// <summary>
-    /// Gets <em>Settings → Default Indentation → Tabs</em>.
-    /// </summary>
-    public AsyncRelayCommand DefaultTabsCommand { get; }
-
-    /// <summary>
-    /// Gets <em>Settings → Default Line Endings → LF</em>.
-    /// </summary>
-    public AsyncRelayCommand DefaultLfCommand { get; }
-
-    /// <summary>
-    /// Gets <em>Settings → Default Line Endings → CRLF</em>.
-    /// </summary>
-    public AsyncRelayCommand DefaultCrLfCommand { get; }
 
     /// <summary>
     /// Gets <em>View → Zoom In</em>.
@@ -185,21 +172,6 @@ public sealed class SettingsMenuViewModel : ObservableObject
     public ReadOnlyObservableCollection<FontSizeChoice> FontSizeChoices { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the theme follows the system.
-    /// </summary>
-    public bool IsSystemTheme => Value.Theme == AppTheme.System;
-
-    /// <summary>
-    /// Gets a value indicating whether the theme is always light.
-    /// </summary>
-    public bool IsLightTheme => Value.Theme == AppTheme.Light;
-
-    /// <summary>
-    /// Gets a value indicating whether the theme is always dark.
-    /// </summary>
-    public bool IsDarkTheme => Value.Theme == AppTheme.Dark;
-
-    /// <summary>
     /// Gets a value indicating whether Vim drives the editors.
     /// </summary>
     public bool IsVimEnabled => Value.VimEnabled;
@@ -214,46 +186,6 @@ public sealed class SettingsMenuViewModel : ObservableObject
     /// </summary>
     public bool IsMinimap => Value.ShowMinimap;
 
-    /// <summary>
-    /// Gets a value indicating whether a resize key moves a splitter by 2%.
-    /// </summary>
-    public bool IsResizeStep2 => Value.PaneResizeStep == 2;
-
-    /// <summary>
-    /// Gets a value indicating whether a resize key moves a splitter by 5%.
-    /// </summary>
-    public bool IsResizeStep5 => Value.PaneResizeStep == 5;
-
-    /// <summary>
-    /// Gets a value indicating whether a resize key moves a splitter by 10%.
-    /// </summary>
-    public bool IsResizeStep10 => Value.PaneResizeStep == 10;
-
-    /// <summary>
-    /// Gets a value indicating whether new files are indented with two spaces.
-    /// </summary>
-    public bool IsDefaultTwoSpaces => !Value.IndentWithTabs && (Value.IndentSize == 2);
-
-    /// <summary>
-    /// Gets a value indicating whether new files are indented with four spaces.
-    /// </summary>
-    public bool IsDefaultFourSpaces => !Value.IndentWithTabs && (Value.IndentSize == 4);
-
-    /// <summary>
-    /// Gets a value indicating whether new files are indented with tabs.
-    /// </summary>
-    public bool IsDefaultTabs => Value.IndentWithTabs;
-
-    /// <summary>
-    /// Gets a value indicating whether new files are written with LF.
-    /// </summary>
-    public bool IsDefaultLf => Value.DefaultLineEnding == LineEndingStyle.Lf;
-
-    /// <summary>
-    /// Gets a value indicating whether new files are written with CRLF.
-    /// </summary>
-    public bool IsDefaultCrLf => Value.DefaultLineEnding == LineEndingStyle.CrLf;
-
     private AppSettings Value => _settings.Value;
 
     /// <summary>
@@ -265,9 +197,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
     {
         Value.Theme = theme;
         _theme.Apply(theme);
-        OnPropertyChanged(nameof(IsSystemTheme));
-        OnPropertyChanged(nameof(IsLightTheme));
-        OnPropertyChanged(nameof(IsDarkTheme));
+        MenuChoice.Refresh(ThemeChoices);
 
         await AppliedAsync();
     }
@@ -321,19 +251,13 @@ public sealed class SettingsMenuViewModel : ObservableObject
     /// </summary>
     /// <param name="percent">The step, in percent of the split; kept within the setting's range.</param>
     /// <returns>A task that completes once the settings are written.</returns>
-    /// <remarks>
-    /// Any step but the menu's three can be set from the settings page or written in settings.json;
-    /// the menu then shows none of its three checked.
-    /// </remarks>
     public async Task SetPaneResizeStepAsync(int percent)
     {
         int clamped = Math.Clamp(percent, AppSettings.MinimumPaneResizeStep, AppSettings.MaximumPaneResizeStep);
 
         Value.PaneResizeStep = clamped;
         _preferences.PaneResizeStep = clamped;
-        OnPropertyChanged(nameof(IsResizeStep2));
-        OnPropertyChanged(nameof(IsResizeStep5));
-        OnPropertyChanged(nameof(IsResizeStep10));
+        MenuChoice.Refresh(PaneResizeStepChoices);
 
         await AppliedAsync();
     }
@@ -348,9 +272,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
     {
         Value.IndentWithTabs = tabs;
         Value.IndentSize = Math.Clamp(size, AppSettings.MinimumIndentSize, AppSettings.MaximumIndentSize);
-        OnPropertyChanged(nameof(IsDefaultTwoSpaces));
-        OnPropertyChanged(nameof(IsDefaultFourSpaces));
-        OnPropertyChanged(nameof(IsDefaultTabs));
+        MenuChoice.Refresh(DefaultIndentationChoices);
 
         await AppliedAsync();
     }
@@ -363,8 +285,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
     public async Task SetDefaultLineEndingAsync(LineEndingStyle lineEnding)
     {
         Value.DefaultLineEnding = lineEnding;
-        OnPropertyChanged(nameof(IsDefaultLf));
-        OnPropertyChanged(nameof(IsDefaultCrLf));
+        MenuChoice.Refresh(DefaultLineEndingChoices);
 
         await AppliedAsync();
     }
@@ -444,6 +365,7 @@ public sealed class SettingsMenuViewModel : ObservableObject
 
         // Every check and radio mark of the menu at once.
         OnPropertyChanged(string.Empty);
+        RefreshChoices();
 
         await AppliedAsync();
     }
@@ -474,8 +396,17 @@ public sealed class SettingsMenuViewModel : ObservableObject
 
         // Every check and radio mark of the menu at once.
         OnPropertyChanged(string.Empty);
+        RefreshChoices();
 
         await AppliedAsync();
+    }
+
+    private void RefreshChoices()
+    {
+        MenuChoice.Refresh(ThemeChoices);
+        MenuChoice.Refresh(PaneResizeStepChoices);
+        MenuChoice.Refresh(DefaultIndentationChoices);
+        MenuChoice.Refresh(DefaultLineEndingChoices);
     }
 
     // A held Ctrl+= must not be dropped, nor the menu item grey out, while the previous step is

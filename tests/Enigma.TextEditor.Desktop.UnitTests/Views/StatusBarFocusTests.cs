@@ -53,12 +53,12 @@ public sealed class StatusBarFocusTests(HeadlessAvaloniaFixture fixture)
             Button button = window.FindControl<Button>(name)!;
 
             Click(window, button);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => button.Flyout is MenuFlyout { IsOpen: true }, "the item opened its list");
             MenuFlyout flyout = Assert.IsType<MenuFlyout>(button.Flyout);
             Assert.True(flyout.IsOpen);
 
             flyout.Hide();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.TextArea.IsFocused, "the editor took the keyboard back");
 
             Assert.True(pane.EditorControl.TextArea.IsFocused);
             window.Close();
@@ -76,12 +76,12 @@ public sealed class StatusBarFocusTests(HeadlessAvaloniaFixture fixture)
             Button button = window.FindControl<Button>("IndentationStatus")!;
 
             Click(window, button);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => button.Flyout is MenuFlyout { IsOpen: true }, "the item opened its list");
             MenuFlyout flyout = Assert.IsType<MenuFlyout>(button.Flyout);
-            MenuItem twoSpaces = flyout.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Spaces: 2");
-            twoSpaces.Command!.Execute(null);
+            MenuChoice twoSpaces = flyout.Items.OfType<MenuChoice>().Single(choice => choice.Header == "Spaces: 2");
+            twoSpaces.Command.Execute(null);
             flyout.Hide();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => (harness.StatusBar.IndentationText == "Spaces: 2") && !flyout.IsOpen && rightView.EditorControl.TextArea.IsFocused, "the choice applied and the right pane kept the keyboard");
 
             Assert.Equal("Spaces: 2", harness.StatusBar.IndentationText);
             Assert.Same(right, harness.Workspace.ActivePane);
@@ -98,10 +98,10 @@ public sealed class StatusBarFocusTests(HeadlessAvaloniaFixture fixture)
             MainWindow window = Show(harness);
             EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
             pane.FocusEditor();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.TextArea.IsFocused, "the editor took the keyboard");
 
             Click(window, window.FindControl<Button>("LanguageStatus")!);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => (harness.LanguagePicker.OpenedWith.Count == 1) && pane.EditorControl.TextArea.IsFocused, "the language item opened the picker and the editor kept the keyboard");
 
             Assert.Single(harness.LanguagePicker.OpenedWith);
             Assert.True(pane.EditorControl.TextArea.IsFocused);
@@ -122,14 +122,5 @@ public sealed class StatusBarFocusTests(HeadlessAvaloniaFixture fixture)
         Dispatcher.UIThread.RunJobs();
 
         return window;
-    }
-
-    private static async Task DrainAsync()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
     }
 }

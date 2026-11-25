@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -34,7 +33,9 @@ public sealed class TabStripViewTests(HeadlessAvaloniaFixture fixture)
             EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
 
             DoubleClick(window, OnStrip(pane, window));
-            await DrainAsync();
+            await UiWait.UntilAsync(
+                () => (harness.Workspace.ActivePane.Tabs.Count == 2) && ReferenceEquals(harness.Workspace.ActivePane.Tabs[^1], pane.CurrentTab) && pane.EditorControl.TextArea.IsKeyboardFocusWithin,
+                "the double-click opened a new tab with the keyboard");
 
             EditorPaneViewModel model = harness.Workspace.ActivePane;
             Assert.Equal(["a.txt", "Untitled-1"], model.Tabs.Select(tab => tab.Document.Title));
@@ -54,7 +55,7 @@ public sealed class TabStripViewTests(HeadlessAvaloniaFixture fixture)
             EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
 
             DoubleClick(window, TitleOf(window, pane, a));
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Equal([a], harness.Workspace.ActivePane.Tabs);
             window.Close();
@@ -73,7 +74,9 @@ public sealed class TabStripViewTests(HeadlessAvaloniaFixture fixture)
             EditorPaneView right = window.GetVisualDescendants().OfType<EditorPaneView>().Single(view => view.DataContext == rightPane);
 
             DoubleClick(window, OnStrip(right, window));
-            await DrainAsync();
+            await UiWait.UntilAsync(
+                () => (rightPane.Tabs.Count == 2) && right.EditorControl.TextArea.IsKeyboardFocusWithin,
+                "the double-click opened a new tab in the right pane with the keyboard");
 
             Assert.Single(leftPane.Tabs);
             Assert.Equal(2, rightPane.Tabs.Count);
@@ -197,15 +200,4 @@ public sealed class TabStripViewTests(HeadlessAvaloniaFixture fixture)
     // On the tab strip, right of the tabs: the strip is the top band of the pane.
     private static Point OnStrip(EditorPaneView pane, MainWindow window)
         => pane.TranslatePoint(new Point(pane.Bounds.Width - 20, 15), window)!.Value;
-
-    private static async Task DrainAsync()
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Yield();
-        }
-
-        Dispatcher.UIThread.RunJobs();
-    }
 }

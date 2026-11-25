@@ -139,7 +139,7 @@ public sealed class HotExitTests(HeadlessAvaloniaFixture fixture)
                 [new SessionPane(0, [new SessionTab(0)], 0)],
                 [new SessionDocument(a, "Untitled-1", UnsavedText: "kept")]);
 
-            await harness.Workspace.RestoreSessionAsync(state);
+            await harness.WorkspaceSession.RestoreAsync(harness.Workspace, state);
             EditorTabViewModel tab = harness.Workspace.ActiveTab!;
             tab.Document.Document.Insert(0, "x");
             tab.Document.Document.UndoStack.Undo();
@@ -165,7 +165,7 @@ public sealed class HotExitTests(HeadlessAvaloniaFixture fixture)
                 [new SessionPane(0, [new SessionTab(0)], 0)],
                 [new SessionDocument(a, "Untitled-1", UnsavedText: "kept")]);
 
-            await harness.Workspace.RestoreSessionAsync(state);
+            await harness.WorkspaceSession.RestoreAsync(harness.Workspace, state);
             DocumentViewModel document = harness.Workspace.ActiveDocument!;
 
             Assert.True(await harness.Documents.ReopenWithEncodingAsync(document, TextEncodings.Utf8));

@@ -160,15 +160,19 @@ public sealed class SessionAutosaveTests(HeadlessAvaloniaFixture fixture)
             Task tick = autosave.SaveIfChangedAsync();
             Assert.True(store.Entered.Wait(TimeSpan.FromSeconds(10)));
 
-            // Released from elsewhere: the close's write blocks this thread until the background one is done.
-            Task release = Task.Run(async () =>
+            // Released from elsewhere once the close's write is seen waiting: it blocks this thread until the background
+            // write is done.
+            Thread closing = Thread.CurrentThread;
+            Task<bool> release = Task.Run(() =>
             {
-                await Task.Delay(100);
+                bool waited = SpinWait.SpinUntil(() => (closing.ThreadState & ThreadState.WaitSleepJoin) != 0, TimeSpan.FromSeconds(10));
                 hold.Set();
+
+                return waited;
             });
             Assert.True(autosave.SaveNow(State(2)));
             await tick;
-            await release;
+            Assert.True(await release, "The close's write did not wait for the background write.");
 
             Assert.Equal([1, 2], store.Saved.Select(CaretOf));
         });
@@ -190,14 +194,16 @@ public sealed class SessionAutosaveTests(HeadlessAvaloniaFixture fixture)
     private static SessionAutosave Inline(FakeSessionStore store, ManualTimeProvider? clock = null)
         => new(store, clock ?? new ManualTimeProvider(), NullLogger<SessionAutosave>.Instance, work => Task.FromResult(work()));
 
-    // One pane, one file, the caret where asked — a new instance every time, equal for equal carets.
-    private static SessionState State(int caret)
+    // One pane, one file, the caret where asked — a new instance every time, equal for equal carets; no text of its own.
+    private static SessionCapture State(int caret)
         => new(
-            SessionState.CurrentVersion,
-            new LayoutSnapshot(Pane: 0),
-            0,
-            [new SessionPane(0, [new SessionTab(0, caret)], 0)],
-            [new SessionDocument(@"C:\a.txt", "Untitled-1")]);
+            new SessionState(
+                SessionState.CurrentVersion,
+                new LayoutSnapshot(Pane: 0),
+                0,
+                [new SessionPane(0, [new SessionTab(0, caret)], 0)],
+                [new SessionDocument(@"C:\a.txt", "Untitled-1")]),
+            []);
 
     private static int CaretOf(SessionState state) => state.Panes[0].Tabs[0].CaretOffset;
 

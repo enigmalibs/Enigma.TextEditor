@@ -33,8 +33,11 @@ internal sealed class EditorHarness : IDisposable
         Documents = new DocumentService(Registry, Prompts, Messages, Settings, Languages, Binary, NullLogger<DocumentService>.Instance);
         Preferences = new EditorPreferences(Settings);
         Vim = new VimSession(Settings, StatusLine);
-        Workspace = new WorkspaceViewModel(Documents, Registry, Prompts, Unsaved, StatusLine, Vim, VimShared, Shutdown, Preferences, Help, Languages, LanguagePicker);
-        Explorer = new FileExplorerViewModel(Workspace, Prompts, ExplorerPrompts, Messages, Trash, NullLogger<FileExplorerViewModel>.Instance);
+        ExCommands = new ExCommandHandler(Shutdown, StatusLine, Help, Languages, LanguagePicker);
+        WindowCommands = new WindowCommandHandler(ExCommands, StatusLine);
+        Intake = new FileIntake(Documents, Registry, Prompts, StatusLine);
+        Workspace = new WorkspaceViewModel(Documents, Registry, Intake, Unsaved, StatusLine, Vim, VimShared, Preferences, ExCommands, WindowCommands);
+        Explorer = new FileExplorerViewModel(Workspace, Prompts, ExplorerPrompts, Messages, Trash, ExplorerLog);
         StatusBar = new StatusBarViewModel(Workspace, StatusLine);
         Tools = new ToolsViewModel(Workspace, LanguagePicker, EncodingPicker, Confirm, Documents);
         SettingsWriter = new SettingsWriter(Settings, Messages, NullLogger<SettingsWriter>.Instance);
@@ -47,14 +50,25 @@ internal sealed class EditorHarness : IDisposable
 
         // Written on the spot rather than on the thread pool: a tick is over once the dispatcher has run it.
         Autosave = new SessionAutosave(Session, Clock, NullLogger<SessionAutosave>.Instance, work => Task.FromResult(work()));
-        Window = new MainWindowViewModel(
-            Workspace, Explorer, StatusBar, Tools, SettingsMenu, Shell, PreferencesPage, About, Help, firstRun ?? FirstRunState.Returning, FirstRunDialog, Shutdown, Session, Autosave);
+        WorkspaceSession = new WorkspaceSession(Documents, Registry, StatusLine);
+        Lifecycle = new EditorLifecycle(Workspace, WorkspaceSession, Explorer, firstRun ?? FirstRunState.Returning, FirstRunDialog, Session, Autosave, Shutdown);
+        Window = new MainWindowViewModel(Workspace, Explorer, StatusBar, Tools, SettingsMenu, Shell, PreferencesPage, About, Help, Shutdown, Lifecycle);
     }
 
     /// <summary>
     /// Gets the clock the autosave ticks on: it moves only when a test moves it.
     /// </summary>
     public ManualTimeProvider Clock { get; } = new();
+
+    /// <summary>
+    /// Gets what turns the editor area into a session and back.
+    /// </summary>
+    public WorkspaceSession WorkspaceSession { get; }
+
+    /// <summary>
+    /// Gets the window's start and close: first run, session, autosave.
+    /// </summary>
+    public EditorLifecycle Lifecycle { get; }
 
     /// <summary>
     /// Gets what keeps the session while the editor runs.
@@ -75,6 +89,11 @@ internal sealed class EditorHarness : IDisposable
     public FakeFileExplorerPrompts ExplorerPrompts { get; } = new();
 
     public FakeTrashService Trash { get; } = new();
+
+    /// <summary>
+    /// Gets what the explorer logged.
+    /// </summary>
+    public RecordingLogger<FileExplorerViewModel> ExplorerLog { get; } = new();
 
     public FakeMessageService Messages { get; } = new();
 
@@ -128,6 +147,12 @@ internal sealed class EditorHarness : IDisposable
     public EditorPreferences Preferences { get; }
 
     public WorkspaceViewModel Workspace { get; }
+
+    public ExCommandHandler ExCommands { get; }
+
+    public FileIntake Intake { get; }
+
+    public WindowCommandHandler WindowCommands { get; }
 
     public FileExplorerViewModel Explorer { get; }
 

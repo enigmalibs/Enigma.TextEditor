@@ -29,6 +29,12 @@ public static class AppPaths
     public const string LogFileName = "app.log";
 
     /// <summary>
+    /// The name of the file, beside the log, that an exception goes to when it comes before the log exists — while
+    /// the settings are read or the host is built.
+    /// </summary>
+    public const string EarlyErrorsFileName = "early-errors.log";
+
+    /// <summary>
     /// The name of the file pointing at the instance used last, which a launch with files hands them to.
     /// </summary>
     public const string ActiveInstanceFileName = "instance.json";
@@ -42,6 +48,16 @@ public static class AppPaths
     /// The name an unusable session file is moved aside to.
     /// </summary>
     public const string QuarantinedSessionFileName = "session.invalid.json";
+
+    /// <summary>
+    /// The folder, beside the session file, that holds the unsaved text of each buffer in a file of its own.
+    /// </summary>
+    public const string UnsavedFolderName = "unsaved";
+
+    /// <summary>
+    /// The name the unsaved-text folder of an unusable session is moved aside to, with it.
+    /// </summary>
+    public const string QuarantinedUnsavedFolderName = "unsaved.invalid";
 
     /// <summary>
     /// The name of the file the instance that owns the session holds open.
@@ -59,6 +75,12 @@ public static class AppPaths
     /// </summary>
     public static string LogFile
         => ConfigPaths.InApplicationData(AppInfo.AppDataFolderName, Path.Combine(LogsFolderName, LogFileName));
+
+    /// <summary>
+    /// Gets the full path of the file an exception goes to before the log exists.
+    /// </summary>
+    public static string EarlyErrorsFile
+        => ConfigPaths.InApplicationData(AppInfo.AppDataFolderName, Path.Combine(LogsFolderName, EarlyErrorsFileName));
 
     /// <summary>
     /// Gets the full path of the file pointing at the instance used last.

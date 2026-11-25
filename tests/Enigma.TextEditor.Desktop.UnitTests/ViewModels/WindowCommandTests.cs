@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Headless;
@@ -263,7 +264,7 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
 
             window.KeyPressQwerty(PhysicalKey.W, RawInputModifiers.Control);
             window.KeyTextInput("v");
-            await Pump();
+            await UiWait.UntilAsync(() => harness.Workspace.Panes.Count == 2, "Ctrl+W v split the pane");
             Assert.Equal(2, harness.Workspace.Panes.Count);
 
             // Back to the left pane to yank its line, then to the new (right) one — another engine — to
@@ -272,18 +273,18 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             EditorPaneViewModel right = harness.Workspace.Panes[1];
             window.KeyPressQwerty(PhysicalKey.W, RawInputModifiers.Control);
             window.KeyTextInput("h");
-            await Pump();
+            await UiWait.UntilAsync(() => ReferenceEquals(left, harness.Workspace.ActivePane), "Ctrl+W h moved to the left pane");
             Assert.Same(left, harness.Workspace.ActivePane);
             window.KeyTextInput("yy");
             window.KeyPressQwerty(PhysicalKey.W, RawInputModifiers.Control);
             window.KeyTextInput("l");
-            await Pump();
+            await UiWait.UntilAsync(() => ReferenceEquals(right, harness.Workspace.ActivePane), "Ctrl+W l moved to the right pane");
             Assert.Same(right, harness.Workspace.ActivePane);
 
             await harness.Workspace.OpenAsync(harness.Folder.Write("b.txt", "other\n"));
-            await Pump();
+            await UiWait.UntilAsync(() => right.ActiveTab?.Document.Title == "b.txt", "b.txt showed in the right pane");
             window.KeyTextInput("p");
-            await Pump();
+            await UiWait.UntilAsync(() => right.ActiveTab?.Document.Document.Text == "other\nfirst line\n", "p put the yanked line");
 
             Assert.Equal("b.txt", right.ActiveTab?.Document.Title);
             Assert.Equal("other\nfirst line\n", right.ActiveTab?.Document.Document.Text);
@@ -303,11 +304,11 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             await FocusAsync(window, right);
 
             window.KeyTextInput("gh");
-            await Pump();
+            await UiWait.UntilAsync(() => ReferenceEquals(left, harness.Workspace.ActivePane), "gh moved to the left pane");
             Assert.Same(left, harness.Workspace.ActivePane);
 
             window.KeyTextInput("gl");
-            await Pump();
+            await UiWait.UntilAsync(() => ReferenceEquals(right, harness.Workspace.ActivePane), "gl moved to the right pane");
             Assert.Same(right, harness.Workspace.ActivePane);
 
             // The right-hand pane split in two: one above the other.
@@ -315,17 +316,17 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             await FocusAsync(window, below);
 
             window.KeyTextInput("gk");
-            await Pump();
+            await UiWait.UntilAsync(() => ReferenceEquals(right, harness.Workspace.ActivePane), "gk moved to the pane above");
             Assert.Same(right, harness.Workspace.ActivePane);
 
             window.KeyTextInput("gj");
-            await Pump();
+            await UiWait.UntilAsync(() => ReferenceEquals(below, harness.Workspace.ActivePane), "gj moved to the pane below");
             Assert.Same(below, harness.Workspace.ActivePane);
 
             // Nothing below the bottom pane: the keyboard stays, and nothing was typed.
             string text = below.ActiveTab!.Document.Document.Text;
             window.KeyTextInput("gj");
-            await Pump();
+            await UiWait.SettleAsync();
             Assert.Same(below, harness.Workspace.ActivePane);
             Assert.Equal(text, below.ActiveTab.Document.Document.Text);
             window.Close();
@@ -346,15 +347,15 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             await FocusAsync(window, left);
 
             window.KeyTextInput("g>");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.55), "g> widened the pane");
             Assert.Equal(0.55, split.Ratio, 9);
 
             window.KeyTextInput("g<g<");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.45), "g<g< narrowed the pane");
             Assert.Equal(0.45, split.Ratio, 9);
 
             window.KeyTextInput("g=");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.5), "g= equalized the panes");
             Assert.Equal(0.5, split.Ratio, 9);
             Assert.Equal("text\n", left.ActiveTab!.Document.Document.Text);
             window.Close();
@@ -376,25 +377,25 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             // j moves the bar down, typed in the top pane and in the bottom one: the top pane grows both times.
             await FocusAsync(window, top);
             window.KeyTextInput(" rj");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.55), "the bar moved down");
             Assert.Equal(0.55, split.Ratio, 9);
 
             await FocusAsync(window, bottom);
             string below = bottom.ActiveTab!.Document.Document.Text;
             window.KeyTextInput(" rj");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.6), "the bar moved down again");
             Assert.Equal(0.6, split.Ratio, 9);
 
             // k moves it up, and the bottom pane grows.
             window.KeyTextInput(" rk rk rk");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.45), "the bar moved up three times");
             Assert.Equal(0.45, split.Ratio, 9);
             Assert.Same(bottom, harness.Workspace.ActivePane);
             Assert.Equal(below, bottom.ActiveTab.Document.Document.Text);
 
             await FocusAsync(window, top);
             window.KeyTextInput(" rk");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.4), "the bar moved up from the top pane");
             Assert.Equal(0.4, split.Ratio, 9);
             Assert.Equal("text\n", top.ActiveTab!.Document.Document.Text);
             window.Close();
@@ -416,28 +417,28 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             // l moves the bar right, typed in the left pane and in the right one: the left pane grows both times.
             await FocusAsync(window, left);
             window.KeyTextInput(" rl");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.55), "the bar moved right");
             Assert.Equal(0.55, split.Ratio, 9);
 
             await FocusAsync(window, right);
             window.KeyTextInput(" rl");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.6), "the bar moved right again");
             Assert.Equal(0.6, split.Ratio, 9);
 
             // h moves it left, and the right pane grows.
             window.KeyTextInput(" rh rh rh");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.45), "the bar moved left three times");
             Assert.Equal(0.45, split.Ratio, 9);
 
             await FocusAsync(window, left);
             window.KeyTextInput(" rh");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.4), "the bar moved left from the left pane");
             Assert.Equal(0.4, split.Ratio, 9);
             Assert.Equal("text\n", left.ActiveTab!.Document.Document.Text);
 
             // The old keys still grow the pane that has the keyboard: g> from the left one widens it.
             window.KeyTextInput("g>");
-            await Pump();
+            await UiWait.UntilAsync(() => IsRatio(split, 0.45), "g> widened the left pane");
             Assert.Equal(0.45, split.Ratio, 9);
             window.Close();
         });
@@ -456,24 +457,24 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
             await FocusAsync(window, pane);
 
             window.KeyTextInput("gt");
-            await Pump();
+            await UiWait.UntilAsync(() => pane.ActiveTab?.Document.Title == "a.txt", "gt showed the next tab");
             Assert.Equal("a.txt", pane.ActiveTab!.Document.Title);
 
             window.KeyTextInput("gT");
-            await Pump();
+            await UiWait.UntilAsync(() => pane.ActiveTab?.Document.Title == "c.txt", "gT showed the previous tab");
             Assert.Equal("c.txt", pane.ActiveTab!.Document.Title);
 
             window.KeyTextInput("gT");
-            await Pump();
+            await UiWait.UntilAsync(() => pane.ActiveTab?.Document.Title == "b.txt", "gT showed the previous tab again");
             Assert.Equal("b.txt", pane.ActiveTab!.Document.Title);
             window.Close();
         });
 
     private static async Task FocusAsync(MainWindow window, EditorPaneViewModel pane)
     {
-        await Pump();
-        window.GetVisualDescendants().OfType<EditorPaneView>().Single(view => ReferenceEquals(view.DataContext, pane)).FocusEditor();
-        await Pump();
+        await UiWait.UntilAsync(() => ViewOf(window, pane) is not null, "the pane's view was built");
+        ViewOf(window, pane)!.FocusEditor();
+        await UiWait.UntilAsync(() => ViewOf(window, pane)!.IsKeyboardFocusWithin, "the pane's editor took the keyboard");
     }
 
     private static Task Window(EditorHarness harness, VimWindowCommand command)
@@ -482,12 +483,9 @@ public sealed class WindowCommandTests(HeadlessAvaloniaFixture fixture)
     private static Task Ex(EditorHarness harness, VimExCommand command, string? argument = null)
         => harness.Workspace.ActivePane.ExecuteExAsync(new VimExRequest(command, argument));
 
-    private static async Task Pump()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
-    }
+    private static EditorPaneView? ViewOf(MainWindow window, EditorPaneViewModel pane)
+        => window.GetVisualDescendants().OfType<EditorPaneView>().SingleOrDefault(view => ReferenceEquals(view.DataContext, pane));
+
+    // The resize steps are fractions: compared as the assertions compare them, to nine places.
+    private static bool IsRatio(SplitNode split, double expected) => Math.Round(split.Ratio, 9) == Math.Round(expected, 9);
 }

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -104,20 +103,6 @@ public sealed class KeySequenceParser
 
     private const char Leader = ' ';
 
-    // The leader's mappings, by the keys typed after it. The 'r' keys move the bar between two panes, the
-    // 'm' keys move the tab showing to another pane; each carries its direction as the argument.
-    private static readonly Dictionary<string, VimCommand> LeaderMappings = new(StringComparer.Ordinal)
-    {
-        ["rh"] = new(VimAction.MoveSplitter, Argument: 'h'),
-        ["rj"] = new(VimAction.MoveSplitter, Argument: 'j'),
-        ["rk"] = new(VimAction.MoveSplitter, Argument: 'k'),
-        ["rl"] = new(VimAction.MoveSplitter, Argument: 'l'),
-        ["mh"] = new(VimAction.MoveTab, Argument: 'h'),
-        ["mj"] = new(VimAction.MoveTab, Argument: 'j'),
-        ["mk"] = new(VimAction.MoveTab, Argument: 'k'),
-        ["ml"] = new(VimAction.MoveTab, Argument: 'l'),
-    };
-
     private readonly StringBuilder _sequence = new();
 
     private int _count;
@@ -185,7 +170,7 @@ public sealed class KeySequenceParser
         // motion — so both are dead, named in full. Only a count may stand in front of one.
         if (key.HasCommandModifier)
         {
-            return (!PrefixPending && (ControlActionFor(key) is { } control))
+            return (!PrefixPending && (VimKeyBindings.ControlActionFor(key) is { } control))
                 ? Complete(new VimCommand(control, VimMotion.None, TotalCount))
                 : Dead();
         }
@@ -215,7 +200,7 @@ public sealed class KeySequenceParser
             char opener = _awaitingObject;
             _awaitingObject = '\0';
 
-            return (key.IsCharacter && (TextObjectFor(opener, key.Character) is { } textObject))
+            return (key.IsCharacter && (VimKeyBindings.TextObjectFor(opener, key.Character) is { } textObject))
                 ? ObjectCommand(textObject)
                 : Dead();
         }
@@ -265,7 +250,7 @@ public sealed class KeySequenceParser
         {
             _awaitingLowerZ = false;
 
-            return ScrollCaretActionFor(key) is { } scroll
+            return VimKeyBindings.ScrollCaretActionFor(key) is { } scroll
                 ? Complete(new VimCommand(scroll, VimMotion.None, TotalCount))
                 : Dead();
         }
@@ -317,14 +302,14 @@ public sealed class KeySequenceParser
         // Above the operator and the motion, and above the visual cut-off with them: a find opens a
         // motion rather than completing one, and it is a motion in every mode — behind an operator
         // it says which text, and in a visual mode it says how far the selection reaches.
-        if (key.IsCharacter && (FindOpenerFor(key.Character) is { } find))
+        if (key.IsCharacter && (VimKeyBindings.FindOpenerFor(key.Character) is { } find))
         {
             _awaitingFind = find;
 
             return Pending();
         }
 
-        if (key.IsCharacter && (OperatorFor(key.Character) is { } @operator))
+        if (key.IsCharacter && (VimKeyBindings.OperatorFor(key.Character) is { } @operator))
         {
             return Operator(@operator, visual);
         }
@@ -332,12 +317,12 @@ public sealed class KeySequenceParser
         // The second half of a doubled case operator, spelled with the bare letter: 'gu' then 'u'.
         // Read before the motions and the actions because 'u' on its own is undo and '~' is a toggle,
         // and neither is what the key means with 'gu' or 'g~' waiting.
-        if (key.IsCharacter && (_operator != VimOperator.None) && (key.Character == DoublingKeyFor(_operator)))
+        if (key.IsCharacter && (_operator != VimOperator.None) && (key.Character == VimKeyBindings.DoublingKeyFor(_operator)))
         {
             return Complete(VimCommand.Operate(_operator, VimMotion.WholeLine, TotalCount));
         }
 
-        if (MotionFor(key) is { } motion)
+        if (VimKeyBindings.MotionFor(key) is { } motion)
         {
             return Motion(motion);
         }
@@ -354,7 +339,7 @@ public sealed class KeySequenceParser
         // where there is something for one to be handed to — an operator waiting, or a selection on
         // screen — and keep their insert meanings everywhere else. 'di' is therefore no longer a dead
         // sequence but a half-typed 'diw', while a bare 'i' is still insert.
-        if (key.IsCharacter && ((_operator != VimOperator.None) || visual) && IsObjectOpener(key.Character))
+        if (key.IsCharacter && ((_operator != VimOperator.None) || visual) && VimKeyBindings.IsObjectOpener(key.Character))
         {
             _awaitingObject = key.Character;
 
@@ -372,7 +357,7 @@ public sealed class KeySequenceParser
         // line on the screen. Commands in both grammars — the view moves while selecting, and the
         // selection follows the caret — and nothing behind an operator, which the dead end above has
         // already said.
-        if (!key.IsCharacter && (PageActionFor(key.Special) is { } page))
+        if (!key.IsCharacter && (VimKeyBindings.PageActionFor(key.Special) is { } page))
         {
             return Complete(new VimCommand(page, VimMotion.None, TotalCount));
         }
@@ -386,7 +371,7 @@ public sealed class KeySequenceParser
 
         // The two keys that mean the same thing in every mode they are typed in: start selecting,
         // switch which way, or stop.
-        if (key.IsCharacter && (VisualFor(key.Character) is { } visualAction))
+        if (key.IsCharacter && (VimKeyBindings.VisualFor(key.Character) is { } visualAction))
         {
             return Complete(new VimCommand(visualAction, VimMotion.None, TotalCount));
         }
@@ -414,7 +399,7 @@ public sealed class KeySequenceParser
         // insert keys and ':' have visual meanings in vim, and both are still on the out list.
         if (visual)
         {
-            return (key.IsCharacter ? VisualActionFor(key.Character) : null) is { } visualCommand
+            return (key.IsCharacter ? VimKeyBindings.VisualActionFor(key.Character, TotalCount) : null) is { } visualCommand
                 ? Complete(visualCommand)
                 : Dead();
         }
@@ -426,7 +411,7 @@ public sealed class KeySequenceParser
             return Pending();
         }
 
-        return (key.IsCharacter ? ActionFor(key.Character) : null) is { } command ? Complete(command) : Dead();
+        return (key.IsCharacter ? VimKeyBindings.ActionFor(key.Character, TotalCount) : null) is { } command ? Complete(command) : Dead();
     }
 
     /// <summary>
@@ -459,7 +444,7 @@ public sealed class KeySequenceParser
     /// What the engine asks before offering a held key to the grammar: every other key held with
     /// Control or Alt belongs to the window, and never reaches the parser at all.
     /// </remarks>
-    public static bool IsControlCommand(VimKey key) => ControlActionFor(key) is not null;
+    public static bool IsControlCommand(VimKey key) => VimKeyBindings.ControlActionFor(key) is not null;
 
     /// <summary>
     /// Whether a prefix is waiting for its partner — anything half typed except a bare count or a
@@ -476,300 +461,6 @@ public sealed class KeySequenceParser
             || (_awaitingObject != '\0')
             || (_leader is not null)
             || (_operator != VimOperator.None);
-
-    private static VimAction? VisualFor(char character)
-        => character switch
-        {
-            'v' => VimAction.VisualCharacterwise,
-            'V' => VimAction.VisualLinewise,
-            _ => null,
-        };
-
-    /// <summary>
-    /// Which scroll command a key held with Control names, for the five the editor leaves to vim.
-    /// </summary>
-    /// <remarks>
-    /// The letter is read whichever case it arrived in, because Shift held with Control changes
-    /// nothing about what vim does; Alt held with it is a different key, and the window's.
-    /// </remarks>
-    private static VimAction? ControlActionFor(VimKey key)
-    {
-        if (!key.IsCharacter
-            || ((key.Modifiers & VimModifiers.Control) == VimModifiers.None)
-            || ((key.Modifiers & VimModifiers.Alt) != VimModifiers.None))
-        {
-            return null;
-        }
-
-        return char.ToLowerInvariant(key.Character) switch
-        {
-            'd' => VimAction.ScrollHalfPageDown,
-            'u' => VimAction.ScrollHalfPageUp,
-            'f' => VimAction.ScrollPageDown,
-            'b' => VimAction.ScrollPageUp,
-            'e' => VimAction.ScrollLineDown,
-            _ => null,
-        };
-    }
-
-    private static VimAction? PageActionFor(VimSpecialKey key)
-        => key switch
-        {
-            VimSpecialKey.PageDown => VimAction.ScrollPageDown,
-            VimSpecialKey.PageUp => VimAction.ScrollPageUp,
-            _ => null,
-        };
-
-    /// <summary>
-    /// Which of the six <c>z</c> commands a key names, after the <c>z</c> that opened one.
-    /// </summary>
-    private static VimAction? ScrollCaretActionFor(VimKey key)
-    {
-        if (!key.IsCharacter)
-        {
-            return key.Special == VimSpecialKey.Enter ? VimAction.ScrollCaretTopToFirstNonBlank : null;
-        }
-
-        return key.Character switch
-        {
-            't' => VimAction.ScrollCaretTop,
-            'z' => VimAction.ScrollCaretCenter,
-            'b' => VimAction.ScrollCaretBottom,
-            '.' => VimAction.ScrollCaretCenterToFirstNonBlank,
-            '-' => VimAction.ScrollCaretBottomToFirstNonBlank,
-            _ => null,
-        };
-    }
-
-    private static VimOperator? OperatorFor(char character)
-        => character switch
-        {
-            'd' => VimOperator.Delete,
-            'y' => VimOperator.Yank,
-            'c' => VimOperator.Change,
-            '>' => VimOperator.ShiftRight,
-            '<' => VimOperator.ShiftLeft,
-            _ => null,
-        };
-
-    /// <summary>
-    /// Which case operator a key names after a <c>g</c>.
-    /// </summary>
-    private static VimOperator? CaseOperatorFor(char character)
-        => character switch
-        {
-            'u' => VimOperator.Lowercase,
-            'U' => VimOperator.Uppercase,
-            '~' => VimOperator.ToggleCase,
-            _ => null,
-        };
-
-    /// <summary>
-    /// The bare letter that doubles a case operator — the <c>u</c> of <c>guu</c> — or <c>'\0'</c>
-    /// for an operator that is doubled only by typing it again.
-    /// </summary>
-    private static char DoublingKeyFor(VimOperator @operator)
-        => @operator switch
-        {
-            VimOperator.Lowercase => 'u',
-            VimOperator.Uppercase => 'U',
-            VimOperator.ToggleCase => '~',
-            _ => '\0',
-        };
-
-    private static VimMotion? FindOpenerFor(char character)
-        => character switch
-        {
-            'f' => VimMotion.FindForward,
-            'F' => VimMotion.FindBackward,
-            't' => VimMotion.TillForward,
-            'T' => VimMotion.TillBackward,
-            _ => null,
-        };
-
-    private static bool IsObjectOpener(char character) => (character == 'i') || (character == 'a');
-
-    /// <summary>
-    /// Which text object a key names, after the <c>i</c> or the <c>a</c> that opened one.
-    /// </summary>
-    /// <param name="opener">The <c>i</c> or the <c>a</c>, which decides inner from around.</param>
-    /// <param name="character">The key that followed it.</param>
-    /// <returns>The object, or <see langword="null"/> when the key names none.</returns>
-    /// <remarks>
-    /// Vim's own spellings, both of them where it has two: either delimiter of a pair names that
-    /// pair, so <c>i(</c> and <c>i)</c> are the same object, and <c>b</c> and <c>B</c> are the
-    /// mnemonics for the round and the curly one.
-    /// </remarks>
-    private static VimTextObject? TextObjectFor(char opener, char character)
-    {
-        bool inner = opener == 'i';
-
-        return character switch
-        {
-            'w' => inner ? VimTextObject.InnerWord : VimTextObject.AroundWord,
-            'W' => inner ? VimTextObject.InnerBigWord : VimTextObject.AroundBigWord,
-
-            '(' or ')' or 'b' => inner ? VimTextObject.InnerParen : VimTextObject.AroundParen,
-            '[' or ']' => inner ? VimTextObject.InnerBracket : VimTextObject.AroundBracket,
-            '{' or '}' or 'B' => inner ? VimTextObject.InnerBrace : VimTextObject.AroundBrace,
-            '<' or '>' => inner ? VimTextObject.InnerAngle : VimTextObject.AroundAngle,
-
-            '"' => inner ? VimTextObject.InnerDoubleQuote : VimTextObject.AroundDoubleQuote,
-            '\'' => inner ? VimTextObject.InnerSingleQuote : VimTextObject.AroundSingleQuote,
-            '`' => inner ? VimTextObject.InnerBacktick : VimTextObject.AroundBacktick,
-
-            _ => null,
-        };
-    }
-
-    private static VimMotion? MotionFor(VimKey key)
-    {
-        if (!key.IsCharacter)
-        {
-            return key.Special switch
-            {
-                VimSpecialKey.Left => VimMotion.Left,
-                VimSpecialKey.Right => VimMotion.Right,
-                VimSpecialKey.Up => VimMotion.Up,
-                VimSpecialKey.Down => VimMotion.Down,
-                VimSpecialKey.Home => VimMotion.LineStart,
-                VimSpecialKey.End => VimMotion.LineEnd,
-
-                // Outside the command line, which has already taken its own keys before the parser
-                // sees anything: Enter is '+', and Backspace is 'h' allowed across a line break.
-                VimSpecialKey.Enter => VimMotion.LineDownFirstNonBlank,
-                VimSpecialKey.Backspace => VimMotion.LeftWrapping,
-                _ => null,
-            };
-        }
-
-        return key.Character switch
-        {
-            'h' => VimMotion.Left,
-            'l' => VimMotion.Right,
-            'k' => VimMotion.Up,
-            'j' => VimMotion.Down,
-
-            // Reached only behind an operator: everywhere else Space is the leader.
-            ' ' => VimMotion.RightWrapping,
-
-            // Reached only when no count is being typed: a '0' that could continue one has already
-            // been taken as a digit, which is the whole of vim's rule about the key.
-            '0' => VimMotion.LineStart,
-            '^' => VimMotion.FirstNonBlank,
-            '$' => VimMotion.LineEnd,
-            '|' => VimMotion.Column,
-            'w' => VimMotion.WordForward,
-            'b' => VimMotion.WordBackward,
-            'e' => VimMotion.WordEnd,
-            'W' => VimMotion.WordForwardBig,
-            'B' => VimMotion.WordBackwardBig,
-            'E' => VimMotion.WordEndBig,
-
-            // The two that are complete the instant they are typed: what they look for is the
-            // engine's memory of the last find, not a character still to come.
-            ';' => VimMotion.RepeatFind,
-            ',' => VimMotion.RepeatFindReverse,
-
-            // And the four searches that are: 'n' and 'N' read the engine's memory of the last
-            // search, '*' and '#' read the word under the caret. A search typed after '/' or '?' is
-            // not here — it opens the command line, and the engine makes the motion when Enter closes it.
-            'n' => VimMotion.SearchNext,
-            'N' => VimMotion.SearchPrevious,
-            '*' => VimMotion.SearchWordForward,
-            '#' => VimMotion.SearchWordBackward,
-
-            '%' => VimMotion.MatchingBracket,
-            '}' => VimMotion.ParagraphForward,
-            '{' => VimMotion.ParagraphBackward,
-            ')' => VimMotion.SentenceForward,
-            '(' => VimMotion.SentenceBackward,
-
-            '+' => VimMotion.LineDownFirstNonBlank,
-            '-' => VimMotion.LineUpFirstNonBlank,
-            '_' => VimMotion.CurrentLineFirstNonBlank,
-
-            'G' => VimMotion.LastLine,
-
-            // The three that name a line by where the screen is rather than by where the text is.
-            'H' => VimMotion.ScreenTop,
-            'M' => VimMotion.ScreenMiddle,
-            'L' => VimMotion.ScreenBottom,
-            _ => null,
-        };
-    }
-
-    private VimCommand? ActionFor(char character)
-        => character switch
-        {
-            'i' => new VimCommand(VimAction.InsertBeforeCaret, VimMotion.None, TotalCount),
-            'I' => new VimCommand(VimAction.InsertAtLineStart, VimMotion.None, TotalCount),
-            'a' => new VimCommand(VimAction.InsertAfterCaret, VimMotion.None, TotalCount),
-            'A' => new VimCommand(VimAction.InsertAtLineEnd, VimMotion.None, TotalCount),
-            'o' => new VimCommand(VimAction.OpenLineBelow, VimMotion.None, TotalCount),
-            'O' => new VimCommand(VimAction.OpenLineAbove, VimMotion.None, TotalCount),
-
-            // The key that opens an ex line. The key itself is carried as the argument, because it is
-            // also the line's first character and the only thing that tells an ex command from a
-            // search later on — the two search openers are read above, with the motions.
-            ':' => new VimCommand(VimAction.BeginCommandLine, VimMotion.None, TotalCount, VimOperator.None, ':'),
-
-            'x' => new VimCommand(VimAction.DeleteCharacter, VimMotion.None, TotalCount),
-            'p' => new VimCommand(VimAction.PutAfter, VimMotion.None, TotalCount),
-            'P' => new VimCommand(VimAction.PutBefore, VimMotion.None, TotalCount),
-            '~' => new VimCommand(VimAction.ToggleCase, VimMotion.None, TotalCount),
-            'u' => new VimCommand(VimAction.Undo, VimMotion.None, TotalCount),
-            'J' => new VimCommand(VimAction.Join, VimMotion.None, TotalCount),
-            '.' => new VimCommand(VimAction.Repeat, VimMotion.None, TotalCount),
-
-            // The capitals and the two substitutes vim spells as an operator over a motion, because
-            // that is what they are: 'D' is 'd$', 'C' is 'c$', 'Y' is 'yy', 's' is 'cl', 'S' is 'cc'
-            // and 'X' is 'dh'. Counted the same way, so '3D' reaches the end of the second line below
-            // exactly as '3d$' does, and '3X' takes the three characters before the caret.
-            'D' => VimCommand.Operate(VimOperator.Delete, VimMotion.LineEnd, TotalCount),
-            'C' => VimCommand.Operate(VimOperator.Change, VimMotion.LineEnd, TotalCount),
-            'Y' => VimCommand.Operate(VimOperator.Yank, VimMotion.WholeLine, TotalCount),
-            's' => VimCommand.Operate(VimOperator.Change, VimMotion.Right, TotalCount),
-            'S' => VimCommand.Operate(VimOperator.Change, VimMotion.WholeLine, TotalCount),
-            'X' => VimCommand.Operate(VimOperator.Delete, VimMotion.Left, TotalCount),
-
-            _ => null,
-        };
-
-    /// <summary>
-    /// What a key does over a selection, for the keys that are commands there rather than motions,
-    /// operators or the visual pair.
-    /// </summary>
-    /// <remarks>
-    /// Vim's table, and most of it is spelling. <c>x</c> is <c>d</c> over the selection and <c>s</c>
-    /// is <c>c</c>; the capitals <c>X</c> <c>D</c> <c>Y</c> <c>C</c> <c>S</c> are the same operators
-    /// made linewise whatever the mode, which <see cref="VimMotion.WholeLine"/> in place of the
-    /// selection's own <see cref="VimMotion.None"/> is how the command says. <c>~</c>, <c>u</c> and
-    /// <c>U</c> are the case operators, so <c>u</c> is not undo while there is a selection — vim's
-    /// rule, kept. <c>p</c> and <c>P</c> carry their key as the argument, the way <c>:</c> and
-    /// <c>/</c> do, because the engine has to know which of the two it was.
-    /// </remarks>
-    private VimCommand? VisualActionFor(char character)
-        => character switch
-        {
-            'x' => VimCommand.Operate(VimOperator.Delete, VimMotion.None, TotalCount),
-            'X' or 'D' => VimCommand.Operate(VimOperator.Delete, VimMotion.WholeLine, TotalCount),
-            'Y' => VimCommand.Operate(VimOperator.Yank, VimMotion.WholeLine, TotalCount),
-            's' => VimCommand.Operate(VimOperator.Change, VimMotion.None, TotalCount),
-            'C' or 'S' => VimCommand.Operate(VimOperator.Change, VimMotion.WholeLine, TotalCount),
-
-            '~' => VimCommand.Operate(VimOperator.ToggleCase, VimMotion.None, TotalCount),
-            'u' => VimCommand.Operate(VimOperator.Lowercase, VimMotion.None, TotalCount),
-            'U' => VimCommand.Operate(VimOperator.Uppercase, VimMotion.None, TotalCount),
-
-            'p' => new VimCommand(VimAction.ReplaceSelection, VimMotion.None, TotalCount, VimOperator.None, 'p'),
-            'P' => new VimCommand(VimAction.ReplaceSelection, VimMotion.None, TotalCount, VimOperator.None, 'P'),
-
-            'J' => new VimCommand(VimAction.Join, VimMotion.None, TotalCount),
-            'o' => new VimCommand(VimAction.SwapVisualEnds, VimMotion.None, TotalCount),
-
-            _ => null,
-        };
 
     /// <summary>
     /// Completes a <c>q</c> or an <c>@</c> with the register that followed it.
@@ -887,7 +578,7 @@ public sealed class KeySequenceParser
             return Motion(VimMotion.FirstLine);
         }
 
-        if (CaseOperatorFor(character) is { } caseOperator)
+        if (VimKeyBindings.CaseOperatorFor(character) is { } caseOperator)
         {
             return Operator(caseOperator, visual);
         }
@@ -921,12 +612,12 @@ public sealed class KeySequenceParser
     {
         string typed = _leader + character;
 
-        if (LeaderMappings.TryGetValue(typed, out VimCommand command))
+        if (VimKeyBindings.LeaderMappings.TryGetValue(typed, out VimCommand command))
         {
             return Complete(command with { Count = TotalCount });
         }
 
-        if (LeaderMappings.Keys.Any(keys => keys.StartsWith(typed, StringComparison.Ordinal)))
+        if (VimKeyBindings.LeaderMappings.Keys.Any(keys => keys.StartsWith(typed, StringComparison.Ordinal)))
         {
             _leader = typed;
 

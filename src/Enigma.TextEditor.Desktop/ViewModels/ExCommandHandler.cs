@@ -18,6 +18,10 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// <em>Close Tab</em> does and <c>:w</c> reports a failed save as <em>Save</em> does.
 /// </para>
 /// <para>
+/// One handler for the application, registered in the container: the editor area it acts on is handed to each call,
+/// so it holds no reference to it and the two need not be built together.
+/// </para>
+/// <para>
 /// <c>:q</c> closes the tab and never quits, even on the last tab: the pane is left empty and says
 /// so, as when the tab is closed any other way. <c>:qa</c> quits. A file argument is relative to the
 /// active buffer's folder, or to the working directory for an untitled buffer.
@@ -30,7 +34,6 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// </remarks>
 public sealed class ExCommandHandler
 {
-    private readonly WorkspaceViewModel _workspace;
     private readonly IAppShutdown _shutdown;
     private readonly StatusMessages _status;
     private readonly IHelpDialogService _help;
@@ -40,21 +43,18 @@ public sealed class ExCommandHandler
     /// <summary>
     /// Initializes a new instance of the <see cref="ExCommandHandler"/> class.
     /// </summary>
-    /// <param name="workspace">The editor area the commands act on.</param>
     /// <param name="shutdown">Ends the application, for <c>:qa</c>.</param>
     /// <param name="status">Where a malformed path is reported.</param>
     /// <param name="help">Shows the key-binding help, for <c>:help</c>.</param>
     /// <param name="languages">The languages <c>:set filetype</c> can name.</param>
     /// <param name="languagePicker">The language list, for <c>:set language</c>.</param>
     public ExCommandHandler(
-        WorkspaceViewModel workspace,
         IAppShutdown shutdown,
         StatusMessages status,
         IHelpDialogService help,
         LanguageCatalog languages,
         ILanguagePicker languagePicker)
     {
-        _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         _shutdown = shutdown ?? throw new ArgumentNullException(nameof(shutdown));
         _status = status ?? throw new ArgumentNullException(nameof(status));
         _help = help ?? throw new ArgumentNullException(nameof(help));
@@ -65,11 +65,13 @@ public sealed class ExCommandHandler
     /// <summary>
     /// Carries out a request typed in a pane.
     /// </summary>
+    /// <param name="workspace">The editor area the pane is in.</param>
     /// <param name="pane">The pane.</param>
     /// <param name="request">The request.</param>
     /// <returns>A task that completes when the command has run.</returns>
-    public async Task ExecuteAsync(EditorPaneViewModel pane, VimExRequest request)
+    public async Task ExecuteAsync(WorkspaceViewModel workspace, EditorPaneViewModel pane, VimExRequest request)
     {
+        ArgumentNullException.ThrowIfNull(workspace);
         ArgumentNullException.ThrowIfNull(pane);
 
         EditorTabViewModel? tab = pane.ActiveTab;
@@ -77,26 +79,26 @@ public sealed class ExCommandHandler
         switch (request.Command)
         {
             case VimExCommand.Write when tab is not null:
-                await WriteAsync(tab.Document, request.Argument);
+                await WriteAsync(workspace, tab.Document, request.Argument);
                 break;
 
             case VimExCommand.Quit when tab is not null:
-                await QuitAsync(pane, tab, discard: false);
+                await QuitAsync(workspace, pane, tab, discard: false);
                 break;
 
             case VimExCommand.QuitDiscard when tab is not null:
-                await QuitAsync(pane, tab, discard: true);
+                await QuitAsync(workspace, pane, tab, discard: true);
                 break;
 
             // The hex view has nothing to write, so ':wq' and ':x' there are ':q'.
             case VimExCommand.WriteQuit when tab is { Document.IsHex: true }:
-                await QuitAsync(pane, tab, discard: false);
+                await QuitAsync(workspace, pane, tab, discard: false);
                 break;
 
             case VimExCommand.WriteQuit when tab is not null:
-                if (await _workspace.SaveAsync(tab.Document))
+                if (await workspace.SaveAsync(tab.Document))
                 {
-                    await QuitAsync(pane, tab, discard: false);
+                    await QuitAsync(workspace, pane, tab, discard: false);
                 }
 
                 break;
@@ -104,26 +106,26 @@ public sealed class ExCommandHandler
             case VimExCommand.Edit when request.Argument is { } file:
                 if (Resolve(file, tab?.Document) is { } path)
                 {
-                    await _workspace.OpenAsync(path);
+                    await workspace.OpenAsync(path);
                 }
 
                 break;
 
             case VimExCommand.Edit:
-                await _workspace.OpenFromPromptAsync();
+                await workspace.OpenFromPromptAsync();
                 break;
 
             case VimExCommand.EditNew:
-                _workspace.NewDocument();
+                workspace.NewDocument();
                 break;
 
             case VimExCommand.EditNewDiscard when tab is not null:
-                _workspace.ReplaceWithNewDocument(pane, tab);
+                workspace.ReplaceWithNewDocument(pane, tab);
                 break;
 
             // Nothing to replace in an empty pane: ':enew!' there is ':enew'.
             case VimExCommand.EditNewDiscard:
-                _workspace.NewDocument();
+                workspace.NewDocument();
                 break;
 
             case VimExCommand.BufferNext:
@@ -135,7 +137,7 @@ public sealed class ExCommandHandler
                 break;
 
             case VimExCommand.WriteAll:
-                await _workspace.SaveAllAsync();
+                await workspace.SaveAllAsync();
                 break;
 
             case VimExCommand.QuitAll:
@@ -147,28 +149,28 @@ public sealed class ExCommandHandler
                 break;
 
             case VimExCommand.Split:
-                await SplitAsync(SplitAxis.Rows, request.Argument, tab?.Document);
+                await SplitAsync(workspace, SplitAxis.Rows, request.Argument, tab?.Document);
                 break;
 
             case VimExCommand.VerticalSplit:
-                await SplitAsync(SplitAxis.Columns, request.Argument, tab?.Document);
+                await SplitAsync(workspace, SplitAxis.Columns, request.Argument, tab?.Document);
                 break;
 
             // What ':sp' and ':vs' do too, now that every split opens a new buffer.
             case VimExCommand.New:
-                _workspace.Split(SplitAxis.Rows);
+                workspace.Split(SplitAxis.Rows);
                 break;
 
             case VimExCommand.VerticalNew:
-                _workspace.Split(SplitAxis.Columns);
+                workspace.Split(SplitAxis.Columns);
                 break;
 
             case VimExCommand.Only:
-                await _workspace.OnlyAsync();
+                await workspace.OnlyAsync();
                 break;
 
             case VimExCommand.Close:
-                await ClosePaneAsync(pane);
+                await ClosePaneAsync(workspace, pane);
                 break;
 
             // ':help {subject}' shows the one help there is.
@@ -188,19 +190,21 @@ public sealed class ExCommandHandler
     /// <summary>
     /// <c>Ctrl+W q</c>, which is <c>:q</c> in the pane.
     /// </summary>
+    /// <param name="workspace">The editor area the pane is in.</param>
     /// <param name="pane">The pane.</param>
     /// <returns>A task that completes when the tab has closed or the user kept it.</returns>
-    public Task QuitAsync(EditorPaneViewModel pane)
-        => pane.ActiveTab is { } tab ? QuitAsync(pane, tab, discard: false) : Task.CompletedTask;
+    public Task QuitAsync(WorkspaceViewModel workspace, EditorPaneViewModel pane)
+        => pane.ActiveTab is { } tab ? QuitAsync(workspace, pane, tab, discard: false) : Task.CompletedTask;
 
     /// <summary>
     /// Closes a pane, or says why the last one stays: there is always one pane.
     /// </summary>
+    /// <param name="workspace">The editor area the pane is in.</param>
     /// <param name="pane">The pane.</param>
     /// <returns>A task that completes when the pane has closed or the user kept it.</returns>
-    public async Task ClosePaneAsync(EditorPaneViewModel pane)
+    public async Task ClosePaneAsync(WorkspaceViewModel workspace, EditorPaneViewModel pane)
     {
-        if (_workspace.Panes.Count <= 1)
+        if (workspace.Panes.Count <= 1)
         {
             // Vim's E444, in its own words: the last window is closed with :q, which quits.
             _status.Show("Cannot close last window");
@@ -208,14 +212,14 @@ public sealed class ExCommandHandler
             return;
         }
 
-        await _workspace.ClosePaneAsync(pane);
+        await workspace.ClosePaneAsync(pane);
     }
 
-    private async Task SplitAsync(SplitAxis axis, string? file, DocumentViewModel? relativeTo)
+    private async Task SplitAsync(WorkspaceViewModel workspace, SplitAxis axis, string? file, DocumentViewModel? relativeTo)
     {
         if (file is null)
         {
-            _workspace.Split(axis);
+            workspace.Split(axis);
 
             return;
         }
@@ -223,18 +227,18 @@ public sealed class ExCommandHandler
         // Resolved before the split, against the buffer it was typed in.
         if (Resolve(file, relativeTo) is { } path)
         {
-            EditorPaneViewModel created = _workspace.Split(axis, newDocument: false);
+            EditorPaneViewModel created = workspace.Split(axis, newDocument: false);
 
             // The pane was made for that file: when it could not be opened, the pane goes again rather
             // than stand empty beside the others, and the one it was split from takes the keyboard back.
-            if ((await _workspace.OpenAsync(path) is null) && (created.Tabs.Count == 0))
+            if ((await workspace.OpenAsync(path) is null) && (created.Tabs.Count == 0))
             {
-                await _workspace.ClosePaneAsync(created);
+                await workspace.ClosePaneAsync(created);
             }
         }
     }
 
-    private async Task WriteAsync(DocumentViewModel document, string? file)
+    private async Task WriteAsync(WorkspaceViewModel workspace, DocumentViewModel document, string? file)
     {
         if (document.IsHex)
         {
@@ -245,11 +249,11 @@ public sealed class ExCommandHandler
 
         if (file is null)
         {
-            await _workspace.SaveAsync(document);
+            await workspace.SaveAsync(document);
         }
         else if (Resolve(file, document) is { } path)
         {
-            await _workspace.SaveAsAsync(document, path);
+            await workspace.SaveAsAsync(document, path);
         }
     }
 
@@ -268,8 +272,8 @@ public sealed class ExCommandHandler
         }
     }
 
-    private Task QuitAsync(EditorPaneViewModel pane, EditorTabViewModel tab, bool discard)
-        => _workspace.CloseTabAsync(pane, tab, discard);
+    private static Task QuitAsync(WorkspaceViewModel workspace, EditorPaneViewModel pane, EditorTabViewModel tab, bool discard)
+        => workspace.CloseTabAsync(pane, tab, discard);
 
     private string? Resolve(string file, DocumentViewModel? relativeTo)
     {

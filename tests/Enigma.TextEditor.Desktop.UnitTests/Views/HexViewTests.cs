@@ -37,7 +37,7 @@ public sealed class HexViewTests(HeadlessAvaloniaFixture fixture)
             Assert.False(harness.Workspace.SaveAsCommand.CanExecute(null));
             Assert.False(harness.Tools.ChangeEncodingCommand.CanExecute(null));
             Assert.False(harness.Tools.SetLanguageCommand.CanExecute(null));
-            Assert.False(harness.Tools.UseCrLfCommand.CanExecute(null));
+            Assert.False(harness.Tools.LineEndingChoices.Choice("CRLF").Command.CanExecute(null));
             Assert.Equal("HEX", harness.StatusBar.ModeText);
             Assert.Equal("100 bytes", harness.StatusBar.SizeText);
             Assert.True(harness.StatusBar.IsHexTab);
@@ -143,11 +143,7 @@ public sealed class HexViewTests(HeadlessAvaloniaFixture fixture)
             window.KeyTextInput(":q");
             Assert.Equal(":q", window.FindControl<TextBlock>("CommandLine")?.Text);
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            for (int round = 0; round < 5; round++)
-            {
-                Dispatcher.UIThread.RunJobs();
-                await System.Threading.Tasks.Task.Delay(10);
-            }
+            await UiWait.UntilAsync(() => harness.Workspace.ActivePane.Tabs.Count == 1, ":q closed the hex tab");
 
             Assert.Equal(["keep.txt"], harness.Workspace.ActivePane.Tabs.Select(tab => tab.Document.Title));
             window.Close();

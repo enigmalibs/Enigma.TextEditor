@@ -296,6 +296,22 @@ public sealed class ExCommandHandlerTests(HeadlessAvaloniaFixture fixture)
             Assert.Empty(harness.Unsaved.AskedAbout);
         });
 
+    [Fact]
+    public void TheHandlers_ActOnTheEditorAreaTheyAreHanded_AndHoldNone()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness one = new();
+            using EditorHarness other = new();
+            int tabsOfOne = one.Workspace.ActivePane.Tabs.Count;
+
+            await one.ExCommands.ExecuteAsync(other.Workspace, other.Workspace.ActivePane, new VimExRequest(VimExCommand.EditNew, null));
+            await one.WindowCommands.ExecuteAsync(other.Workspace, other.Workspace.ActivePane, VimWindowCommand.SplitVertical);
+
+            Assert.Equal(2, other.Workspace.Panes.Count);
+            Assert.Single(one.Workspace.Panes);
+            Assert.Equal(tabsOfOne, one.Workspace.ActivePane.Tabs.Count);
+        });
+
     private static Task Run(EditorHarness harness, VimExCommand command, string? argument = null)
         => harness.Workspace.ActivePane.ExecuteExAsync(new VimExRequest(command, argument));
 }

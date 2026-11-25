@@ -104,7 +104,7 @@ public sealed class FirstRunTests(HeadlessAvaloniaFixture fixture)
             Assert.False(harness.Preferences.ShowMinimap);
             Assert.False(harness.Preferences.WordWrap);
             Assert.Equal(AppTheme.Dark, harness.Theme.Applied[^1]);
-            Assert.True(menu.IsDarkTheme);
+            Assert.True(menu.ThemeChoices.Choice("Dark").IsCurrent);
             Assert.False(menu.IsVimEnabled);
             Assert.Equal(1, writer.Saves);
         });

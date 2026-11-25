@@ -12,7 +12,8 @@ Security fixes are provided for the latest released version. Enigma.TextEditor f
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.20.x  | :white_check_mark: |
+| 1.21.x  | :white_check_mark: |
+| 1.20.x  | :x:                |
 | 1.19.x  | :x:                |
 | 1.18.x  | :x:                |
 | 1.17.x  | :x:                |
@@ -62,15 +63,17 @@ The following are in scope:
 
 - the way Enigma.TextEditor reads a file: the binary and size checks, the encoding detection and decoding, and the
   hex viewer, including the bytes it copies to the clipboard from a selection and the 1 MB limit on those copies;
-- the way it writes a file back, in its encoding and with its line endings;
+- the way it writes a file back, in its encoding and with its line endings: the temporary file it writes beside it
+  (`.<name>.<random>.tmp`), the metadata it carries over, and the move that puts it in the file's place;
 - the file explorer: how it lists a folder, the names it accepts for a new or renamed file or folder, how it creates,
   renames and deletes them, and how it moves them to the Recycle Bin or the trash — on Linux by running `gio trash`,
   or by writing into the trash under `$XDG_DATA_HOME/Trash`;
 - the syntax highlighting it runs over a file's text;
 - the Vim engine's handling of what is typed into it, including search and substitution patterns;
-- the way it reads and writes its settings file, its log, and its session: `session.json`, which holds the text of
-  every unsaved change and the explorer's folder, and is written every few seconds in the background while the
-  editor runs; what it reopens from it at the start, the explorer's folder included; and `session.lock`, which
+- the way it reads and writes its settings file, its logs (`app.log`, and `early-errors.log` for a failure before the
+  log is ready), and its session: `session.json`, which holds the explorer's folder and names, in the `unsaved` folder
+  beside it, the file holding the text of each unsaved change — both written every few seconds in the background while
+  the editor runs; what it reopens from them at the start, the explorer's folder included; and `session.lock`, which
   decides the window that keeps it;
 - the error dialog it shows when a failure is not handled elsewhere: what that dialog shows and what *Copy details*
   puts on the clipboard;
