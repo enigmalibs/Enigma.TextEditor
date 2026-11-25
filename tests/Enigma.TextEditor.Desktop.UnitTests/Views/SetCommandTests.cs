@@ -31,7 +31,7 @@ public sealed class SetCommandTests(HeadlessAvaloniaFixture fixture)
 
             Assert.Equal(Indentation.Tabs(8), tab.Document.Indentation);
             Assert.Equal("Tab Size: 8", harness.StatusBar.IndentationText);
-            Assert.True(harness.Tools.IsTabs);
+            Assert.True(harness.Tools.IndentationChoices.Choice("Tabs").IsCurrent);
             Assert.False(Pane(window).EditorControl.Options.ConvertTabsToSpaces);
             Assert.Equal(8, Pane(window).EditorControl.Options.IndentationSize);
             window.Close();
@@ -51,7 +51,7 @@ public sealed class SetCommandTests(HeadlessAvaloniaFixture fixture)
 
             Assert.Equal(Indentation.Spaces(2), tab.Document.Indentation);
             Assert.Equal("Spaces: 2", harness.StatusBar.IndentationText);
-            Assert.True(harness.Tools.IsTwoSpaces);
+            Assert.True(harness.Tools.IndentationChoices.Choice("Spaces: 2").IsCurrent);
             Assert.Equal("  x", tab.Document.Document.Text);
             window.Close();
         });

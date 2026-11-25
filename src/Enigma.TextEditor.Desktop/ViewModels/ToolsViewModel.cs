@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -58,11 +60,17 @@ public sealed class ToolsViewModel : ObservableObject
             () => _workspace.ReopenActiveAsync(asHex: false),
             () => _workspace.ActiveDocument is { IsHex: true });
 
-        UseLfCommand = new RelayCommand(() => _workspace.ActiveDocument?.ChangeLineEndings(LineEndingStyle.Lf), HasDocument);
-        UseCrLfCommand = new RelayCommand(() => _workspace.ActiveDocument?.ChangeLineEndings(LineEndingStyle.CrLf), HasDocument);
-        IndentWithTwoSpacesCommand = new RelayCommand(() => Indent(Indentation.Spaces(2)), HasDocument);
-        IndentWithFourSpacesCommand = new RelayCommand(() => Indent(Indentation.Spaces(4)), HasDocument);
-        IndentWithTabsCommand = new RelayCommand(() => Indent(Indentation.Tabs(TabSize)), HasDocument);
+        LineEndingChoices =
+        [
+            new MenuChoice("LF", "lineEndings", () => Active?.Format.LineEndings == LineEndingStyle.Lf, DocumentCommand(document => document.ChangeLineEndings(LineEndingStyle.Lf))),
+            new MenuChoice("CRLF", "lineEndings", () => Active?.Format.LineEndings == LineEndingStyle.CrLf, DocumentCommand(document => document.ChangeLineEndings(LineEndingStyle.CrLf))),
+        ];
+        IndentationChoices =
+        [
+            new MenuChoice("Spaces: 2", "indentation", () => Active?.Indentation == Indentation.Spaces(2), DocumentCommand(document => document.Indentation = Indentation.Spaces(2))),
+            new MenuChoice("Spaces: 4", "indentation", () => Active?.Indentation == Indentation.Spaces(4), DocumentCommand(document => document.Indentation = Indentation.Spaces(4))),
+            new MenuChoice("Tabs", "indentation", () => Active?.Indentation.UseTabs == true, DocumentCommand(document => document.Indentation = Indentation.Tabs(TabSize))),
+        ];
 
         _workspace.PropertyChanged += (_, e) =>
         {
@@ -99,54 +107,19 @@ public sealed class ToolsViewModel : ObservableObject
     public AsyncRelayCommand ReopenAsTextCommand { get; }
 
     /// <summary>
-    /// Gets <em>Tools → Line Endings → LF</em>.
+    /// Gets <em>Tools → Line Endings</em>, and the status bar's line-ending list: LF, CRLF, for the active buffer.
     /// </summary>
-    public RelayCommand UseLfCommand { get; }
+    public IReadOnlyList<MenuChoice> LineEndingChoices { get; }
 
     /// <summary>
-    /// Gets <em>Tools → Line Endings → CRLF</em>.
+    /// Gets <em>Tools → Indentation</em>, and the status bar's indentation list: two spaces, four spaces, tabs, for the
+    /// active buffer.
     /// </summary>
-    public RelayCommand UseCrLfCommand { get; }
-
-    /// <summary>
-    /// Gets <em>Tools → Indentation → Spaces: 2</em>.
-    /// </summary>
-    public RelayCommand IndentWithTwoSpacesCommand { get; }
-
-    /// <summary>
-    /// Gets <em>Tools → Indentation → Spaces: 4</em>.
-    /// </summary>
-    public RelayCommand IndentWithFourSpacesCommand { get; }
-
-    /// <summary>
-    /// Gets <em>Tools → Indentation → Tabs</em>.
-    /// </summary>
-    public RelayCommand IndentWithTabsCommand { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether the active buffer is written with LF.
-    /// </summary>
-    public bool IsLf => _workspace.ActiveDocument?.Format.LineEndings == LineEndingStyle.Lf;
-
-    /// <summary>
-    /// Gets a value indicating whether the active buffer is written with CRLF.
-    /// </summary>
-    public bool IsCrLf => _workspace.ActiveDocument?.Format.LineEndings == LineEndingStyle.CrLf;
-
-    /// <summary>
-    /// Gets a value indicating whether the active buffer is indented with two spaces.
-    /// </summary>
-    public bool IsTwoSpaces => _workspace.ActiveDocument?.Indentation == Indentation.Spaces(2);
-
-    /// <summary>
-    /// Gets a value indicating whether the active buffer is indented with four spaces.
-    /// </summary>
-    public bool IsFourSpaces => _workspace.ActiveDocument?.Indentation == Indentation.Spaces(4);
-
-    /// <summary>
-    /// Gets a value indicating whether the active buffer is indented with tabs.
-    /// </summary>
-    public bool IsTabs => _workspace.ActiveDocument?.Indentation.UseTabs == true;
+    /// <remarks>
+    /// The indentation is the buffer's: every pane showing it follows, and nothing is written — the text keeps the
+    /// indentation it has.
+    /// </remarks>
+    public IReadOnlyList<MenuChoice> IndentationChoices { get; }
 
     /// <summary>
     /// How wide a tab is shown once a buffer is set to indent with tabs.
@@ -172,11 +145,12 @@ public sealed class ToolsViewModel : ObservableObject
         ChangeEncodingCommand.NotifyCanExecuteChanged();
         ReopenAsHexCommand.NotifyCanExecuteChanged();
         ReopenAsTextCommand.NotifyCanExecuteChanged();
-        UseLfCommand.NotifyCanExecuteChanged();
-        UseCrLfCommand.NotifyCanExecuteChanged();
-        IndentWithTwoSpacesCommand.NotifyCanExecuteChanged();
-        IndentWithFourSpacesCommand.NotifyCanExecuteChanged();
-        IndentWithTabsCommand.NotifyCanExecuteChanged();
+
+        foreach (MenuChoice choice in LineEndingChoices.Concat(IndentationChoices))
+        {
+            ((RelayCommand)choice.Command).NotifyCanExecuteChanged();
+        }
+
         OnFormatChanged();
     }
 
@@ -188,28 +162,29 @@ public sealed class ToolsViewModel : ObservableObject
         }
     }
 
-    // The checked marks of the two radio submenus.
+    private DocumentViewModel? Active => _workspace.ActiveDocument;
+
+    // The radio marks of the two groups.
     private void OnFormatChanged()
     {
-        OnPropertyChanged(nameof(IsLf));
-        OnPropertyChanged(nameof(IsCrLf));
-        OnPropertyChanged(nameof(IsTwoSpaces));
-        OnPropertyChanged(nameof(IsFourSpaces));
-        OnPropertyChanged(nameof(IsTabs));
+        MenuChoice.Refresh(LineEndingChoices);
+        MenuChoice.Refresh(IndentationChoices);
     }
 
     // The tools are about text: the hex view has no encoding, line endings, indentation or language.
     private bool HasDocument() => _workspace.ActiveDocument is { IsHex: false };
 
-    // The indentation is the buffer's: every pane showing it follows, and nothing is written — the
-    // text keeps the indentation it has.
-    private void Indent(Indentation indentation)
-    {
-        if (_workspace.ActiveDocument is { } document)
-        {
-            document.Indentation = indentation;
-        }
-    }
+    // A choice acts on the active buffer, and only on a text one.
+    private RelayCommand DocumentCommand(Action<DocumentViewModel> change)
+        => new(
+            () =>
+            {
+                if (_workspace.ActiveDocument is { } document)
+                {
+                    change(document);
+                }
+            },
+            HasDocument);
 
     private async Task OnReopenWithEncodingAsync()
     {

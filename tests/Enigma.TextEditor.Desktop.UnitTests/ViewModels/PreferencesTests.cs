@@ -84,12 +84,12 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
             page.IndentSize = 3;
 
             Assert.Equal(0.07, harness.Workspace.ResizeStep, 9);
-            Assert.False(harness.SettingsMenu.IsResizeStep2);
-            Assert.False(harness.SettingsMenu.IsResizeStep5);
-            Assert.False(harness.SettingsMenu.IsResizeStep10);
-            Assert.False(harness.SettingsMenu.IsDefaultTwoSpaces);
-            Assert.False(harness.SettingsMenu.IsDefaultFourSpaces);
-            Assert.False(harness.SettingsMenu.IsDefaultTabs);
+            Assert.False(harness.SettingsMenu.PaneResizeStepChoices.Choice("2%").IsCurrent);
+            Assert.False(harness.SettingsMenu.PaneResizeStepChoices.Choice("5%").IsCurrent);
+            Assert.False(harness.SettingsMenu.PaneResizeStepChoices.Choice("10%").IsCurrent);
+            Assert.False(harness.SettingsMenu.DefaultIndentationChoices.Choice("Spaces: 2").IsCurrent);
+            Assert.False(harness.SettingsMenu.DefaultIndentationChoices.Choice("Spaces: 4").IsCurrent);
+            Assert.False(harness.SettingsMenu.DefaultIndentationChoices.Choice("Tabs").IsCurrent);
         });
 
     [Theory]
@@ -123,7 +123,7 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
             page.PropertyChanged += (_, e) => announced.Add(e.PropertyName);
 
             await harness.SettingsMenu.ToggleWordWrapCommand.ExecuteAsync(null);
-            await harness.SettingsMenu.DefaultCrLfCommand.ExecuteAsync(null);
+            await harness.SettingsMenu.DefaultLineEndingChoices.ChooseAsync("CRLF");
 
             Assert.True(page.WordWrap);
             Assert.Equal(LineEndingStyle.CrLf, page.DefaultLineEnding);
@@ -147,7 +147,7 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
                 }
             };
 
-            await harness.SettingsMenu.UseLightThemeCommand.ExecuteAsync(null);
+            await harness.SettingsMenu.ThemeChoices.ChooseAsync("Light");
 
             Assert.Equal(AppTheme.Light, harness.Settings.Value.Theme);
             Assert.Equal([AppTheme.Light], harness.Theme.Applied);
@@ -199,8 +199,8 @@ public sealed class PreferencesTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal(AppSettings.DefaultPaneResizeStep, harness.Preferences.PaneResizeStep);
             Assert.Equal(AppSettings.DefaultFontSize, harness.Preferences.FontSize);
             Assert.Same(EditorPreferences.MonospaceFamily, harness.Preferences.FontFamily);
-            Assert.True(harness.SettingsMenu.IsSystemTheme);
-            Assert.True(harness.SettingsMenu.IsDefaultFourSpaces);
+            Assert.True(harness.SettingsMenu.ThemeChoices.Choice("System").IsCurrent);
+            Assert.True(harness.SettingsMenu.DefaultIndentationChoices.Choice("Spaces: 4").IsCurrent);
             Assert.Contains(nameof(PreferencesViewModel.Theme), announced);
             Assert.Empty(harness.Messages.Errors);
         });

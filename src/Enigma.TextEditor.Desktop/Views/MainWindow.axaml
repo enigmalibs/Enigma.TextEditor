@@ -36,6 +36,20 @@
         </ControlTemplate>
       </Setter>
     </ControlTheme>
+
+    <!-- One value of a radio group, for every menu and flyout that offers a choice of values: the item says what the
+         value is, its mark shows whether it is in force, and its command puts it in force. One more value is one more
+         entry in the view-model's list. -->
+    <ControlTheme x:Key="MenuChoiceItem"
+                  TargetType="MenuItem"
+                  BasedOn="{StaticResource {x:Type MenuItem}}"
+                  x:DataType="vm:MenuChoice">
+      <Setter Property="Header" Value="{Binding Header}" />
+      <Setter Property="ToggleType" Value="Radio" />
+      <Setter Property="GroupName" Value="{Binding Group}" />
+      <Setter Property="IsChecked" Value="{Binding IsCurrent, Mode=OneWay}" />
+      <Setter Property="Command" Value="{Binding Command}" />
+    </ControlTheme>
   </Window.Resources>
 
   <Window.Styles>
@@ -214,59 +228,33 @@
             <MenuItem Header="Reopen as _Hex" Command="{Binding Tools.ReopenAsHexCommand}" />
             <MenuItem Header="Reopen as _Text" Command="{Binding Tools.ReopenAsTextCommand}" />
             <Separator />
-            <MenuItem Header="Line E_ndings">
-              <MenuItem Header="LF" ToggleType="Radio" GroupName="lineEndings"
-                        IsChecked="{Binding Tools.IsLf, Mode=OneWay}" Command="{Binding Tools.UseLfCommand}" />
-              <MenuItem Header="CRLF" ToggleType="Radio" GroupName="lineEndings"
-                        IsChecked="{Binding Tools.IsCrLf, Mode=OneWay}" Command="{Binding Tools.UseCrLfCommand}" />
-            </MenuItem>
-            <MenuItem Header="_Indentation">
-              <MenuItem Header="Spaces: 2" ToggleType="Radio" GroupName="indentation"
-                        IsChecked="{Binding Tools.IsTwoSpaces, Mode=OneWay}" Command="{Binding Tools.IndentWithTwoSpacesCommand}" />
-              <MenuItem Header="Spaces: 4" ToggleType="Radio" GroupName="indentation"
-                        IsChecked="{Binding Tools.IsFourSpaces, Mode=OneWay}" Command="{Binding Tools.IndentWithFourSpacesCommand}" />
-              <MenuItem Header="Tabs" ToggleType="Radio" GroupName="indentation"
-                        IsChecked="{Binding Tools.IsTabs, Mode=OneWay}" Command="{Binding Tools.IndentWithTabsCommand}" />
-            </MenuItem>
+            <MenuItem Header="Line E_ndings"
+                      ItemsSource="{Binding Tools.LineEndingChoices}"
+                      ItemContainerTheme="{StaticResource MenuChoiceItem}" />
+            <MenuItem Header="_Indentation"
+                      ItemsSource="{Binding Tools.IndentationChoices}"
+                      ItemContainerTheme="{StaticResource MenuChoiceItem}" />
           </MenuItem>
           <MenuItem Header="_Settings">
-            <MenuItem Header="_Theme">
-              <MenuItem Header="_System" ToggleType="Radio" GroupName="theme"
-                        IsChecked="{Binding Settings.IsSystemTheme, Mode=OneWay}" Command="{Binding Settings.UseSystemThemeCommand}" />
-              <MenuItem Header="_Light" ToggleType="Radio" GroupName="theme"
-                        IsChecked="{Binding Settings.IsLightTheme, Mode=OneWay}" Command="{Binding Settings.UseLightThemeCommand}" />
-              <MenuItem Header="_Dark" ToggleType="Radio" GroupName="theme"
-                        IsChecked="{Binding Settings.IsDarkTheme, Mode=OneWay}" Command="{Binding Settings.UseDarkThemeCommand}" />
-            </MenuItem>
+            <MenuItem Header="_Theme"
+                      ItemsSource="{Binding Settings.ThemeChoices}"
+                      ItemContainerTheme="{StaticResource MenuChoiceItem}" />
             <MenuItem Header="_Vim Mode" ToggleType="CheckBox"
                       IsChecked="{Binding Settings.IsVimEnabled, Mode=OneWay}" Command="{Binding Settings.ToggleVimCommand}" />
             <MenuItem Header="_Word Wrap" ToggleType="CheckBox"
                       IsChecked="{Binding Settings.IsWordWrap, Mode=OneWay}" Command="{Binding Settings.ToggleWordWrapCommand}" />
             <MenuItem Header="_Minimap" ToggleType="CheckBox"
                       IsChecked="{Binding Settings.IsMinimap, Mode=OneWay}" Command="{Binding Settings.ToggleMinimapCommand}" />
-            <MenuItem Header="Pane _Resize Step">
-              <MenuItem Header="2%" ToggleType="Radio" GroupName="paneResizeStep"
-                        IsChecked="{Binding Settings.IsResizeStep2, Mode=OneWay}" Command="{Binding Settings.ResizeStep2Command}" />
-              <MenuItem Header="5%" ToggleType="Radio" GroupName="paneResizeStep"
-                        IsChecked="{Binding Settings.IsResizeStep5, Mode=OneWay}" Command="{Binding Settings.ResizeStep5Command}" />
-              <MenuItem Header="10%" ToggleType="Radio" GroupName="paneResizeStep"
-                        IsChecked="{Binding Settings.IsResizeStep10, Mode=OneWay}" Command="{Binding Settings.ResizeStep10Command}" />
-            </MenuItem>
+            <MenuItem Header="Pane _Resize Step"
+                      ItemsSource="{Binding Settings.PaneResizeStepChoices}"
+                      ItemContainerTheme="{StaticResource MenuChoiceItem}" />
             <Separator />
-            <MenuItem Header="Default _Indentation">
-              <MenuItem Header="Spaces: 2" ToggleType="Radio" GroupName="defaultIndentation"
-                        IsChecked="{Binding Settings.IsDefaultTwoSpaces, Mode=OneWay}" Command="{Binding Settings.DefaultTwoSpacesCommand}" />
-              <MenuItem Header="Spaces: 4" ToggleType="Radio" GroupName="defaultIndentation"
-                        IsChecked="{Binding Settings.IsDefaultFourSpaces, Mode=OneWay}" Command="{Binding Settings.DefaultFourSpacesCommand}" />
-              <MenuItem Header="Tabs" ToggleType="Radio" GroupName="defaultIndentation"
-                        IsChecked="{Binding Settings.IsDefaultTabs, Mode=OneWay}" Command="{Binding Settings.DefaultTabsCommand}" />
-            </MenuItem>
-            <MenuItem Header="Default _Line Endings">
-              <MenuItem Header="LF" ToggleType="Radio" GroupName="defaultLineEndings"
-                        IsChecked="{Binding Settings.IsDefaultLf, Mode=OneWay}" Command="{Binding Settings.DefaultLfCommand}" />
-              <MenuItem Header="CRLF" ToggleType="Radio" GroupName="defaultLineEndings"
-                        IsChecked="{Binding Settings.IsDefaultCrLf, Mode=OneWay}" Command="{Binding Settings.DefaultCrLfCommand}" />
-            </MenuItem>
+            <MenuItem Header="Default _Indentation"
+                      ItemsSource="{Binding Settings.DefaultIndentationChoices}"
+                      ItemContainerTheme="{StaticResource MenuChoiceItem}" />
+            <MenuItem Header="Default _Line Endings"
+                      ItemsSource="{Binding Settings.DefaultLineEndingChoices}"
+                      ItemContainerTheme="{StaticResource MenuChoiceItem}" />
             <Separator />
             <!-- The settings page: every setting above, and the full range of each, grouped by what it
                  acts on. No ellipsis: it shows a page, it opens no dialog. -->
@@ -331,14 +319,9 @@
                     ToolTip.Tip="Indentation"
                     AutomationProperties.Name="Indentation">
               <Button.Flyout>
-                <MenuFlyout Closed="OnStatusFlyoutClosed">
-                  <MenuItem Header="Spaces: 2" ToggleType="Radio" GroupName="statusIndentation"
-                            IsChecked="{Binding Tools.IsTwoSpaces, Mode=OneWay}" Command="{Binding Tools.IndentWithTwoSpacesCommand}" />
-                  <MenuItem Header="Spaces: 4" ToggleType="Radio" GroupName="statusIndentation"
-                            IsChecked="{Binding Tools.IsFourSpaces, Mode=OneWay}" Command="{Binding Tools.IndentWithFourSpacesCommand}" />
-                  <MenuItem Header="Tabs" ToggleType="Radio" GroupName="statusIndentation"
-                            IsChecked="{Binding Tools.IsTabs, Mode=OneWay}" Command="{Binding Tools.IndentWithTabsCommand}" />
-                </MenuFlyout>
+                <MenuFlyout Closed="OnStatusFlyoutClosed"
+                            ItemsSource="{Binding Tools.IndentationChoices}"
+                            ItemContainerTheme="{StaticResource MenuChoiceItem}" />
               </Button.Flyout>
             </Button>
             <Button x:Name="EncodingStatus"
@@ -371,12 +354,9 @@
                     ToolTip.Tip="Line endings"
                     AutomationProperties.Name="Line endings">
               <Button.Flyout>
-                <MenuFlyout Closed="OnStatusFlyoutClosed">
-                  <MenuItem Header="LF" ToggleType="Radio" GroupName="statusLineEndings"
-                            IsChecked="{Binding Tools.IsLf, Mode=OneWay}" Command="{Binding Tools.UseLfCommand}" />
-                  <MenuItem Header="CRLF" ToggleType="Radio" GroupName="statusLineEndings"
-                            IsChecked="{Binding Tools.IsCrLf, Mode=OneWay}" Command="{Binding Tools.UseCrLfCommand}" />
-                </MenuFlyout>
+                <MenuFlyout Closed="OnStatusFlyoutClosed"
+                            ItemsSource="{Binding Tools.LineEndingChoices}"
+                            ItemContainerTheme="{StaticResource MenuChoiceItem}" />
               </Button.Flyout>
             </Button>
             <!-- Last, and on any tab: the other items describe the file, this one the size every editor and the hex

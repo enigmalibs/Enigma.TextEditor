@@ -35,12 +35,12 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
             });
             SettingsMenuViewModel menu = harness.SettingsMenu;
 
-            await menu.UseDarkThemeCommand.ExecuteAsync(null);
+            await menu.ThemeChoices.ChooseAsync("Dark");
             await menu.ToggleVimCommand.ExecuteAsync(null);
             await menu.ToggleWordWrapCommand.ExecuteAsync(null);
             await menu.ToggleMinimapCommand.ExecuteAsync(null);
-            await menu.DefaultTabsCommand.ExecuteAsync(null);
-            await menu.DefaultCrLfCommand.ExecuteAsync(null);
+            await menu.DefaultIndentationChoices.ChooseAsync("Tabs");
+            await menu.DefaultLineEndingChoices.ChooseAsync("CRLF");
 
             Assert.Equal([AppTheme.Dark], harness.Theme.Applied);
             Assert.False(harness.Vim.IsEnabled);
@@ -65,18 +65,18 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
             // The steps below are counted from a 5% step.
             using EditorHarness harness = new(settings => settings.PaneResizeStep = 5);
             SettingsMenuViewModel menu = harness.SettingsMenu;
-            Assert.True(menu.IsResizeStep5);
+            Assert.True(menu.PaneResizeStepChoices.Choice("5%").IsCurrent);
 
-            await menu.ResizeStep10Command.ExecuteAsync(null);
+            await menu.PaneResizeStepChoices.ChooseAsync("10%");
 
-            Assert.True(menu.IsResizeStep10);
-            Assert.False(menu.IsResizeStep5);
+            Assert.True(menu.PaneResizeStepChoices.Choice("10%").IsCurrent);
+            Assert.False(menu.PaneResizeStepChoices.Choice("5%").IsCurrent);
             Assert.Equal(10, harness.Preferences.PaneResizeStep);
             Assert.Equal(0.1, harness.Workspace.ResizeStep, 9);
             Assert.Equal(10, SettingsLoader.Load(harness.Settings.FilePath).Config.Value.PaneResizeStep);
 
-            await menu.ResizeStep2Command.ExecuteAsync(null);
-            Assert.True(menu.IsResizeStep2);
+            await menu.PaneResizeStepChoices.ChooseAsync("2%");
+            Assert.True(menu.PaneResizeStepChoices.Choice("2%").IsCurrent);
             Assert.Equal(2, harness.Preferences.PaneResizeStep);
         });
 
@@ -86,9 +86,9 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
         {
             using EditorHarness harness = new(settings => settings.PaneResizeStep = 4);
 
-            Assert.False(harness.SettingsMenu.IsResizeStep2);
-            Assert.False(harness.SettingsMenu.IsResizeStep5);
-            Assert.False(harness.SettingsMenu.IsResizeStep10);
+            Assert.False(harness.SettingsMenu.PaneResizeStepChoices.Choice("2%").IsCurrent);
+            Assert.False(harness.SettingsMenu.PaneResizeStepChoices.Choice("5%").IsCurrent);
+            Assert.False(harness.SettingsMenu.PaneResizeStepChoices.Choice("10%").IsCurrent);
             Assert.Equal(0.04, harness.Workspace.ResizeStep, 9);
         });
 
@@ -99,22 +99,22 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
             // LF, so that CRLF moves the mark.
             using EditorHarness harness = new(settings => settings.DefaultLineEnding = LineEndingStyle.Lf);
             SettingsMenuViewModel menu = harness.SettingsMenu;
-            Assert.True(menu.IsSystemTheme);
-            Assert.True(menu.IsDefaultFourSpaces);
-            Assert.True(menu.IsDefaultLf);
+            Assert.True(menu.ThemeChoices.Choice("System").IsCurrent);
+            Assert.True(menu.DefaultIndentationChoices.Choice("Spaces: 4").IsCurrent);
+            Assert.True(menu.DefaultLineEndingChoices.Choice("LF").IsCurrent);
 
-            await menu.UseLightThemeCommand.ExecuteAsync(null);
-            await menu.DefaultTwoSpacesCommand.ExecuteAsync(null);
-            await menu.DefaultCrLfCommand.ExecuteAsync(null);
+            await menu.ThemeChoices.ChooseAsync("Light");
+            await menu.DefaultIndentationChoices.ChooseAsync("Spaces: 2");
+            await menu.DefaultLineEndingChoices.ChooseAsync("CRLF");
 
-            Assert.True(menu.IsLightTheme);
-            Assert.False(menu.IsSystemTheme);
-            Assert.False(menu.IsDarkTheme);
-            Assert.True(menu.IsDefaultTwoSpaces);
-            Assert.False(menu.IsDefaultFourSpaces);
-            Assert.False(menu.IsDefaultTabs);
-            Assert.True(menu.IsDefaultCrLf);
-            Assert.False(menu.IsDefaultLf);
+            Assert.True(menu.ThemeChoices.Choice("Light").IsCurrent);
+            Assert.False(menu.ThemeChoices.Choice("System").IsCurrent);
+            Assert.False(menu.ThemeChoices.Choice("Dark").IsCurrent);
+            Assert.True(menu.DefaultIndentationChoices.Choice("Spaces: 2").IsCurrent);
+            Assert.False(menu.DefaultIndentationChoices.Choice("Spaces: 4").IsCurrent);
+            Assert.False(menu.DefaultIndentationChoices.Choice("Tabs").IsCurrent);
+            Assert.True(menu.DefaultLineEndingChoices.Choice("CRLF").IsCurrent);
+            Assert.False(menu.DefaultLineEndingChoices.Choice("LF").IsCurrent);
         });
 
     [Fact]
@@ -255,8 +255,8 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
         {
             using EditorHarness harness = new();
 
-            await harness.SettingsMenu.DefaultTabsCommand.ExecuteAsync(null);
-            await harness.SettingsMenu.DefaultCrLfCommand.ExecuteAsync(null);
+            await harness.SettingsMenu.DefaultIndentationChoices.ChooseAsync("Tabs");
+            await harness.SettingsMenu.DefaultLineEndingChoices.ChooseAsync("CRLF");
             EditorTabViewModel tab = harness.Workspace.NewDocument();
 
             Assert.True(tab.Document.Indentation.UseTabs);
@@ -341,11 +341,11 @@ public sealed class SettingsMenuTests(HeadlessAvaloniaFixture fixture)
             Assert.True(Item(settings, "_Vim Mode").IsChecked);
             Assert.False(Item(settings, "_Word Wrap").IsChecked);
             Assert.True(Item(settings, "_Minimap").IsChecked);
-            Assert.Equal(["2%", "5%", "10%"], Item(settings, "Pane _Resize Step").Items.OfType<MenuItem>().Select(item => (string?)item.Header));
-            Assert.True(Item(Item(settings, "Pane _Resize Step"), "5%").IsChecked);
-            Assert.True(Item(Item(settings, "_Theme"), "_System").IsChecked);
-            Assert.Equal(["Spaces: 2", "Spaces: 4", "Tabs"], Item(settings, "Default _Indentation").Items.OfType<MenuItem>().Select(item => (string?)item.Header));
-            Assert.Equal(["LF", "CRLF"], Item(settings, "Default _Line Endings").Items.OfType<MenuItem>().Select(item => (string?)item.Header));
+            Assert.Equal([("2%", false), ("5%", true), ("10%", false)], MenuItems.Shown(Item(settings, "Pane _Resize Step")));
+            Assert.Equal([("_System", true), ("_Light", false), ("_Dark", false)], MenuItems.Shown(Item(settings, "_Theme")));
+            Assert.Equal([("Spaces: 2", false), ("Spaces: 4", true), ("Tabs", false)], MenuItems.Shown(Item(settings, "Default _Indentation")));
+            bool lf = harness.Settings.Value.DefaultLineEnding == LineEndingStyle.Lf;
+            Assert.Equal([("LF", lf), ("CRLF", !lf)], MenuItems.Shown(Item(settings, "Default _Line Endings")));
 
             MenuItem view = menus[2];
             Assert.Contains("Zoom _In", view.Items.OfType<MenuItem>().Select(item => (string?)item.Header));

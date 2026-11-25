@@ -78,8 +78,8 @@ public sealed class StatusBarFocusTests(HeadlessAvaloniaFixture fixture)
             Click(window, button);
             await UiWait.UntilAsync(() => button.Flyout is MenuFlyout { IsOpen: true }, "the item opened its list");
             MenuFlyout flyout = Assert.IsType<MenuFlyout>(button.Flyout);
-            MenuItem twoSpaces = flyout.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Spaces: 2");
-            twoSpaces.Command!.Execute(null);
+            MenuChoice twoSpaces = flyout.Items.OfType<MenuChoice>().Single(choice => choice.Header == "Spaces: 2");
+            twoSpaces.Command.Execute(null);
             flyout.Hide();
             await UiWait.UntilAsync(() => (harness.StatusBar.IndentationText == "Spaces: 2") && !flyout.IsOpen && rightView.EditorControl.TextArea.IsFocused, "the choice applied and the right pane kept the keyboard");
 

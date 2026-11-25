@@ -37,7 +37,7 @@ public sealed class HexViewTests(HeadlessAvaloniaFixture fixture)
             Assert.False(harness.Workspace.SaveAsCommand.CanExecute(null));
             Assert.False(harness.Tools.ChangeEncodingCommand.CanExecute(null));
             Assert.False(harness.Tools.SetLanguageCommand.CanExecute(null));
-            Assert.False(harness.Tools.UseCrLfCommand.CanExecute(null));
+            Assert.False(harness.Tools.LineEndingChoices.Choice("CRLF").Command.CanExecute(null));
             Assert.Equal("HEX", harness.StatusBar.ModeText);
             Assert.Equal("100 bytes", harness.StatusBar.SizeText);
             Assert.True(harness.StatusBar.IsHexTab);

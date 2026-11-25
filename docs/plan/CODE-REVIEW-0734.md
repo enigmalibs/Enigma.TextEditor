@@ -225,7 +225,7 @@ Locations: `src/Enigma.TextEditor.Desktop/Views/HexView.axaml.cs:281-309` (and P
 
 ## PHASE08 — [Medium] XAML-01 Radio menu choices are lists of choice items
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `MainWindow.axaml:218-268`, `:335-340`, `:375-378`; `SettingsMenuViewModel.cs:55-68`, `:190-255`;
 `ToolsViewModel.cs:61-65`, `:129-149`.

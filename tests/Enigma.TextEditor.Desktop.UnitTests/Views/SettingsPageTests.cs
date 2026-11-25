@@ -205,7 +205,7 @@ public sealed class SettingsPageTests(HeadlessAvaloniaFixture fixture)
             Assert.True(settings.IndentWithTabs);
             Assert.Equal(2, settings.IndentSize);
             Assert.Equal(LineEndingStyle.CrLf, settings.DefaultLineEnding);
-            Assert.True(harness.SettingsMenu.IsDarkTheme);
+            Assert.True(harness.SettingsMenu.ThemeChoices.Choice("Dark").IsCurrent);
             Assert.True(harness.Shell.IsSettingsPage, "Changing a setting stays on the page.");
 
             bool wrap = settings.WordWrap;
