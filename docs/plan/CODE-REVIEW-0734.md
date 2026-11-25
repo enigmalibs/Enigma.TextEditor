@@ -178,7 +178,7 @@ Locations: `src/Enigma.TextEditor.Desktop/Services/UnhandledExceptionHooks.cs:14
 
 ## PHASE06 — [Medium] EXC-01 A document is saved without overwriting the file in place
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `src/Enigma.TextEditor.Core/Documents/DocumentFile.cs:172`.
 

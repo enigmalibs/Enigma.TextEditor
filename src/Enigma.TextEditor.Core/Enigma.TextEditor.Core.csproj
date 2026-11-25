@@ -18,6 +18,10 @@
     <!-- Read/write JSON settings. Brings only Microsoft.Extensions.DependencyInjection.Abstractions. -->
     <PackageReference Include="Enigma.Configuration" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- For the few seams a test needs and the public API should not offer: a file write made to fail half-way. -->
+    <InternalsVisibleTo Include="Enigma.TextEditor.Core.UnitTests" />
+  </ItemGroup>
   <!-- LangVersion / Nullable / ImplicitUsings / TreatWarningsAsErrors are deliberately absent: they
        come from Directory.Build.props. No Version attribute on a PackageReference either — versions
        live in Directory.Packages.props (CPM). -->

@@ -162,7 +162,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE03        | [Medium] UI tests wait on conditions (2) | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE04        | [Medium] Log explorer operation failures | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE05        | [Medium] Early exceptions to a file      | DONE        | (in CODE-REVIEW-0734.md)      |
-| - PHASE06        | [Medium] Save documents atomically       | TODO        | (in CODE-REVIEW-0734.md)      |
+| - PHASE06        | [Medium] Save documents atomically       | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE07        | [Medium] Hex copy moves to the tab model | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE08        | [Medium] Radio menus as choice lists     | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE09        | [Medium] Command handlers from DI        | TODO        | (in CODE-REVIEW-0734.md)      |
