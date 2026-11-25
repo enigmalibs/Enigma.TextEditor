@@ -51,10 +51,12 @@ public sealed class WorkspaceSession
     /// Whether unsaved changes are kept: the text of every buffer with changes its file does not have, and of every
     /// untitled buffer with text. Without it, they are left out — the close is throwing them away.
     /// </param>
-    /// <returns>The session.</returns>
+    /// <returns>The session, and the unsaved texts it names.</returns>
     /// <remarks>
     /// <para>
-    /// A buffer with a file — text or hex — is stored by its file, with its text when that is kept. An untitled buffer
+    /// A buffer with a file — text or hex — is stored by its file, with its text when that is kept: in a file of its
+    /// own, named after the buffer and the version of its text, so that a buffer that has not changed since the last
+    /// capture is the same file and nothing of it is copied again. An untitled buffer
     /// is stored when it is empty, or when its text is kept: without it, there is nothing of it to bring back. A buffer
     /// not stored takes its tabs with it, and a pane whose showing tab went shows its first tab left.
     /// </para>
@@ -63,19 +65,26 @@ public sealed class WorkspaceSession
     /// is one the next start accepts.
     /// </para>
     /// </remarks>
-    public SessionState Capture(WorkspaceViewModel workspace, bool keepUnsaved = false)
+    public SessionCapture Capture(WorkspaceViewModel workspace, bool keepUnsaved = false)
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
         List<SessionDocument> documents = [];
+        List<SessionText> texts = [];
         Dictionary<DocumentViewModel, int> indexes = [];
 
         foreach (DocumentViewModel document in _registry.Documents)
         {
             if (keepUnsaved || !document.IsUntitled || (document.Document.TextLength == 0))
             {
+                (SessionDocument entry, SessionText? text) = document.ToSession(keepUnsaved);
                 indexes[document] = documents.Count;
-                documents.Add(document.ToSession(keepUnsaved));
+                documents.Add(entry);
+
+                if (text is not null)
+                {
+                    texts.Add(text);
+                }
             }
         }
 
@@ -110,7 +119,9 @@ public sealed class WorkspaceSession
             panes.Add(new SessionPane(id.Value, tabs, (showing < 0) && (tabs.Count > 0) ? 0 : showing));
         }
 
-        return new SessionState(SessionState.CurrentVersion, workspace.Layout.ToSnapshot(), workspace.ActivePaneId.Value, panes, documents);
+        return new SessionCapture(
+            new SessionState(SessionState.CurrentVersion, workspace.Layout.ToSnapshot(), workspace.ActivePaneId.Value, panes, documents),
+            texts);
 
         static double Offset(double value) => double.IsFinite(value) ? Math.Max(value, 0) : 0;
     }

@@ -39,7 +39,7 @@ public sealed class SessionRestoreTests(HeadlessAvaloniaFixture fixture)
             before.Workspace.Layout.SetRatio((SplitNode)before.Workspace.Layout.Root, 0.3);
 
             string path = before.Folder.PathOf(AppPaths.SessionFileName);
-            SessionFile.Write(path, before.WorkspaceSession.Capture(before.Workspace));
+            SessionFile.Write(path, before.WorkspaceSession.Capture(before.Workspace).State);
             SessionState state = SessionFile.Read(path).State!;
 
             using EditorHarness after = new();
@@ -80,7 +80,7 @@ public sealed class SessionRestoreTests(HeadlessAvaloniaFixture fixture)
             hexTab.HexRow = 2;
 
             using EditorHarness after = new();
-            await after.WorkspaceSession.RestoreAsync(after.Workspace, before.WorkspaceSession.Capture(before.Workspace));
+            await after.WorkspaceSession.RestoreAsync(after.Workspace, before.WorkspaceSession.Capture(before.Workspace).State);
 
             DocumentViewModel restored = after.Registry.Find(text)!;
             Assert.Equal(TextEncodings.Windows1252, restored.Encoding);
@@ -107,7 +107,7 @@ public sealed class SessionRestoreTests(HeadlessAvaloniaFixture fixture)
             Assert.True(tab.Document.IsDirty);
 
             using EditorHarness after = new();
-            await after.WorkspaceSession.RestoreAsync(after.Workspace, before.WorkspaceSession.Capture(before.Workspace));
+            await after.WorkspaceSession.RestoreAsync(after.Workspace, before.WorkspaceSession.Capture(before.Workspace).State);
 
             DocumentViewModel restored = after.Registry.Find(path)!;
             Assert.Equal(TextEncodings.Utf8, restored.Encoding);
@@ -126,7 +126,7 @@ public sealed class SessionRestoreTests(HeadlessAvaloniaFixture fixture)
             await before.Workspace.OpenAsync(a);
             before.Workspace.Split(SplitAxis.Rows, newDocument: false);
             await before.Workspace.OpenAsync(b);
-            SessionState state = before.WorkspaceSession.Capture(before.Workspace);
+            SessionState state = before.WorkspaceSession.Capture(before.Workspace).State;
             File.Delete(b);
 
             using EditorHarness after = new();
@@ -149,7 +149,7 @@ public sealed class SessionRestoreTests(HeadlessAvaloniaFixture fixture)
             await before.Workspace.OpenAsync(a);
             before.Workspace.Split(SplitAxis.Columns, newDocument: false);
             await before.Workspace.OpenAsync(b);
-            SessionState state = before.WorkspaceSession.Capture(before.Workspace);
+            SessionState state = before.WorkspaceSession.Capture(before.Workspace).State;
             File.Delete(a);
             File.Delete(b);
 
@@ -169,7 +169,7 @@ public sealed class SessionRestoreTests(HeadlessAvaloniaFixture fixture)
             before.Workspace.NewDocument().Document.Document.Text = "draft";
             before.Workspace.NewDocument();
 
-            SessionState state = before.WorkspaceSession.Capture(before.Workspace);
+            SessionState state = before.WorkspaceSession.Capture(before.Workspace).State;
 
             Assert.Equal(["Untitled-2"], state.Documents.Select(document => document.UntitledName));
 
@@ -188,7 +188,7 @@ public sealed class SessionRestoreTests(HeadlessAvaloniaFixture fixture)
         {
             using EditorHarness before = new();
             await before.Workspace.OpenAsync(before.Folder.Write("a.txt", "a"));
-            SessionState state = before.WorkspaceSession.Capture(before.Workspace);
+            SessionState state = before.WorkspaceSession.Capture(before.Workspace).State;
 
             using EditorHarness after = new();
             await after.Workspace.OpenAsync(after.Folder.Write("c.txt", "c"));

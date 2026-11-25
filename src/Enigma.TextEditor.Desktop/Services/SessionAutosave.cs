@@ -37,7 +37,7 @@ public sealed class SessionAutosave : IDisposable
     private readonly Lock _gate = new();
 
     // UI thread.
-    private Func<SessionState>? _capture;
+    private Func<SessionCapture>? _capture;
     private SynchronizationContext? _uiThread;
     private ITimer? _timer;
     private SessionState? _saved;
@@ -96,7 +96,7 @@ public sealed class SessionAutosave : IDisposable
     /// <param name="capture">Captures the session as the window shows it; called on the UI thread.</param>
     /// <exception cref="InvalidOperationException">Not called on a thread with a synchronization context.</exception>
     /// <remarks>Does nothing when this instance does not own the session, when already started, or once stopped.</remarks>
-    public void Start(Func<SessionState> capture)
+    public void Start(Func<SessionCapture> capture)
     {
         ArgumentNullException.ThrowIfNull(capture);
 
@@ -129,22 +129,22 @@ public sealed class SessionAutosave : IDisposable
             return;
         }
 
-        SessionState state = _capture();
+        SessionCapture capture = _capture();
 
-        if (state.Equals(_saved))
+        if (capture.State.Equals(_saved))
         {
             return;
         }
 
         long number = ++_issued;
-        Task<bool> writing = _background(() => Write(state, number));
+        Task<bool> writing = _background(() => Write(capture, number));
         _writing = writing;
 
         try
         {
             if (await writing)
             {
-                _saved = state;
+                _saved = capture.State;
             }
         }
         finally
@@ -156,15 +156,15 @@ public sealed class SessionAutosave : IDisposable
     /// <summary>
     /// Writes a session now, on this thread, ahead of every capture taken before it — the close's write.
     /// </summary>
-    /// <param name="state">The session.</param>
+    /// <param name="capture">The session, and the unsaved texts it names.</param>
     /// <returns>Whether it was written; not when the write failed — logged — or this instance does not own the session.</returns>
     /// <remarks>
     /// A background write already writing is waited for, and replaced; one not started yet is dropped. Written even
     /// once the autosave has stopped, or was never started.
     /// </remarks>
-    public bool SaveNow(SessionState state)
+    public bool SaveNow(SessionCapture capture)
     {
-        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(capture);
 
         long number = ++_issued;
         bool written;
@@ -172,12 +172,12 @@ public sealed class SessionAutosave : IDisposable
         lock (_gate)
         {
             _landed = number;
-            written = _store.Save(state);
+            written = _store.Save(capture);
         }
 
         if (written)
         {
-            _saved = state;
+            _saved = capture.State;
         }
 
         return written;
@@ -213,7 +213,7 @@ public sealed class SessionAutosave : IDisposable
     }
 
     // Thread pool. A capture older than the last one written — the close's, or a stop — is not written over it.
-    private bool Write(SessionState state, long number)
+    private bool Write(SessionCapture capture, long number)
     {
         lock (_gate)
         {
@@ -224,7 +224,7 @@ public sealed class SessionAutosave : IDisposable
 
             _landed = number;
 
-            return _store.Save(state);
+            return _store.Save(capture);
         }
     }
 

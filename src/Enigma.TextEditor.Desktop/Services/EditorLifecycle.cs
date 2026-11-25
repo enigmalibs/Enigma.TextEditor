@@ -112,7 +112,7 @@ public sealed class EditorLifecycle
             }
 
             // What a close would keep, so that a crash brings back what closing would have.
-            _autosave.Start(() => CaptureSession(keepUnsaved: !_shutdown.DiscardChangesOnExit));
+            _autosave.Start(() => Capture(keepUnsaved: !_shutdown.DiscardChangesOnExit));
         }
         finally
         {
@@ -126,12 +126,7 @@ public sealed class EditorLifecycle
     /// </summary>
     /// <param name="keepUnsaved">Whether unsaved changes are kept, as <see cref="WorkspaceSession.Capture"/> keeps them.</param>
     /// <returns>The session.</returns>
-    public SessionState CaptureSession(bool keepUnsaved = false)
-        => _workspaceSession.Capture(_workspace, keepUnsaved) with
-        {
-            ExplorerFolder = _explorer.FolderPath,
-            ExplorerVisible = _explorer.IsVisible,
-        };
+    public SessionState CaptureSession(bool keepUnsaved = false) => Capture(keepUnsaved).State;
 
     /// <summary>
     /// Keeps what the window shows for the next start as it closes — its splits, its tabs, every unsaved change and the
@@ -144,14 +139,29 @@ public sealed class EditorLifecycle
     /// <remarks>
     /// After <c>:qa!</c> the changes are not kept — the user said to throw them away — but the tabs and splits are.
     /// </remarks>
-    public bool KeepSessionOnClose() => _autosave.SaveNow(CaptureSession(keepUnsaved: !_shutdown.DiscardChangesOnExit));
+    public bool KeepSessionOnClose() => _autosave.SaveNow(Capture(keepUnsaved: !_shutdown.DiscardChangesOnExit));
 
     /// <summary>
     /// Keeps the splits, the tabs and the explorer for the next start, without unsaved changes — after every one has
     /// been asked about and saved or thrown away.
     /// </summary>
     /// <returns>Whether it was kept; not when this instance does not own the session, or the write failed.</returns>
-    public bool SaveSession() => _autosave.SaveNow(CaptureSession());
+    public bool SaveSession() => _autosave.SaveNow(Capture(keepUnsaved: false));
+
+    // The editor area's session and texts, with the explorer's folder.
+    private SessionCapture Capture(bool keepUnsaved)
+    {
+        SessionCapture capture = _workspaceSession.Capture(_workspace, keepUnsaved);
+
+        return capture with
+        {
+            State = capture.State with
+            {
+                ExplorerFolder = _explorer.FolderPath,
+                ExplorerVisible = _explorer.IsVisible,
+            },
+        };
+    }
 
     /// <summary>
     /// The window has closed: the session it kept as it closed is the last one written, and no later tick replaces it.

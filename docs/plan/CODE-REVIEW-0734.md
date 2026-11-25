@@ -442,7 +442,7 @@ Locations: `src/Enigma.TextEditor.Core/Sessions/SessionFile.cs:57-62` (and the r
 
 ## PHASE19 — [Medium] PERF-01 The autosave captures and writes only text that changed
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `SessionAutosave.cs:132-140`, `WorkspaceSession` capture (was `WorkspaceViewModel.cs:1002-1009`),
 `DocumentViewModel.cs:359`.

@@ -194,14 +194,16 @@ public sealed class SessionAutosaveTests(HeadlessAvaloniaFixture fixture)
     private static SessionAutosave Inline(FakeSessionStore store, ManualTimeProvider? clock = null)
         => new(store, clock ?? new ManualTimeProvider(), NullLogger<SessionAutosave>.Instance, work => Task.FromResult(work()));
 
-    // One pane, one file, the caret where asked — a new instance every time, equal for equal carets.
-    private static SessionState State(int caret)
+    // One pane, one file, the caret where asked — a new instance every time, equal for equal carets; no text of its own.
+    private static SessionCapture State(int caret)
         => new(
-            SessionState.CurrentVersion,
-            new LayoutSnapshot(Pane: 0),
-            0,
-            [new SessionPane(0, [new SessionTab(0, caret)], 0)],
-            [new SessionDocument(@"C:\a.txt", "Untitled-1")]);
+            new SessionState(
+                SessionState.CurrentVersion,
+                new LayoutSnapshot(Pane: 0),
+                0,
+                [new SessionPane(0, [new SessionTab(0, caret)], 0)],
+                [new SessionDocument(@"C:\a.txt", "Untitled-1")]),
+            []);
 
     private static int CaretOf(SessionState state) => state.Panes[0].Tabs[0].CaretOffset;
 

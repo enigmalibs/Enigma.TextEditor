@@ -86,10 +86,17 @@ public sealed class SessionStore : ISessionStore, IDisposable
         return result.State;
     }
 
+    /// <summary>
+    /// Writes a session that keeps no unsaved text of its own over the last one.
+    /// </summary>
+    /// <param name="state">The session.</param>
+    /// <returns>Whether it was written.</returns>
+    public bool Save(SessionState state) => Save(new SessionCapture(state, []));
+
     /// <inheritdoc />
-    public bool Save(SessionState state)
+    public bool Save(SessionCapture capture)
     {
-        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(capture);
 
         if (!IsOwner)
         {
@@ -100,7 +107,7 @@ public sealed class SessionStore : ISessionStore, IDisposable
         {
             try
             {
-                SessionFile.Write(_sessionFile, state);
+                SessionFile.Write(_sessionFile, capture.State, capture.Texts);
             }
             catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or ArgumentException)
             {

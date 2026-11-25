@@ -160,10 +160,10 @@ The editor keeps four things of its own, in a per-user application-data folder:
 - `instance.json`, which names the window you used last, so that a file opened from the system goes to it. That
   window removes the file when it closes.
 - `session.json`, what was open when you last quit, kept up to date every few seconds while the editor runs: the
-  tabs, the splits, the explorer's folder, and the text of every unsaved change.
-  `session.lock` marks the window that keeps it.
+  tabs, the splits and the explorer's folder; the text of each unsaved change is in a file of its own in the
+  `unsaved` folder beside it. `session.lock` marks the window that keeps it.
 
-Your documents are the files you open and save — and, until you save them, the unsaved changes `session.json` keeps.
+Your documents are the files you open and save — and, until you save them, the unsaved changes the session keeps.
 
 | Platform | Folder                                                                  |
 |----------|-------------------------------------------------------------------------|
@@ -173,12 +173,13 @@ Your documents are the files you open and save — and, until you save them, the
 
 - `settings.json` is readable JSON. A key it lacks keeps its default. A file that cannot be read is moved aside to
   `settings.invalid.json`, the log says so, and the editor starts with the defaults.
-- `session.json` is readable JSON too, unsaved text included. A file that cannot be used is moved aside to
-  `session.invalid.json`, the log says so, and the editor starts without it.
+- `session.json` is readable JSON too, and each file of `unsaved` is the plain text of one unsaved document. A
+  session that cannot be used is moved aside to `session.invalid.json`, its texts to `unsaved.invalid`, the log says
+  so, and the editor starts without it.
 - `logs/app.log` is the log, one file per day, with two weeks kept.
-
 - `logs/early-errors.log` exists only when a failure came before the log was ready — while the settings were read,
   say — and holds each such failure in full.
+
 ## Requirements
 
 - .NET SDK 10.0.100 or later to build (pinned in `global.json`, rolls forward to newer feature bands). The Linux
