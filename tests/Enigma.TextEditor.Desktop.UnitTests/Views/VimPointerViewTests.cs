@@ -130,8 +130,8 @@ public sealed class VimPointerViewTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal("VISUAL", ModeText(window));
             Assert.Equal("baz", Editor(window).SelectedText);
 
-            // Long enough after the double-click that the platform counts a fresh single click.
-            await System.Threading.Tasks.Task.Delay(600);
+            // Eight characters from the double-click: outside the rectangle a second click must land in, so the platform
+            // counts a fresh single click however soon it comes.
             Click(window, On(window, line: 1, column: 2));
             Assert.Equal("NORMAL", ModeText(window));
             Assert.True(Editor(window).TextArea.Selection.IsEmpty);

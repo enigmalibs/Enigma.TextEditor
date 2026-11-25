@@ -27,7 +27,7 @@ public sealed class UnhandledErrorDialogTests(HeadlessAvaloniaFixture fixture)
             using Session session = new();
 
             session.Reporter.Report(new InvalidOperationException("the cache is gone"), UnhandledErrorSource.Dispatcher);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => session.Window.HostDialog.IsOpen, "the error dialog opened");
 
             ContentDialog host = session.Window.HostDialog;
             Assert.True(host.IsOpen);
@@ -49,9 +49,9 @@ public sealed class UnhandledErrorDialogTests(HeadlessAvaloniaFixture fixture)
             using Session session = new();
 
             session.Reporter.Report(new InvalidOperationException("first"), UnhandledErrorSource.Dispatcher);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => session.Window.HostDialog.IsOpen, "the first error dialog opened");
             session.Reporter.Report(new InvalidOperationException("second"), UnhandledErrorSource.FireAndForget);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             UnhandledErrorViewModel error = ViewModelOf(session.Window.HostDialog);
             Assert.Equal("first", error.Message);
@@ -65,15 +65,15 @@ public sealed class UnhandledErrorDialogTests(HeadlessAvaloniaFixture fixture)
         {
             using Session session = new();
             Task<DialogResult> question = session.Dialogs.ShowMessageAsync("Save changes?", "Unsaved.");
-            await DrainAsync();
+            await UiWait.UntilAsync(() => session.Window.HostDialog.IsOpen, "the question opened");
 
             session.Reporter.Report(new InvalidOperationException("meanwhile"), UnhandledErrorSource.Dispatcher);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Equal("Save changes?", session.Window.HostDialog.Title);
 
             await session.Dialogs.HideAsync();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => question.IsCompleted && session.Window.HostDialog.IsOpen, "the error dialog opened once the question closed");
 
             Assert.True(question.IsCompleted);
             Assert.True(session.Window.HostDialog.IsOpen);
@@ -87,11 +87,11 @@ public sealed class UnhandledErrorDialogTests(HeadlessAvaloniaFixture fixture)
             using Session session = new(registerHost: false);
 
             session.Reporter.Report(new InvalidOperationException("early"), UnhandledErrorSource.Startup);
-            await DrainAsync();
+            await UiWait.SettleAsync();
             Assert.False(session.Window.HostDialog.IsOpen);
 
             session.Reporter.RegisterHost(session.Window.HostDialog);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => session.Window.HostDialog.IsOpen, "the early error showed once the host came");
 
             Assert.True(session.Window.HostDialog.IsOpen);
             Assert.Equal("early", ViewModelOf(session.Window.HostDialog).Message);
@@ -106,7 +106,7 @@ public sealed class UnhandledErrorDialogTests(HeadlessAvaloniaFixture fixture)
             source.Cancel();
 
             session.Reporter.Report(new OperationCanceledException(source.Token), UnhandledErrorSource.FireAndForget);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.False(session.Window.HostDialog.IsOpen);
         });
@@ -118,7 +118,7 @@ public sealed class UnhandledErrorDialogTests(HeadlessAvaloniaFixture fixture)
             using Session session = new();
 
             session.Reporter.Report(new InvalidOperationException("fatal"), UnhandledErrorSource.AppDomain);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => session.LoggerHandle.Flushes == 1, "the fatal error flushed the log");
 
             Assert.Equal(1, session.LoggerHandle.Flushes);
             Assert.False(session.Window.HostDialog.IsOpen);
@@ -143,15 +143,6 @@ public sealed class UnhandledErrorDialogTests(HeadlessAvaloniaFixture fixture)
 
     private static UnhandledErrorViewModel ViewModelOf(ContentDialog host)
         => Assert.IsType<UnhandledErrorViewModel>(Assert.IsType<UnhandledErrorView>(host.Content).DataContext);
-
-    private static async Task DrainAsync()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
-    }
 
     /// <summary>
     /// The real window, its dialog service and a reporter over them.

@@ -30,7 +30,7 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
             Button status = window.FindControl<Button>("FontSizeStatus")!;
 
             window.MouseWheel(OverText(pane, window), new Vector(0, 1), RawInputModifiers.Control);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.FontSize == AppSettings.DefaultFontSize + 1, "Ctrl+wheel up zoomed in");
 
             Assert.Equal(AppSettings.DefaultFontSize + 1, harness.Settings.Value.EditorFontSize);
             Assert.Equal(AppSettings.DefaultFontSize + 1, pane.EditorControl.FontSize);
@@ -38,7 +38,7 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
 
             window.MouseWheel(OverText(pane, window), new Vector(0, -1), RawInputModifiers.Control);
             window.MouseWheel(OverText(pane, window), new Vector(0, -1), RawInputModifiers.Control);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.FontSize == AppSettings.DefaultFontSize - 1, "two notches down zoomed out twice");
 
             Assert.Equal(AppSettings.DefaultFontSize - 1, harness.Settings.Value.EditorFontSize);
             Assert.Equal(AppSettings.DefaultFontSize - 1, pane.EditorControl.FontSize);
@@ -54,13 +54,13 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
             (MainWindow window, EditorPaneView pane) = Show(harness);
 
             window.MouseWheel(OverText(pane, window), new Vector(0, -2), RawInputModifiers.Control);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Settings.Value.EditorFontSize == AppSettings.DefaultFontSize - 2, "Ctrl+wheel zoomed without scrolling");
 
             Assert.Equal(0, pane.EditorControl.VerticalOffset, 3);
             Assert.Equal(AppSettings.DefaultFontSize - 2, harness.Settings.Value.EditorFontSize);
 
             window.MouseWheel(OverText(pane, window), new Vector(0, -2));
-            await DrainAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.VerticalOffset > 0, "the wheel without Ctrl scrolled");
 
             Assert.True(pane.EditorControl.VerticalOffset > 0);
             Assert.Equal(AppSettings.DefaultFontSize - 2, harness.Settings.Value.EditorFontSize);
@@ -80,11 +80,11 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
                 window.MouseWheel(OverText(pane, window), new Vector(0, 0.25), RawInputModifiers.Control);
             }
 
-            await DrainAsync();
+            await UiWait.SettleAsync();
             Assert.Equal(AppSettings.DefaultFontSize, harness.Settings.Value.EditorFontSize);
 
             window.MouseWheel(OverText(pane, window), new Vector(0, 0.25), RawInputModifiers.Control);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Settings.Value.EditorFontSize == AppSettings.DefaultFontSize + 1, "the fourth quarter notch made one step");
             Assert.Equal(AppSettings.DefaultFontSize + 1, harness.Settings.Value.EditorFontSize);
             window.Close();
         });
@@ -100,7 +100,7 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
             Point centre = hex.TranslatePoint(new Point(hex.Bounds.Width / 2, hex.Bounds.Height / 2), window)!.Value;
 
             window.MouseWheel(centre, new Vector(0, 1), RawInputModifiers.Control);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Preferences.FontSize == AppSettings.DefaultFontSize + 1, "Ctrl+wheel over the hex view zoomed");
 
             Assert.Equal(AppSettings.DefaultFontSize + 1, harness.Settings.Value.EditorFontSize);
             Assert.Equal(AppSettings.DefaultFontSize + 1, harness.Preferences.FontSize);
@@ -118,7 +118,7 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
             Point onBar = bar.TranslatePoint(new Point(bar.Bounds.Width / 2, bar.Bounds.Height / 2), window)!.Value;
 
             window.MouseWheel(onBar, new Vector(0, 1), RawInputModifiers.Control);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Equal(AppSettings.DefaultFontSize, harness.Settings.Value.EditorFontSize);
             window.Close();
@@ -134,13 +134,13 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
             Control text = pane.EditorControl.TextArea.TextView;
 
             Assert.True(Magnify(text, window, 0.2));
-            await DrainAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.FontSize == AppSettings.DefaultFontSize + 2, "the pinch out zoomed in");
 
             Assert.Equal(AppSettings.DefaultFontSize + 2, harness.Settings.Value.EditorFontSize);
             Assert.Equal(AppSettings.DefaultFontSize + 2, pane.EditorControl.FontSize);
 
             Assert.True(Magnify(text, window, -0.3));
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Settings.Value.EditorFontSize == AppSettings.DefaultFontSize - 1, "the pinch in zoomed out");
 
             Assert.Equal(AppSettings.DefaultFontSize - 1, harness.Settings.Value.EditorFontSize);
             window.Close();
@@ -160,11 +160,11 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
                 Magnify(text, window, 0.02);
             }
 
-            await DrainAsync();
+            await UiWait.SettleAsync();
             Assert.Equal(AppSettings.DefaultFontSize, harness.Settings.Value.EditorFontSize);
 
             Magnify(text, window, 0.02);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Settings.Value.EditorFontSize == AppSettings.DefaultFontSize + 1, "the small pinches added up to a step");
             Assert.Equal(AppSettings.DefaultFontSize + 1, harness.Settings.Value.EditorFontSize);
             window.Close();
         });
@@ -178,7 +178,7 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
             (MainWindow window, EditorPaneView pane) = Show(harness);
 
             Assert.True(Magnify(pane.HexView, window, 0.1));
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Preferences.FontSize == AppSettings.DefaultFontSize + 1, "the pinch over the hex view zoomed");
 
             Assert.Equal(AppSettings.DefaultFontSize + 1, harness.Preferences.FontSize);
             window.Close();
@@ -193,7 +193,7 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
             (MainWindow window, _) = Show(harness);
 
             Assert.False(Magnify(window.FindControl<Control>("StatusBar")!, window, 0.5));
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Equal(AppSettings.DefaultFontSize, harness.Settings.Value.EditorFontSize);
             window.Close();
@@ -248,15 +248,5 @@ public sealed class ZoomGestureTests(HeadlessAvaloniaFixture fixture)
         Dispatcher.UIThread.RunJobs();
 
         return (window, window.GetVisualDescendants().OfType<EditorPaneView>().Single());
-    }
-
-    // The zoom writes the settings without being awaited: let each write finish before the next step or the end.
-    private static async Task DrainAsync()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
     }
 }

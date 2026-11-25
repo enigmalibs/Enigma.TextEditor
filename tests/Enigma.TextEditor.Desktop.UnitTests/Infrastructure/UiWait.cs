@@ -60,6 +60,36 @@ internal static class UiWait
     }
 
     /// <summary>
+    /// Reads a value that is only to be had asynchronously — the clipboard's text — until it is what the test expects,
+    /// pumping the dispatcher between reads.
+    /// </summary>
+    /// <typeparam name="T">The value's type.</typeparam>
+    /// <param name="read">Reads the value; called on the UI thread.</param>
+    /// <param name="expected">Whether a value read is the one the test waits for.</param>
+    /// <returns>
+    /// The last value read: the expected one, or — after <see cref="Deadline"/> — whatever was there, for the test's own
+    /// assertion to compare and report.
+    /// </returns>
+    public static async Task<T> ValueAsync<T>(Func<Task<T>> read, Func<T, bool> expected)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+        ArgumentNullException.ThrowIfNull(expected);
+
+        Stopwatch clock = Stopwatch.StartNew();
+        Dispatcher.UIThread.RunJobs();
+        T value = await read();
+
+        while (!expected(value) && (clock.Elapsed <= Deadline))
+        {
+            await Task.Yield();
+            Dispatcher.UIThread.RunJobs();
+            value = await read();
+        }
+
+        return value;
+    }
+
+    /// <summary>
     /// Pumps the dispatcher until it has had nothing to do for a few rounds in a row: for a test that asserts that
     /// something did <em>not</em> happen, where there is no condition to wait on.
     /// </summary>

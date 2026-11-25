@@ -74,7 +74,7 @@ public sealed class VimEditingTests(HeadlessAvaloniaFixture fixture)
             Assert.True(window.FindControl<TextBlock>("CommandLine")?.IsVisible);
 
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            await WaitFor(() => File.ReadAllText(path) == "bc");
+            await UiWait.UntilAsync(() => File.ReadAllText(path) == "bc", "the save landed");
 
             Assert.Equal("bc", File.ReadAllText(path));
             Assert.False(window.FindControl<TextBlock>("CommandLine")?.IsVisible);
@@ -92,7 +92,7 @@ public sealed class VimEditingTests(HeadlessAvaloniaFixture fixture)
 
             window.KeyTextInput("x");
             window.KeyPressQwerty(PhysicalKey.S, RawInputModifiers.Control);
-            await WaitFor(() => File.ReadAllText(path) == "bc");
+            await UiWait.UntilAsync(() => File.ReadAllText(path) == "bc", "the save landed");
 
             Assert.Equal("bc", File.ReadAllText(path));
             window.Close();
@@ -324,15 +324,5 @@ public sealed class VimEditingTests(HeadlessAvaloniaFixture fixture)
         Dispatcher.UIThread.RunJobs();
 
         return window;
-    }
-
-    // A save is awaited off a keystroke; pump the dispatcher until it has landed.
-    private static async System.Threading.Tasks.Task WaitFor(System.Func<bool> condition)
-    {
-        for (int attempt = 0; (attempt < 200) && !condition(); attempt++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await System.Threading.Tasks.Task.Delay(10);
-        }
     }
 }

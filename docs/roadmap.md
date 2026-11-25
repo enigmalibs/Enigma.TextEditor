@@ -159,7 +159,7 @@ completion records live in `docs/done/<ID>.md`.
 | CODE-REVIEW-0734 | Review 2026-11-19: high & medium fixes   | IN PROGRESS | docs/plan/CODE-REVIEW-0734.md |
 | - PHASE01        | [High] Pipe stalls on an unknown client  | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE02        | [Medium] UI tests wait on conditions (1) | DONE        | (in CODE-REVIEW-0734.md)      |
-| - PHASE03        | [Medium] UI tests wait on conditions (2) | TODO        | (in CODE-REVIEW-0734.md)      |
+| - PHASE03        | [Medium] UI tests wait on conditions (2) | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE04        | [Medium] Log explorer operation failures | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE05        | [Medium] Early exceptions to a file      | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE06        | [Medium] Save documents atomically       | TODO        | (in CODE-REVIEW-0734.md)      |

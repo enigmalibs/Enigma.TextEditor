@@ -160,15 +160,19 @@ public sealed class SessionAutosaveTests(HeadlessAvaloniaFixture fixture)
             Task tick = autosave.SaveIfChangedAsync();
             Assert.True(store.Entered.Wait(TimeSpan.FromSeconds(10)));
 
-            // Released from elsewhere: the close's write blocks this thread until the background one is done.
-            Task release = Task.Run(async () =>
+            // Released from elsewhere once the close's write is seen waiting: it blocks this thread until the background
+            // write is done.
+            Thread closing = Thread.CurrentThread;
+            Task<bool> release = Task.Run(() =>
             {
-                await Task.Delay(100);
+                bool waited = SpinWait.SpinUntil(() => (closing.ThreadState & ThreadState.WaitSleepJoin) != 0, TimeSpan.FromSeconds(10));
                 hold.Set();
+
+                return waited;
             });
             Assert.True(autosave.SaveNow(State(2)));
             await tick;
-            await release;
+            Assert.True(await release, "The close's write did not wait for the background write.");
 
             Assert.Equal([1, 2], store.Saved.Select(CaretOf));
         });

@@ -108,7 +108,7 @@ Locations (part 1): `ViewModels/MoveTabTests.cs:238`, `ViewModels/WindowCommandT
 
 ## PHASE03 — [Medium] TEST-02 UI tests wait on conditions, not fixed rounds (part 2)
 
-**Status:** TODO
+**Status:** DONE
 
 Locations (part 2): `Views/FontSizeStatusTests.cs:141`, `Views/HexCopyMenuTests.cs:243`, `Views/HexViewTests.cs:149`,
 `Views/StatusBarFocusTests.cs:132`, `Views/UnhandledErrorDialogTests.cs:152`, `Views/VimEditingTests.cs:335`,
