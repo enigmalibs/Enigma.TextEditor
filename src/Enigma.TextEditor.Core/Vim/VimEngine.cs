@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace Enigma.TextEditor.Core.Vim;
@@ -89,13 +88,6 @@ public sealed class VimEngine : IVimEngineContext
     private const int NoDesiredColumn = -1;
 
     private const string NothingInRegister = "Nothing in the register";
-    private const string NoPreviousMacro = "No previously used register";
-    private const string MacroNestingTooDeep = "Macro nesting too deep";
-
-    // How deep '@a' inside 'a' may go before it is called a mistake: vim's own limit, and far past
-    // any recursion that is doing work rather than looping.
-    private const int MaxMacroDepth = 100;
-
     // The undo keys as a recording writes them. Redo is the capital: Ctrl+Shift+Z arrives as a 'z'
     // held with Shift, and the notation writes Shift into a character rather than beside it.
     private static readonly VimKey UndoKey = VimKey.Typed('z', VimModifiers.Control);
@@ -126,35 +118,14 @@ public sealed class VimEngine : IVimEngineContext
 
     private bool _insertGroupOpen;
 
-    // What the insert session now open has typed, read off the buffer's change reports.
-    private readonly VimInsertRecorder _typed = new();
-
     // The register a '"' named on the command that is running, or '\0' for the unnamed one. State
     // rather than a parameter because it is read three calls down, by Fill and the puts — and because
     // a delete inside a visual put has to fill the unnamed register whatever the put was named with.
     private char _activeRegister;
 
-    // What '.' repeats, or null before the first change.
-    private RecordedChange? _lastChange;
-
-    // The command that opened the insert session now running, and the selection it was typed over,
-    // waiting for the Esc that closes the record and makes it the last change.
-    private VimCommand? _insertCommand;
-    private VimVisualExtent? _insertVisual;
-
-    // Set while '.' is replaying: nothing the replay does is a change of its own to remember.
-    private bool _replaying;
-
-    // The register a 'q' is recording into, as it was typed — a capital appends — or null when none,
-    // and the keys collected so far.
-    private char? _recording;
-    private readonly StringBuilder _macro = new();
-
-    // How many '@' replays are inside one another, whether the innermost has hit something that stops
-    // them all, and which register was replayed last, for '@@'.
-    private int _macroDepth;
-    private bool _macroFailed;
-    private char _lastMacro;
+    // What '.' repeats, and the recordings and replays of 'q' and '@'.
+    private readonly VimDotRepeat _repeat = new();
+    private readonly VimMacros _macros;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VimEngine"/> class over a buffer.
@@ -178,6 +149,7 @@ public sealed class VimEngine : IVimEngineContext
         _ex = new VimExCommands(_buffer, Options, _shared, this);
         _search = new VimSearchMotion(_buffer, Options, _shared, this);
         _visual = new VimVisualSelection(_buffer);
+        _macros = new VimMacros(_shared);
 
         _buffer.Changed += OnBufferChanged;
     }
@@ -267,7 +239,7 @@ public sealed class VimEngine : IVimEngineContext
     /// Gets the register a <c>q</c> is recording into, as it was typed, or <see langword="null"/>
     /// when nothing is being recorded.
     /// </summary>
-    public char? RecordingRegister => _recording;
+    public char? RecordingRegister => _macros.Recording;
 
     /// <summary>
     /// Gets a value indicating whether a command is half typed — <c>3d</c> waiting for its motion,
@@ -322,12 +294,12 @@ public sealed class VimEngine : IVimEngineContext
     {
         key = FoldRedoKey(key);
 
-        bool wasRecording = _recording is not null;
+        bool wasRecording = _macros.Recording is not null;
         bool taken = Dispatch(key);
 
-        if (taken && wasRecording && (_recording is not null) && (_macroDepth == 0))
+        if (taken && wasRecording && _macros.IsTaking)
         {
-            _macro.Append(VimKeyNotation.Format(key));
+            _macros.Take(key);
         }
 
         return taken;
@@ -375,14 +347,14 @@ public sealed class VimEngine : IVimEngineContext
             return false;
         }
 
-        bool wasRecording = _recording is not null;
+        bool wasRecording = _macros.Recording is not null;
 
         _windowPending = false;
         Step(forward: key == RedoKey);
 
-        if (wasRecording && (_recording is not null) && (_macroDepth == 0))
+        if (wasRecording && _macros.IsTaking)
         {
-            _macro.Append(VimKeyNotation.Format(key));
+            _macros.Take(key);
         }
 
         return true;
@@ -504,7 +476,7 @@ public sealed class VimEngine : IVimEngineContext
         // The 'q' that stops a recording, taken before the parser sees it: only the engine knows a
         // recording is open. A 'q' typed into a sequence already under way — '3q', 'dq' — is that
         // sequence's to read.
-        if ((_recording is not null) && !_parser.HasPendingSequence && key.IsCharacter && (key.Character == 'q'))
+        if ((_macros.Recording is not null) && !_parser.HasPendingSequence && key.IsCharacter && (key.Character == 'q'))
         {
             StopRecording();
 
@@ -1041,15 +1013,7 @@ public sealed class VimEngine : IVimEngineContext
         // it is the last change, being done again.
         if (change)
         {
-            if (Mode == VimMode.Insert)
-            {
-                _insertCommand = command;
-                _insertVisual = extent;
-            }
-            else if (!_replaying)
-            {
-                _lastChange = new RecordedChange(command, null, extent);
-            }
+            _repeat.Record(command, extent, enteredInsert: Mode == VimMode.Insert);
         }
 
         // Here rather than inside each motion: everything a visual mode does ends with the caret
@@ -1314,7 +1278,7 @@ public sealed class VimEngine : IVimEngineContext
                     }
                     else
                     {
-                        _macroFailed = true;
+                        _macros.Failed = true;
                     }
                 }
 
@@ -1401,7 +1365,7 @@ public sealed class VimEngine : IVimEngineContext
         if (resolved is not { } range)
         {
             // Behind an operator too, a find that misses is what stops a macro.
-            _macroFailed |= find is not null;
+            _macros.Failed |= find is not null;
 
             return;
         }
@@ -2277,7 +2241,7 @@ public sealed class VimEngine : IVimEngineContext
         _buffer.CaretOffset = Math.Clamp(offset, 0, _buffer.TextLength);
 
         BeginInsertGroup();
-        _typed.Begin(_buffer.CaretOffset);
+        _repeat.BeginTyping(_buffer.CaretOffset);
         SetMode(VimMode.Insert);
     }
 
@@ -2307,7 +2271,7 @@ public sealed class VimEngine : IVimEngineContext
         // After the line has been opened, so that the opening is the command's and not the typing's —
         // the indentation included: it is written by the command, so '.' and a macro re-derive it
         // rather than replaying it as text the user typed.
-        _typed.Begin(_buffer.CaretOffset);
+        _repeat.BeginTyping(_buffer.CaretOffset);
         SetMode(VimMode.Insert);
     }
 
@@ -2479,9 +2443,9 @@ public sealed class VimEngine : IVimEngineContext
     private void StepInInsert(bool forward)
     {
         // The same test the Esc that closes the record makes before writing the text into a recording.
-        if ((_insertCommand is not null) && !_replaying && (_recording is not null) && (_macroDepth == 0))
+        if (_repeat.IsRecordingInsert && _macros.IsTaking)
         {
-            _macro.Append(VimKeyNotation.Format(TypedKeys(_typed.Text)));
+            _macros.TakeTyped(_repeat.TypedSoFar);
         }
 
         EndInsertGroup();
@@ -2496,7 +2460,7 @@ public sealed class VimEngine : IVimEngineContext
         }
 
         BeginInsertGroup();
-        _typed.Begin(_buffer.CaretOffset);
+        _repeat.BeginTyping(_buffer.CaretOffset);
         _buffer.ScrollToCaret();
     }
 
@@ -2549,7 +2513,7 @@ public sealed class VimEngine : IVimEngineContext
     private void Fail(string message)
     {
         _buffer.ShowStatus(message);
-        _macroFailed = true;
+        _macros.Failed = true;
     }
 
     /// <inheritdoc />
@@ -2560,7 +2524,7 @@ public sealed class VimEngine : IVimEngineContext
     void IVimEngineContext.Fail(string message) => Fail(message);
 
     /// <inheritdoc />
-    void IVimEngineContext.StopMacro() => _macroFailed = true;
+    void IVimEngineContext.StopMacro() => _macros.Failed = true;
 
     /// <inheritdoc />
     void IVimEngineContext.MoveCaret(int offset)
@@ -2580,9 +2544,9 @@ public sealed class VimEngine : IVimEngineContext
     /// <c>recording @a</c> there, which is what the slot shows whenever nothing else needs it.
     /// </summary>
     private void ClearStatus()
-        => _buffer.ShowStatus(_recording is { } register ? $"recording @{register}" : null);
+        => _buffer.ShowStatus(_macros.Recording is { } register ? $"recording @{register}" : null);
 
-    private void OnBufferChanged(object? sender, VimTextChange change) => _typed.Observe(change);
+    private void OnBufferChanged(object? sender, VimTextChange change) => _repeat.Observe(change);
 
     /// <summary>
     /// Closes the record of what the insert session typed: it becomes the last change, goes into an
@@ -2595,31 +2559,9 @@ public sealed class VimEngine : IVimEngineContext
     /// </remarks>
     private void CloseInsertRecord()
     {
-        string text = _typed.Text;
-        _typed.Close();
-
-        if (_insertCommand is not { } command)
+        if ((_repeat.CloseInsert(_macros) is { } closed) && (closed.Command.EffectiveCount > 1))
         {
-            return;
-        }
-
-        _insertCommand = null;
-
-        if (!_replaying)
-        {
-            _lastChange = new RecordedChange(command, text, _insertVisual);
-
-            if ((_recording is not null) && (_macroDepth == 0))
-            {
-                _macro.Append(VimKeyNotation.Format(TypedKeys(text)));
-            }
-        }
-
-        _insertVisual = null;
-
-        if (command.EffectiveCount > 1)
-        {
-            RepeatTyped(command, text, command.EffectiveCount - 1);
+            RepeatTyped(closed.Command, closed.Text, closed.Command.EffectiveCount - 1);
         }
     }
 
@@ -2694,38 +2636,6 @@ public sealed class VimEngine : IVimEngineContext
     }
 
     /// <summary>
-    /// The keys that would have typed a piece of text: a line break is Enter, a tab is Tab, and
-    /// everything else is itself.
-    /// </summary>
-    private static IReadOnlyList<VimKey> TypedKeys(string text)
-    {
-        List<VimKey> keys = [];
-
-        foreach (char character in text)
-        {
-            switch (character)
-            {
-                case '\r':
-                    break;
-
-                case '\n':
-                    keys.Add(VimKey.Named(VimSpecialKey.Enter));
-                    break;
-
-                case '\t':
-                    keys.Add(VimKey.Named(VimSpecialKey.Tab));
-                    break;
-
-                default:
-                    keys.Add(VimKey.Typed(character));
-                    break;
-            }
-        }
-
-        return keys;
-    }
-
-    /// <summary>
     /// Runs the last change again — <c>.</c>.
     /// </summary>
     /// <param name="dot">The <c>.</c> itself, for the count and the register it may carry.</param>
@@ -2738,28 +2648,7 @@ public sealed class VimEngine : IVimEngineContext
     /// no change to repeat nothing happens, without a word.
     /// </remarks>
     private void RepeatLastChange(VimCommand dot)
-    {
-        if (_lastChange is not { } last)
-        {
-            return;
-        }
-
-        VimCommand command = last.Command;
-
-        if (dot.HasCount)
-        {
-            command = command with { Count = dot.Count };
-        }
-
-        if (dot.Register != '\0')
-        {
-            command = command with { Register = dot.Register };
-        }
-
-        _lastChange = last with { Command = command };
-        _replaying = true;
-
-        try
+        => _repeat.Replay(dot, (last, command) =>
         {
             if (last.Visual is { } extent)
             {
@@ -2773,12 +2662,7 @@ public sealed class VimEngine : IVimEngineContext
                 TypeText(last.Text ?? string.Empty);
                 LeaveInsert();
             }
-        }
-        finally
-        {
-            _replaying = false;
-        }
-    }
+        });
 
     /// <summary>
     /// Selects again, from the caret, as much as a remembered selection covered — vim's rule for
@@ -2790,149 +2674,23 @@ public sealed class VimEngine : IVimEngineContext
         SetMode(extent.Mode);
     }
 
-    /// <summary>
-    /// Opens a recording — <c>qa</c> — or, when one is already open, closes it, which is what vim
-    /// does with a <c>q</c> that reached the parser through a count.
-    /// </summary>
+    // 'qa' — or, with one open, 'q' through a count, which closes it — and the status slot that says so.
     private void StartRecording(char register)
     {
-        if (_recording is not null)
-        {
-            StopRecording();
-
-            return;
-        }
-
-        _recording = register;
-        _macro.Clear();
+        _macros.Toggle(register);
         ClearStatus();
     }
 
     private void StopRecording()
     {
-        if (_recording is not { } register)
+        if (_macros.Stop())
         {
-            return;
-        }
-
-        string keys = _macro.ToString();
-
-        _recording = null;
-        _macro.Clear();
-
-        Registers.Record(register, keys);
-        ClearStatus();
-    }
-
-    /// <summary>
-    /// Runs a register as keys — <c>@a</c>, <c>@@</c> — <paramref name="count"/> times.
-    /// </summary>
-    /// <param name="name">The register, or <c>@</c> for the one last run.</param>
-    /// <param name="count">How many times.</param>
-    /// <remarks>
-    /// <para>
-    /// The keys go back through <see cref="HandleKey"/> one at a time, and a key the engine turns down
-    /// — insert mode's — is typed into the buffer the way the editor would have typed it. That is the
-    /// test harness's own loop, and it is here so that a macro is exactly what typing the keys would
-    /// have been.
-    /// </para>
-    /// <para>
-    /// The run stops at the first thing that fails: a sequence that spells nothing, a find or a
-    /// search that finds nothing, an ex command that is not one, a register with nothing in it — and
-    /// a nesting deeper than <see cref="MaxMacroDepth"/>, which is a macro running itself with no way
-    /// out. What ran before that stays; vim's rule too, and the reason a recursive macro is a way of
-    /// saying "until this stops working".
-    /// </para>
-    /// </remarks>
-    private void PlayMacro(char name, int count)
-    {
-        // A fresh run from the keyboard forgets how the last one ended; a nested one must not, or an
-        // inner failure would not reach the outer loop.
-        if (_macroDepth == 0)
-        {
-            _macroFailed = false;
-        }
-
-        if (name == '@')
-        {
-            if (_lastMacro == '\0')
-            {
-                Fail(NoPreviousMacro);
-
-                return;
-            }
-
-            name = _lastMacro;
-        }
-
-        if (_macroDepth >= MaxMacroDepth)
-        {
-            Fail(MacroNestingTooDeep);
-
-            return;
-        }
-
-        if (Registers.Get(name) is not { } register)
-        {
-            // Nothing to run. Silent, as vim's beep is, and still a failure for any macro this one is
-            // inside.
-            _macroFailed = true;
-
-            return;
-        }
-
-        _lastMacro = char.ToLowerInvariant(name);
-
-        IReadOnlyList<VimKey> keys = RegisterKeys(register);
-
-        _macroDepth++;
-
-        try
-        {
-            for (int run = 0; (run < count) && !_macroFailed; run++)
-            {
-                foreach (VimKey key in keys)
-                {
-                    if (!HandleKey(key))
-                    {
-                        TypeIntoBuffer(key);
-                    }
-
-                    if (_macroFailed)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-        finally
-        {
-            _macroDepth--;
+            ClearStatus();
         }
     }
 
-    /// <summary>
-    /// Reads a register as keys.
-    /// </summary>
-    /// <remarks>
-    /// A recording is already in <see cref="VimKeyNotation"/>. Any other register is text, and is
-    /// read the way vim reads one it is asked to run: a line break is an Enter, and a linewise
-    /// register ends every line with one, so that a yanked line runs as a command.
-    /// </remarks>
-    private static IReadOnlyList<VimKey> RegisterKeys(VimRegister register)
-    {
-        string text = register.Text
-            .Replace("\r\n", "\n", StringComparison.Ordinal)
-            .Replace("\n", "<CR>", StringComparison.Ordinal)
-            .Replace("\t", "<Tab>", StringComparison.Ordinal);
-
-        if (register.Kind == VimRegisterKind.Linewise)
-        {
-            text += "<CR>";
-        }
-
-        return VimKeyNotation.Parse(text);
-    }
+    // '@a', '@@': the keys go back through HandleKey one at a time, and a key it turns down is typed as the editor would.
+    private void PlayMacro(char name, int count) => _macros.Play(name, count, HandleKey, TypeIntoBuffer, Fail);
 
     /// <summary>
     /// Does to the buffer what the editor does with a key the engine has turned down — insert mode's
@@ -3008,10 +2766,5 @@ public sealed class VimEngine : IVimEngineContext
         return caret;
     }
 
-    /// <summary>
-    /// What <c>.</c> repeats: the command, the text typed after it when it entered insert mode, and
-    /// the selection it was over when it was one of the visual commands.
-    /// </summary>
-    private readonly record struct RecordedChange(VimCommand Command, string? Text, VimVisualExtent? Visual);
 
 }

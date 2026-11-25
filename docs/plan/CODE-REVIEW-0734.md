@@ -386,7 +386,7 @@ Locations: `VimEngine.cs:1494-2047`.
 
 ## PHASE16 — [Medium] SOLID-03 Dot-repeat and macros leave `VimEngine`
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `VimEngine.cs:3237-3616`.
 
