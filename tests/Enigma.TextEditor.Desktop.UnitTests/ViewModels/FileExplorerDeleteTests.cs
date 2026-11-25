@@ -1,9 +1,11 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Enigma.TextEditor.Desktop.ViewModels;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Enigma.TextEditor.Desktop.UnitTests.ViewModels;
@@ -136,6 +138,28 @@ public sealed class FileExplorerDeleteTests(HeadlessAvaloniaFixture fixture)
             Assert.DoesNotContain(intro.Document, harness.Registry.Documents);
             EditorPaneViewModel left = Assert.Single(harness.Workspace.Panes);
             Assert.Equal(["readme.txt"], left.Tabs.Select(tab => tab.Document.Title));
+        });
+
+    [Fact]
+    public void ATrashThatFails_IsLoggedAsAnError_WithItsExceptionAndPath_AndReported()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            string project = await OpenProjectAsync(harness);
+            IOException full = new("The recycle bin is full.");
+            harness.Trash.Throws = full;
+            harness.Explorer.SelectedNode = Row(harness, "readme.txt");
+
+            await harness.Explorer.DeleteCommand.ExecuteAsync(null);
+
+            (LogLevel level, string message, Exception? exception) = Assert.Single(harness.ExplorerLog.Entries, entry => entry.Level >= LogLevel.Warning);
+            Assert.Equal(LogLevel.Error, level);
+            Assert.Same(full, exception);
+            Assert.Contains(Path.Combine(project, "readme.txt"), message);
+            (string title, string shown) = Assert.Single(harness.Messages.Errors);
+            Assert.Equal("The file could not be deleted", title);
+            Assert.Equal(full.Message, shown);
+            Assert.True(File.Exists(Path.Combine(project, "readme.txt")));
         });
 
     private static FileTreeNodeViewModel Row(EditorHarness harness, string name)

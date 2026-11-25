@@ -134,7 +134,7 @@ Locations (part 2): `Views/FontSizeStatusTests.cs:141`, `Views/HexCopyMenuTests.
 
 ## PHASE04 — [Medium] LOG-01 File-operation failures in the explorer are logged
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `src/Enigma.TextEditor.Desktop/ViewModels/FileExplorerViewModel.cs:392-396`, `:436-439`.
 

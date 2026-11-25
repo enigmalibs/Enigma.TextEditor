@@ -34,7 +34,7 @@ internal sealed class EditorHarness : IDisposable
         Preferences = new EditorPreferences(Settings);
         Vim = new VimSession(Settings, StatusLine);
         Workspace = new WorkspaceViewModel(Documents, Registry, Prompts, Unsaved, StatusLine, Vim, VimShared, Shutdown, Preferences, Help, Languages, LanguagePicker);
-        Explorer = new FileExplorerViewModel(Workspace, Prompts, ExplorerPrompts, Messages, Trash, NullLogger<FileExplorerViewModel>.Instance);
+        Explorer = new FileExplorerViewModel(Workspace, Prompts, ExplorerPrompts, Messages, Trash, ExplorerLog);
         StatusBar = new StatusBarViewModel(Workspace, StatusLine);
         Tools = new ToolsViewModel(Workspace, LanguagePicker, EncodingPicker, Confirm, Documents);
         SettingsWriter = new SettingsWriter(Settings, Messages, NullLogger<SettingsWriter>.Instance);
@@ -75,6 +75,11 @@ internal sealed class EditorHarness : IDisposable
     public FakeFileExplorerPrompts ExplorerPrompts { get; } = new();
 
     public FakeTrashService Trash { get; } = new();
+
+    /// <summary>
+    /// Gets what the explorer logged.
+    /// </summary>
+    public RecordingLogger<FileExplorerViewModel> ExplorerLog { get; } = new();
 
     public FakeMessageService Messages { get; } = new();
 

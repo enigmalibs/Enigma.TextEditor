@@ -1,8 +1,11 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Enigma.TextEditor.Core.Files;
 using Enigma.TextEditor.Desktop.UnitTests.Infrastructure;
 using Enigma.TextEditor.Desktop.ViewModels;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Enigma.TextEditor.Desktop.UnitTests.ViewModels;
@@ -130,6 +133,24 @@ public sealed class FileExplorerCreateTests(HeadlessAvaloniaFixture fixture)
             Assert.Contains("readme.txt", message);
             Assert.Equal("read me\n", File.ReadAllText(Path.Combine(project, "readme.txt")));
             Assert.Null(harness.Workspace.ActiveDocument);
+        });
+
+    [Fact]
+    public void AFailedCreate_IsLoggedAsAnError_WithItsExceptionAndPath_BeforeItIsShown()
+        => fixture.RunAsync(async () =>
+        {
+            using EditorHarness harness = new();
+            string project = await OpenProjectAsync(harness);
+            harness.ExplorerPrompts.NewFileNames.Enqueue("readme.txt");
+
+            await harness.Explorer.NewFileCommand.ExecuteAsync(null);
+
+            (LogLevel level, string message, Exception? exception) = Assert.Single(harness.ExplorerLog.Entries, entry => entry.Level >= LogLevel.Warning);
+            Assert.Equal(LogLevel.Error, level);
+            Assert.IsType<FileOperationException>(exception);
+            Assert.Contains(Path.Combine(project, "readme.txt"), message);
+            Assert.Contains("The file could not be created", message);
+            Assert.Single(harness.Messages.Errors);
         });
 
     // project/{docs/intro.txt, readme.txt}, open in the explorer.
