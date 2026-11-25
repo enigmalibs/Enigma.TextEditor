@@ -133,6 +133,10 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<MainWindow>();
             services.AddSingleton<MainWindowViewModel>();
 
+            // The window's start and close: first run, session restore, autosave, the close's session.
+            services.AddSingleton<EditorLifecycle>();
+            services.AddSingleton<WorkspaceSession>();
+
             services.AddSingleton<IThemeService, ThemeService>();
             services.AddSingleton<IAppShutdown, AppShutdown>();
             services.AddSingleton<IMessageService, MessageService>();
@@ -153,6 +157,14 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<DocumentRegistry>();
             services.AddSingleton<IDocumentService, DocumentService>();
             services.AddSingleton<EditorPreferences>();
+
+            // What the panes' engines hand over — ex commands and window commands — carried out on whichever editor
+            // area is passed in: the handlers hold none, so they are built as any other service.
+            services.AddSingleton<ExCommandHandler>();
+            services.AddSingleton<WindowCommandHandler>();
+
+            // Files picked, dropped or named on a command line, opened into whichever editor area is passed in.
+            services.AddSingleton<FileIntake>();
             services.AddSingleton<WorkspaceViewModel>();
             services.AddSingleton<IFileExplorerPrompts, FileExplorerPrompts>();
 

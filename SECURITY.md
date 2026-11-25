@@ -68,10 +68,10 @@ The following are in scope:
   or by writing into the trash under `$XDG_DATA_HOME/Trash`;
 - the syntax highlighting it runs over a file's text;
 - the Vim engine's handling of what is typed into it, including search and substitution patterns;
-- the way it reads and writes its settings file, its log, and its session: `session.json`, which holds the text of
-  every unsaved change and the explorer's folder, and is written every few seconds in the background while the
-  editor runs; what it reopens from it at the start, the explorer's folder included; and `session.lock`, which
-  decides the window that keeps it;
+- the way it reads and writes its settings file, its log, and its session: `session.json`, which holds the explorer's
+  folder and names, in the `unsaved` folder beside it, the file holding the text of each unsaved change — both
+  written every few seconds in the background while the editor runs; what it reopens from them at the start, the
+  explorer's folder included; and `session.lock`, which decides the window that keeps it;
 - the error dialog it shows when a failure is not handled elsewhere: what that dialog shows and what *Copy details*
   puts on the clipboard;
 - the way a running window takes files from a later launch: the named pipe each window listens on, who may connect

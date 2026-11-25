@@ -47,7 +47,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Assert.True(pane.IsDraggingTab);
 
             window.MouseUp(title + new Point(30, 0), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.False(pane.IsDraggingTab);
             Assert.Equal(["a.txt", "b.txt"], harness.Workspace.ActivePane.Tabs.Select(tab => tab.Document.Title));
@@ -69,7 +69,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
 
             Carry(window, TitleOf(window, left, b), Middle(right, window));
             window.MouseUp(Middle(right, window), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => ReferenceEquals(b, right.CurrentTab) && ReferenceEquals(rightPane, harness.Workspace.ActivePane), "b moved to the right pane, which shows it");
 
             Assert.Equal(["a.txt"], leftPane.Tabs.Select(tab => tab.Document.Title));
             Assert.Same(b, rightPane.ActiveTab);
@@ -91,7 +91,9 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
 
             Carry(window, TitleOf(window, top, a), OnStrip(bottom, window));
             window.MouseUp(OnStrip(bottom, window), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.UntilAsync(
+                () => (harness.Workspace.Panes.Count == 1) && (window.GetVisualDescendants().OfType<EditorPaneView>().Count() == 1),
+                "a moved to the bottom pane and the top pane closed");
 
             Assert.Same(bottomPane, Assert.Single(harness.Workspace.Panes));
             Assert.Same(a, bottomPane.ActiveTab);
@@ -113,11 +115,11 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
 
             Carry(window, TitleOf(window, left, a), Middle(left, window));
             window.MouseUp(Middle(left, window), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Carry(window, TitleOf(window, left, a), outside);
             window.MouseUp(outside, MouseButton.Left);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Equal([a], leftPane.Tabs);
             Assert.Single(rightPane.Tabs);
@@ -152,7 +154,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Assert.Same(EditorPaneView.CarryingCursor, strip.Cursor);
 
             window.MouseUp(OnStrip(right, window), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => ReferenceEquals(before, strip.Cursor), "letting go gave the strip its own cursor back");
 
             Assert.Same(before, strip.Cursor);
             window.Close();
@@ -183,7 +185,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Assert.False(left.IsDraggingTab);
             window.MouseMove(Middle(right, window), RawInputModifiers.RightMouseButton);
             window.MouseUp(Middle(right, window), MouseButton.Right);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Same(a, Assert.Single(leftPane.Tabs));
             Assert.Equal(2, harness.Workspace.Panes.Count);
@@ -218,7 +220,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal(VimMode.Insert, left.Vim!.Mode);
 
             window.MouseUp(Middle(right, window), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Equal([a], leftPane.Tabs);
             Assert.Single(rightPane.Tabs);
@@ -242,13 +244,13 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Carry(window, TitleOf(window, left, b), Middle(right, window));
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             window.MouseUp(Middle(right, window), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.SettleAsync();
             Assert.Equal(2, leftPane.Tabs.Count);
 
             Carry(window, TitleOf(window, left, b), Middle(right, window));
             Assert.True(left.IsDraggingTab);
             window.MouseUp(Middle(right, window), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => ReferenceEquals(b, rightPane.ActiveTab), "the second drag moved b to the right pane");
 
             Assert.Equal(["a.txt"], leftPane.Tabs.Select(tab => tab.Document.Title));
             Assert.Same(b, rightPane.ActiveTab);
@@ -266,7 +268,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             await InsertModeAsync(window, pane);
 
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => pane.Vim!.Mode == VimMode.Normal, "Escape reached Vim and left insert mode");
 
             Assert.Equal(VimMode.Normal, pane.Vim!.Mode);
             window.Close();
@@ -306,7 +308,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Assert.True(right.IsDropTarget);
 
             window.MouseUp(OnStrip(right, window), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => ReferenceEquals(b, ((EditorPaneViewModel)right.DataContext!).ActiveTab), "b moved onto the right pane's strip");
 
             Assert.Same(b, ((EditorPaneViewModel)right.DataContext!).ActiveTab);
             Assert.False(right.IsDropTarget);
@@ -333,7 +335,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             Assert.False(right.IsDropTarget);
             window.MouseUp(Middle(right, window), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             // Another control taking the pointer ends the drag where it is.
             Carry(window, TitleOf(window, left, a), Middle(right, window));
@@ -342,7 +344,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Assert.False(left.IsDraggingTab);
             Assert.False(right.IsDropTarget);
             window.MouseUp(Middle(right, window), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Equal([a], leftPane.Tabs);
             Assert.Equal(2, harness.Workspace.Panes.Count);
@@ -387,7 +389,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             AssertHintCovers(right, new Rect(0, 0, 0.5, 1));
 
             window.MouseUp(outside, MouseButton.Left);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.False(right.IsDropTarget);
             Assert.Null(right.DropSide);
@@ -410,7 +412,9 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
 
             Carry(window, TitleOf(window, left, b), NearEdge(right, window, FocusDirection.Right));
             window.MouseUp(NearEdge(right, window, FocusDirection.Right), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.UntilAsync(
+                () => (harness.Workspace.Panes.Count == 3) && (window.GetVisualDescendants().OfType<EditorPaneView>().Count() == 3),
+                "letting go near the right edge split the right pane");
 
             EditorPaneViewModel created = harness.Workspace.ActivePane;
             Assert.Equal(3, harness.Workspace.Panes.Count);
@@ -438,7 +442,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal(FocusDirection.Down, pane.DropSide);
 
             window.MouseUp(NearEdge(pane, window, FocusDirection.Down), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Workspace.Panes.Count == 2, "letting go near the bottom edge split the pane below");
 
             EditorPaneViewModel created = harness.Workspace.ActivePane;
             Assert.Equal([panePane, created], harness.Workspace.Panes);
@@ -464,7 +468,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Assert.False(pane.IsDropTarget);
 
             window.MouseUp(NearEdge(pane, window, FocusDirection.Right), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Same(panePane, Assert.Single(harness.Workspace.Panes));
             Assert.Equal([a], panePane.Tabs);
@@ -490,7 +494,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Assert.Null(right.DropSide);
 
             window.MouseUp(stripStart, MouseButton.Left);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => ReferenceEquals(b, rightPane.ActiveTab), "b moved onto the right pane's strip");
 
             Assert.Equal(2, harness.Workspace.Panes.Count);
             Assert.Same(b, rightPane.ActiveTab);
@@ -519,7 +523,7 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
             Assert.Null(right.DropSide);
 
             window.MouseUp(NearEdge(right, window, FocusDirection.Left), MouseButton.Left);
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Equal(2, harness.Workspace.Panes.Count);
             Assert.Equal(2, leftPane.Tabs.Count);
@@ -583,11 +587,12 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
     // Gives the pane's editor the keyboard and types 'i': an Escape that reaches Vim from there leaves insert mode.
     private static async Task InsertModeAsync(MainWindow window, EditorPaneView pane)
     {
-        await DrainAsync();
+        // What the window posted as it opened runs out first, so none of it takes the keyboard back afterwards.
+        await UiWait.SettleAsync();
         pane.FocusEditor();
-        await DrainAsync();
+        await UiWait.UntilAsync(() => pane.EditorControl.TextArea.IsKeyboardFocusWithin, "the pane's editor took the keyboard");
         window.KeyTextInput("i");
-        await DrainAsync();
+        await UiWait.UntilAsync(() => pane.Vim!.Mode == VimMode.Insert, "i entered insert mode");
         Assert.Equal(VimMode.Insert, pane.Vim!.Mode);
     }
 
@@ -657,16 +662,5 @@ public sealed class TabDragViewTests(HeadlessAvaloniaFixture fixture)
         Assert.Equal(share.Y * height, origin.Y, 2.0);
         Assert.Equal(share.Width * width, hint.Bounds.Width, 2.0);
         Assert.Equal(share.Height * height, hint.Bounds.Height, 2.0);
-    }
-
-    private static async Task DrainAsync()
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Yield();
-        }
-
-        Dispatcher.UIThread.RunJobs();
     }
 }

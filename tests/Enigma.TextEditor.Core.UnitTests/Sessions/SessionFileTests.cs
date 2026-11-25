@@ -75,7 +75,7 @@ public sealed class SessionFileTests : IDisposable
     [InlineData("not json")]
     [InlineData("null")]
     [InlineData("{}")]
-    [InlineData("{\"version\":2,\"layout\":{\"pane\":0},\"activePane\":0,\"panes\":[{\"id\":0,\"tabs\":[],\"activeTab\":-1}],\"documents\":[]}")]
+    [InlineData("{\"version\":3,\"layout\":{\"pane\":0},\"activePane\":0,\"panes\":[{\"id\":0,\"tabs\":[],\"activeTab\":-1}],\"documents\":[]}")]
     [InlineData("{\"version\":1,\"layout\":{\"axis\":\"Rows\"},\"activePane\":0,\"panes\":[],\"documents\":[]}")]
     [InlineData("{\"version\":1,\"layout\":{\"pane\":0},\"activePane\":0,\"panes\":[{\"id\":0,\"tabs\":null,\"activeTab\":-1}],\"documents\":[]}")]
     [InlineData("{\"version\":1,\"layout\":{\"pane\":0},\"activePane\":0,\"panes\":[{\"id\":0,\"tabs\":[],\"activeTab\":-1}],\"documents\":[{\"untitledName\":\"Untitled-1\",\"lineEndings\":\"Sideways\"}]}")]

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Avalonia.Threading;
 using Enigma.TextEditor.Desktop.Services;
@@ -109,5 +110,99 @@ public sealed class UnhandledExceptionHooksTests : IDisposable
         RecordingErrorReporter next = new();
         UnhandledExceptionHooks.Attach(next);
         Assert.Equal(UnhandledErrorSource.FireAndForget, next.SourceOf(late));
+    }
+
+    [Fact]
+    public void AnEarlyReport_IsWrittenInFullToTheEarlyErrorsFile_AndStillHandedOver()
+    {
+        using TempFolder folder = new();
+        string file = folder.PathOf(Path.Combine("logs", "early-errors.log"));
+        UnhandledExceptionHooks.KeepEarlyErrorsIn(file);
+        InvalidOperationException early = Thrown(new InvalidOperationException("the settings could not be read"));
+
+        UnhandledExceptionHooks.Report(early, UnhandledErrorSource.Startup);
+
+        string written = File.ReadAllText(file);
+        Assert.Contains("(Startup)", written);
+        Assert.Contains("System.InvalidOperationException: the settings could not be read", written);
+        Assert.Contains(nameof(Thrown), written);
+
+        RecordingErrorReporter reporter = new();
+        UnhandledExceptionHooks.Attach(reporter);
+        Assert.Equal(UnhandledErrorSource.Startup, reporter.SourceOf(early));
+    }
+
+    [Fact]
+    public void TwoEarlyReports_AreBothKept_InOrder()
+    {
+        using TempFolder folder = new();
+        string file = folder.PathOf("early-errors.log");
+        UnhandledExceptionHooks.KeepEarlyErrorsIn(file);
+
+        UnhandledExceptionHooks.Report(new InvalidOperationException("first"), UnhandledErrorSource.Startup);
+        UnhandledExceptionHooks.Report(new InvalidOperationException("second"), UnhandledErrorSource.UnobservedTask);
+
+        string written = File.ReadAllText(file);
+        Assert.True(written.IndexOf("first", StringComparison.Ordinal) < written.IndexOf("second", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void OnceTheReporterIsAttached_NothingIsWrittenToTheFile()
+    {
+        using TempFolder folder = new();
+        string file = folder.PathOf("early-errors.log");
+        UnhandledExceptionHooks.KeepEarlyErrorsIn(file);
+        RecordingErrorReporter reporter = new();
+        UnhandledExceptionHooks.Attach(reporter);
+
+        UnhandledExceptionHooks.Report(new InvalidOperationException("later"), UnhandledErrorSource.Dispatcher);
+
+        Assert.False(File.Exists(file));
+        Assert.Single(reporter.Reports);
+    }
+
+    [Fact]
+    public void AFileThatCannotBeWritten_DoesNotThrow_AndTheReportIsStillKept()
+    {
+        using TempFolder folder = new();
+
+        // A file where the folder would have to be: the folder cannot be created.
+        string blocker = folder.Write("logs", "not a folder");
+        UnhandledExceptionHooks.KeepEarlyErrorsIn(Path.Combine(blocker, "early-errors.log"));
+        InvalidOperationException early = new("nowhere to write");
+
+        UnhandledExceptionHooks.Report(early, UnhandledErrorSource.Startup);
+
+        RecordingErrorReporter reporter = new();
+        UnhandledExceptionHooks.Attach(reporter);
+        Assert.Equal(UnhandledErrorSource.Startup, reporter.SourceOf(early));
+    }
+
+    [Fact]
+    public void AFilePastItsLimit_IsStartedAgain()
+    {
+        using TempFolder folder = new();
+        string file = folder.Write("early-errors.log", new string('x', (int)UnhandledExceptionHooks.EarlyFileLimit + 1));
+        UnhandledExceptionHooks.KeepEarlyErrorsIn(file);
+
+        UnhandledExceptionHooks.Report(new InvalidOperationException("fresh"), UnhandledErrorSource.Startup);
+
+        string written = File.ReadAllText(file);
+        Assert.DoesNotContain("xxx", written);
+        Assert.Contains("fresh", written);
+    }
+
+    // Thrown and caught, so that it has a stack to write.
+    private static T Thrown<T>(T exception)
+        where T : Exception
+    {
+        try
+        {
+            throw exception;
+        }
+        catch (T caught)
+        {
+            return caught;
+        }
     }
 }

@@ -28,9 +28,9 @@ public interface ISessionStore
     SessionState? Load();
 
     /// <summary>
-    /// Writes a session over the last one.
+    /// Writes a session over the last one, with the unsaved texts it names that are not on the disk yet.
     /// </summary>
-    /// <param name="state">The session.</param>
+    /// <param name="capture">The session, and its texts.</param>
     /// <returns>Whether it was written; <see langword="false"/> when it failed — logged — or another instance owns it.</returns>
-    bool Save(SessionState state);
+    bool Save(SessionCapture capture);
 }

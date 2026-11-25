@@ -18,6 +18,11 @@ namespace Enigma.TextEditor.Core.Sessions;
 /// state over, so a restore can trust what it is given.
 /// </para>
 /// <para>
+/// Version 2 keeps each buffer's unsaved text in a file of its own beside the session
+/// (<see cref="SessionDocument.UnsavedTextFile"/>); version 1 kept it inline, and is still read. An editor that reads
+/// only version 1 sets a version 2 session aside rather than restoring it without its text.
+/// </para>
+/// <para>
 /// The explorer's two members came after the format's first version, and are optional: a file written before them
 /// reads as no folder and the explorer hidden, and an editor written before them ignores them.
 /// </para>
@@ -43,9 +48,14 @@ public sealed record SessionState(
     bool ExplorerVisible = false)
 {
     /// <summary>
-    /// The format this editor writes, and the only one it reads.
+    /// The format this editor writes, and the newest it reads.
     /// </summary>
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
+
+    /// <summary>
+    /// The oldest format this editor reads.
+    /// </summary>
+    public const int OldestVersion = 1;
 
     /// <summary>
     /// Whether another session holds the same: the same layout, panes, buffers and explorer, the lists compared item by

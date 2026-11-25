@@ -3,6 +3,7 @@
 // referenced Enigma.Avalonia.* assemblies instead of Avalonia itself.
 using System;
 using Avalonia;
+using Enigma.TextEditor.Core.Settings;
 using Enigma.TextEditor.Desktop.Services;
 
 namespace Enigma.TextEditor.Desktop;
@@ -30,7 +31,7 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        UnhandledExceptionHooks.Install();
+        UnhandledExceptionHooks.Install(AppPaths.EarlyErrorsFile);
 
         if (InstanceForwarding.TryForward(args))
         {

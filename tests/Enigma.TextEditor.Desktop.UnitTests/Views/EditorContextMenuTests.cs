@@ -24,6 +24,18 @@ namespace Enigma.TextEditor.Desktop.UnitTests.Views;
 public sealed class EditorContextMenuTests(HeadlessAvaloniaFixture fixture)
 {
     [Fact]
+    public void AMenuMissingAnItem_IsRefusedWhenAttached_RatherThanLeftHalfWorking()
+        => fixture.Run(() =>
+        {
+            ContextMenu menu = new() { Items = { new MenuItem { Name = "MenuUndo" }, new MenuItem { Name = "MenuRedo" } } };
+
+            System.InvalidOperationException refused = Assert.Throws<System.InvalidOperationException>(
+                () => EditorContextMenu.Attach(menu, new AvaloniaEdit.TextEditor(), () => { }, () => { }));
+
+            Assert.Contains("MenuCut", refused.Message, System.StringComparison.Ordinal);
+        });
+
+    [Fact]
     public void ARightClickInTheText_OpensTheEditingCommands()
         => fixture.RunAsync(async () =>
         {
@@ -127,13 +139,13 @@ public sealed class EditorContextMenuTests(HeadlessAvaloniaFixture fixture)
 
             RightClick(window, pane);
             Click(Item(pane, "MenuCut"));
-            await PumpAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.Document.Text == "beta\n", "Cut took the selection");
             Assert.Equal("beta\n", pane.EditorControl.Document.Text);
 
             pane.EditorControl.CaretOffset = 4;
             RightClick(window, pane);
             Click(Item(pane, "MenuPaste"));
-            await PumpAsync();
+            await UiWait.UntilAsync(() => pane.EditorControl.Document.Text == "betaalpha \n", "Paste put it back");
 
             Assert.Equal("betaalpha \n", pane.EditorControl.Document.Text);
             window.Close();
@@ -198,15 +210,6 @@ public sealed class EditorContextMenuTests(HeadlessAvaloniaFixture fixture)
     }
 
     private static EditorPaneView[] Panes(MainWindow window) => [.. window.GetVisualDescendants().OfType<EditorPaneView>()];
-
-    private static async Task PumpAsync()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
-    }
 
     private static MainWindow Show(EditorHarness harness)
     {

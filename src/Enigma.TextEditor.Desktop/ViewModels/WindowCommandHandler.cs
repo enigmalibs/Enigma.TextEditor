@@ -12,23 +12,21 @@ namespace Enigma.TextEditor.Desktop.ViewModels;
 /// <remarks>
 /// Each one is a View-menu command under another name, so the two never disagree: <c>Ctrl+W v</c> is
 /// <em>Split Right</em>, <c>Ctrl+W c</c> is <em>Close Pane</em>, and so on. <c>Ctrl+W q</c> is
-/// <c>:q</c>, so it goes through the ex handler.
+/// <c>:q</c>, so it goes through the ex handler. One handler for the application, registered in the container: the
+/// editor area it acts on is handed to each call.
 /// </remarks>
 public sealed class WindowCommandHandler
 {
-    private readonly WorkspaceViewModel _workspace;
     private readonly ExCommandHandler _ex;
     private readonly StatusMessages _status;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WindowCommandHandler"/> class.
     /// </summary>
-    /// <param name="workspace">The panes the commands act on.</param>
     /// <param name="ex">The ex handler, for the commands that are ex commands under another name.</param>
     /// <param name="status">Where a command that cannot run says why.</param>
-    public WindowCommandHandler(WorkspaceViewModel workspace, ExCommandHandler ex, StatusMessages status)
+    public WindowCommandHandler(ExCommandHandler ex, StatusMessages status)
     {
-        _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         _ex = ex ?? throw new ArgumentNullException(nameof(ex));
         _status = status ?? throw new ArgumentNullException(nameof(status));
     }
@@ -36,120 +34,120 @@ public sealed class WindowCommandHandler
     /// <summary>
     /// Carries out a window command typed in a pane.
     /// </summary>
+    /// <param name="workspace">The editor area the pane is in.</param>
     /// <param name="pane">The pane.</param>
     /// <param name="command">The command.</param>
     /// <returns>A task that completes when the command has run.</returns>
-    public async Task ExecuteAsync(EditorPaneViewModel pane, VimWindowCommand command)
+    public async Task ExecuteAsync(WorkspaceViewModel workspace, EditorPaneViewModel pane, VimWindowCommand command)
     {
+        ArgumentNullException.ThrowIfNull(workspace);
         ArgumentNullException.ThrowIfNull(pane);
 
         // The command acts from the pane it was typed in, whatever had the keyboard a moment ago.
-        _workspace.Activate(pane);
+        workspace.Activate(pane);
 
+        // A direction with no pane in it is silent in Vim, and the status line says nothing either: the keyboard simply
+        // stays where it is.
         switch (command)
         {
             case VimWindowCommand.FocusLeft:
-                Move(FocusDirection.Left);
+                workspace.Focus(FocusDirection.Left);
                 break;
 
             case VimWindowCommand.FocusDown:
-                Move(FocusDirection.Down);
+                workspace.Focus(FocusDirection.Down);
                 break;
 
             case VimWindowCommand.FocusUp:
-                Move(FocusDirection.Up);
+                workspace.Focus(FocusDirection.Up);
                 break;
 
             case VimWindowCommand.FocusRight:
-                Move(FocusDirection.Right);
+                workspace.Focus(FocusDirection.Right);
                 break;
 
             case VimWindowCommand.FocusNext:
-                _workspace.FocusNext();
+                workspace.FocusNext();
                 break;
 
             case VimWindowCommand.FocusPrevious:
-                _workspace.FocusPrevious();
+                workspace.FocusPrevious();
                 break;
 
             case VimWindowCommand.SplitHorizontal:
-                _workspace.Split(SplitAxis.Rows);
+                workspace.Split(SplitAxis.Rows);
                 break;
 
             case VimWindowCommand.SplitVertical:
-                _workspace.Split(SplitAxis.Columns);
+                workspace.Split(SplitAxis.Columns);
                 break;
 
             case VimWindowCommand.Close:
-                await _ex.ClosePaneAsync(pane);
+                await _ex.ClosePaneAsync(workspace, pane);
                 break;
 
             case VimWindowCommand.Quit:
-                await _ex.QuitAsync(pane);
+                await _ex.QuitAsync(workspace, pane);
                 break;
 
             case VimWindowCommand.Only:
-                await _workspace.OnlyAsync();
+                await workspace.OnlyAsync();
                 break;
 
             case VimWindowCommand.Equalize:
-                _workspace.Equalize();
+                workspace.Equalize();
                 break;
 
             case VimWindowCommand.Taller:
-                _workspace.Resize(SplitAxis.Rows, _workspace.ResizeStep);
+                workspace.Resize(SplitAxis.Rows, workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.Shorter:
-                _workspace.Resize(SplitAxis.Rows, -_workspace.ResizeStep);
+                workspace.Resize(SplitAxis.Rows, -workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.Wider:
-                _workspace.Resize(SplitAxis.Columns, _workspace.ResizeStep);
+                workspace.Resize(SplitAxis.Columns, workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.Narrower:
-                _workspace.Resize(SplitAxis.Columns, -_workspace.ResizeStep);
+                workspace.Resize(SplitAxis.Columns, -workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.MoveSplitterLeft:
-                _workspace.MoveSplitter(SplitAxis.Columns, -_workspace.ResizeStep);
+                workspace.MoveSplitter(SplitAxis.Columns, -workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.MoveSplitterRight:
-                _workspace.MoveSplitter(SplitAxis.Columns, _workspace.ResizeStep);
+                workspace.MoveSplitter(SplitAxis.Columns, workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.MoveSplitterUp:
-                _workspace.MoveSplitter(SplitAxis.Rows, -_workspace.ResizeStep);
+                workspace.MoveSplitter(SplitAxis.Rows, -workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.MoveSplitterDown:
-                _workspace.MoveSplitter(SplitAxis.Rows, _workspace.ResizeStep);
+                workspace.MoveSplitter(SplitAxis.Rows, workspace.ResizeStep);
                 break;
 
             case VimWindowCommand.MoveTabLeft:
-                _workspace.MoveTab(FocusDirection.Left);
+                workspace.MoveTab(FocusDirection.Left);
                 break;
 
             case VimWindowCommand.MoveTabDown:
-                _workspace.MoveTab(FocusDirection.Down);
+                workspace.MoveTab(FocusDirection.Down);
                 break;
 
             case VimWindowCommand.MoveTabUp:
-                _workspace.MoveTab(FocusDirection.Up);
+                workspace.MoveTab(FocusDirection.Up);
                 break;
 
             case VimWindowCommand.MoveTabRight:
-                _workspace.MoveTab(FocusDirection.Right);
+                workspace.MoveTab(FocusDirection.Right);
                 break;
 
             default:
                 break;
         }
     }
-
-    // A direction with no pane in it is silent in Vim, and the status line says nothing either: the
-    // keyboard simply stays where it is.
-    private void Move(FocusDirection direction) => _workspace.Focus(direction);
 }

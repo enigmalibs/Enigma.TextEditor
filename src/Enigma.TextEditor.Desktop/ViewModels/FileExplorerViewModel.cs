@@ -313,7 +313,7 @@ public sealed class FileExplorerViewModel : ObservableObject
             return;
         }
 
-        if (await RunAsync("The file could not be created", () => FileOperations.CreateFileAsync(folder, name, _work.Token), folder) is { } created)
+        if (await RunAsync("The file could not be created", Path.Combine(folder, name), () => FileOperations.CreateFileAsync(folder, name, _work.Token), folder) is { } created)
         {
             await RevealAsync(folder, created);
             await OpenFileAsync(created);
@@ -327,7 +327,7 @@ public sealed class FileExplorerViewModel : ObservableObject
             return;
         }
 
-        if (await RunAsync("The folder could not be created", () => FileOperations.CreateDirectoryAsync(folder, name, _work.Token), folder) is { } created)
+        if (await RunAsync("The folder could not be created", Path.Combine(folder, name), () => FileOperations.CreateDirectoryAsync(folder, name, _work.Token), folder) is { } created)
         {
             await RevealAsync(folder, created);
         }
@@ -343,7 +343,7 @@ public sealed class FileExplorerViewModel : ObservableObject
         }
 
         string failure = row.IsFolder ? "The folder could not be renamed" : "The file could not be renamed";
-        string? renamed = await RunAsync(failure, () => FileOperations.RenameAsync(row.FullPath, name, _work.Token), parent);
+        string? renamed = await RunAsync(failure, row.FullPath, () => FileOperations.RenameAsync(row.FullPath, name, _work.Token), parent);
 
         if ((renamed is null) || string.Equals(renamed, row.FullPath, StringComparison.Ordinal))
         {
@@ -391,6 +391,8 @@ public sealed class FileExplorerViewModel : ObservableObject
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
+                // Logged before it is shown: once the dialog is closed, the log is all that is left of it.
+                _logger.LogError(exception, "{Path} could not be moved to the trash.", row.FullPath);
                 await _messages.ShowErrorAsync(failure, exception.Message);
                 await RevealAsync(parent, null);
                 return;
@@ -408,7 +410,7 @@ public sealed class FileExplorerViewModel : ObservableObject
                 return;
             }
 
-            if (await RunAsync(failure, () => DeleteForGoodAsync(row.FullPath), parent) is null)
+            if (await RunAsync(failure, row.FullPath, () => DeleteForGoodAsync(row.FullPath), parent) is null)
             {
                 return;
             }
@@ -425,9 +427,9 @@ public sealed class FileExplorerViewModel : ObservableObject
         return path;
     }
 
-    // Runs one operation on the file system. A failure is told to the user, in the operation's own words, and the folder
-    // it touched is listed again: the operation may have found it changed.
-    private async Task<string?> RunAsync(string failure, Func<Task<string>> operation, string folder)
+    // Runs one operation on the file system, on the entry at path. A failure is logged, told to the user in the operation's
+    // own words, and the folder it touched is listed again: the operation may have found it changed.
+    private async Task<string?> RunAsync(string failure, string path, Func<Task<string>> operation, string folder)
     {
         try
         {
@@ -435,6 +437,7 @@ public sealed class FileExplorerViewModel : ObservableObject
         }
         catch (FileOperationException exception)
         {
+            _logger.LogError(exception, "{Failure}: {Path}.", failure, path);
             await _messages.ShowErrorAsync(failure, exception.Message);
         }
         catch (OperationCanceledException)

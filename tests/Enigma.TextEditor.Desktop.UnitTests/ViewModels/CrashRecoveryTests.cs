@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using Enigma.TextEditor.Core.Documents;
+using Enigma.TextEditor.Core.Sessions;
 using Enigma.TextEditor.Core.Settings;
 using Enigma.TextEditor.Core.Vim;
 using Enigma.TextEditor.Desktop.Services;
@@ -143,13 +144,16 @@ public sealed class CrashRecoveryTests(HeadlessAvaloniaFixture fixture)
 
             window.Close();
             Dispatcher.UIThread.RunJobs();
-            string kept = File.ReadAllText(harness.Folder.PathOf(AppPaths.SessionFileName));
+            string sessionFile = harness.Folder.PathOf(AppPaths.SessionFileName);
+            string kept = File.ReadAllText(sessionFile);
+            string? keptText = Assert.Single(SessionFile.Read(sessionFile).State!.Documents).UnsavedText;
             harness.Workspace.ActiveDocument!.Document.Text = "after the close";
             Tick(harness);
 
             Assert.False(harness.Autosave.IsRunning);
-            Assert.Contains("at the close", kept, System.StringComparison.Ordinal);
-            Assert.Equal(kept, File.ReadAllText(harness.Folder.PathOf(AppPaths.SessionFileName)));
+            Assert.Equal("at the close", keptText);
+            Assert.Equal(kept, File.ReadAllText(sessionFile));
+            Assert.Equal("at the close", Assert.Single(SessionFile.Read(sessionFile).State!.Documents).UnsavedText);
         });
 
     // One interval goes by, and the tick it posts runs; the harness writes on the spot.

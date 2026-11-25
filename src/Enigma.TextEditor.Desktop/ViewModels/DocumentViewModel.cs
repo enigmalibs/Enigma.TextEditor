@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using AvaloniaEdit.Document;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -36,6 +37,12 @@ public sealed class DocumentViewModel : ObservableObject
     // Text a saved session kept that the file does not have: no undo step says so — the history did not survive the
     // restart — so this does, until the next save or reload.
     private bool _restoredChanges;
+
+    // Who this buffer is among a session's unsaved-text files while it is open, and the version of its text the last
+    // capture named: the file is "<key>-<generation>.txt", and the generation moves on only when the text has.
+    private readonly string _sessionTextKey = Guid.NewGuid().ToString("N");
+    private ITextSourceVersion? _sessionTextVersion;
+    private int _sessionTextGeneration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DocumentViewModel"/> class.
@@ -329,24 +336,33 @@ public sealed class DocumentViewModel : ObservableObject
 
     /// <summary>
     /// Describes the buffer for a saved session: its file, how it is written and indented, the language the user
-    /// chose for it — and, when its unsaved changes are kept, its text.
+    /// chose for it — and, when its unsaved changes are kept, the file its text is kept in.
     /// </summary>
     /// <param name="keepUnsaved">
     /// Whether changes the file does not have are kept: the text of a buffer with unsaved changes, or of an untitled
     /// buffer that has any. Without it, a file is read again when the session is restored.
     /// </param>
-    /// <returns>The buffer's entry.</returns>
+    /// <returns>The buffer's entry, and — when its text is kept — the text to write beside the session.</returns>
     /// <remarks>
+    /// <para>
     /// Text that is kept is stored with the format it will be saved in, a change still waiting for a save included.
     /// Otherwise the file's own format is stored: the changes are not kept, so the file comes back as it is on disk.
     /// An untitled buffer has no file, and keeps the format it was given.
+    /// </para>
+    /// <para>
+    /// The text is never copied here. Its file is named after this buffer and the version of its text, so an unchanged
+    /// buffer names the file already written and nothing about it is written again; the text handed over is an
+    /// immutable snapshot of the document — its rope, shared rather than copied — written out away from the UI thread,
+    /// and only when its file is not on the disk yet.
+    /// </para>
     /// </remarks>
-    public SessionDocument ToSession(bool keepUnsaved = false)
+    public (SessionDocument Document, SessionText? Text) ToSession(bool keepUnsaved = false)
     {
         bool keepsText = keepUnsaved && !IsHex && (IsUntitled ? Document.TextLength > 0 : IsDirty);
         TextFileFormat format = keepsText || IsUntitled ? Format : FileFormat;
+        SessionText? text = keepsText ? CaptureText() : null;
 
-        return new SessionDocument(
+        SessionDocument document = new(
             FilePath,
             UntitledName,
             IsHex,
@@ -356,7 +372,27 @@ public sealed class DocumentViewModel : ObservableObject
             Indentation.UseTabs,
             Indentation.Size,
             IsLanguageChosen ? Language.Id : null,
-            keepsText ? Document.Text : null);
+            UnsavedTextFile: text?.FileName);
+
+        return (document, text);
+    }
+
+    // The text as it stands, under a name that changes when the text does and only then.
+    private SessionText CaptureText()
+    {
+        ITextSourceVersion version = Document.Version;
+
+        if ((_sessionTextVersion is not { } last) || !last.BelongsToSameDocumentAs(version) || (last.CompareAge(version) != 0))
+        {
+            _sessionTextGeneration++;
+            _sessionTextVersion = version;
+        }
+
+        ITextSource snapshot = Document.CreateSnapshot();
+
+        return new SessionText(
+            string.Create(CultureInfo.InvariantCulture, $"{_sessionTextKey}-{_sessionTextGeneration}.txt"),
+            snapshot.WriteTextTo);
     }
 
     private void ChangeFormat(TextFileFormat format)

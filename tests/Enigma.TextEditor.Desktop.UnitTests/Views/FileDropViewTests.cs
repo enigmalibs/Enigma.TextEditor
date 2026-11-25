@@ -67,7 +67,7 @@ public sealed class FileDropViewTests(HeadlessAvaloniaFixture fixture)
             window.AddHandler(DragDrop.DropEvent, (_, e) => reported = e.DragEffects, RoutingStrategies.Bubble, handledEventsToo: true);
 
             Drop(window, Middle(withText, window), await CarryingAsync(window, harness.Folder.Write("b.txt", "b")));
-            await DrainAsync();
+            await UiWait.UntilAsync(() => target.Tabs.Count == 2, "the dropped file opened beside a.txt");
 
             Assert.Equal(DragDropEffects.Copy, reported);
             Assert.Same(target, harness.Workspace.ActivePane);
@@ -85,7 +85,7 @@ public sealed class FileDropViewTests(HeadlessAvaloniaFixture fixture)
             EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
 
             Drop(window, Middle(pane, window), CarryingText(harness.Folder.Write("a.txt", "a")));
-            await DrainAsync();
+            await UiWait.SettleAsync();
 
             Assert.Empty(harness.Workspace.ActivePane.Tabs);
             window.Close();
@@ -169,7 +169,7 @@ public sealed class FileDropViewTests(HeadlessAvaloniaFixture fixture)
             DataTransfer files = await CarryingAsync(window, harness.Folder.Write("b.txt", "b"), harness.Folder.Write("c.txt", "c"));
 
             Drop(window, NearEdge(view, window, FocusDirection.Right), files);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Workspace.Panes.Count == 2 && harness.Workspace.Panes.Any(candidate => !ReferenceEquals(candidate, pane) && (candidate.Tabs.Count == 2)), "the drop near the edge split the pane and opened both files");
 
             Assert.False(view.IsDropTarget);
             Assert.Equal(2, harness.Workspace.Panes.Count);
@@ -195,7 +195,7 @@ public sealed class FileDropViewTests(HeadlessAvaloniaFixture fixture)
             Assert.Null(view.DropSide);
 
             Drop(window, NearEdge(view, window, FocusDirection.Right), files);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.Workspace.Panes.Single().Tabs.Count == 1, "the dropped file opened in the empty pane");
 
             Assert.False(view.IsDropTarget);
             EditorPaneViewModel pane = Assert.Single(harness.Workspace.Panes);
@@ -218,7 +218,7 @@ public sealed class FileDropViewTests(HeadlessAvaloniaFixture fixture)
             data.Add(DataTransferItem.CreateFile(item));
 
             Drop(window, NearEdge(view, window, FocusDirection.Down), data);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.StatusLine.Current is not null, "the folder was named on the status line");
 
             Assert.Single(harness.Workspace.Panes);
             Assert.Equal("Not opened: notes is a folder.", harness.StatusLine.Current);
@@ -337,16 +337,5 @@ public sealed class FileDropViewTests(HeadlessAvaloniaFixture fixture)
         window.DragDrop(point, RawDragEventType.DragEnter, data, Allowed);
         window.DragDrop(point, RawDragEventType.DragOver, data, Allowed);
         window.DragDrop(point, RawDragEventType.Drop, data, Allowed);
-    }
-
-    private static async Task DrainAsync()
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Yield();
-        }
-
-        Dispatcher.UIThread.RunJobs();
     }
 }

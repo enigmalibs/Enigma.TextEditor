@@ -35,8 +35,10 @@ internal sealed class FakeSessionStore : ISessionStore
 
     public SessionState? Load() => null;
 
-    public bool Save(SessionState state)
+    public bool Save(SessionCapture capture)
     {
+        SessionState state = capture.State;
+
         if (!IsOwner)
         {
             return false;

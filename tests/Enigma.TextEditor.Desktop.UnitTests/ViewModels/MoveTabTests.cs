@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Headless;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Enigma.TextEditor.Core.Layout;
 using Enigma.TextEditor.Core.Vim;
@@ -197,11 +196,11 @@ public sealed class MoveTabTests(HeadlessAvaloniaFixture fixture)
 
             await FocusAsync(window, left);
             window.KeyTextInput("ll");
-            await Pump();
+            await UiWait.UntilAsync(() => b.CaretOffset == 2, "ll moved the caret");
             Assert.Equal(2, b.CaretOffset);
 
             window.KeyTextInput(" ml");
-            await Pump();
+            await UiWait.UntilAsync(() => ReferenceEquals(b, right.ActiveTab), "the leader ml moved the tab right");
 
             Assert.Same(b, right.ActiveTab);
             Assert.Same(right, harness.Workspace.ActivePane);
@@ -212,7 +211,7 @@ public sealed class MoveTabTests(HeadlessAvaloniaFixture fixture)
 
             // The keyboard came with the tab: the next keys are typed in the right pane, and send it back.
             window.KeyTextInput(" mh");
-            await Pump();
+            await UiWait.UntilAsync(() => ReferenceEquals(b, left.ActiveTab), "the leader mh moved the tab back");
 
             Assert.Same(b, left.ActiveTab);
             Assert.Same(left, harness.Workspace.ActivePane);
@@ -225,17 +224,8 @@ public sealed class MoveTabTests(HeadlessAvaloniaFixture fixture)
 
     private static async Task FocusAsync(MainWindow window, EditorPaneViewModel pane)
     {
-        await Pump();
+        await UiWait.UntilAsync(() => window.GetVisualDescendants().OfType<EditorPaneView>().Any(view => ReferenceEquals(view.DataContext, pane)), "the pane's view was built");
         ViewOf(window, pane).FocusEditor();
-        await Pump();
-    }
-
-    private static async Task Pump()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
+        await UiWait.UntilAsync(() => ViewOf(window, pane).IsKeyboardFocusWithin, "the pane's editor took the keyboard");
     }
 }

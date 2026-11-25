@@ -105,15 +105,15 @@ public sealed class HexCopyMenuTests(HeadlessAvaloniaFixture fixture)
 
             RightClick(window, view, 0, HexColumn.Hex, 6);
             await ClickAsync(Item(view, "MenuCopyHex"));
-            Assert.Equal("2C 20 68 65 78 21 00 0A FF", await ClipboardTextAsync(window));
+            await AssertClipboardAsync(window, "2C 20 68 65 78 21 00 0A FF");
 
             RightClick(window, view, 0, HexColumn.Text, 6);
             await ClickAsync(Item(view, "MenuCopyText"));
-            Assert.Equal(", hex!...", await ClipboardTextAsync(window));
+            await AssertClipboardAsync(window, ", hex!...");
 
             RightClick(window, view, 0, HexColumn.Hex, 6);
             await ClickAsync(Item(view, "MenuCopyRange"));
-            Assert.Equal("0x00000005 - 0x0000000D", await ClipboardTextAsync(window));
+            await AssertClipboardAsync(window, "0x00000005 - 0x0000000D");
 
             // Right-clicked inside it every time, the selection is as it was, and the rows have the keyboard back.
             Assert.Equal(new HexSelection(5, 13, HexColumn.Hex), tab.HexSelection);
@@ -138,7 +138,7 @@ public sealed class HexCopyMenuTests(HeadlessAvaloniaFixture fixture)
             Assert.Equal(HexSelection.At(0x12, HexColumn.Text), tab.HexSelection);
             Assert.Equal(1, tab.HexRow);
             await ClickAsync(Item(view, "MenuCopyText"));
-            Assert.Equal("E", await ClipboardTextAsync(window));
+            await AssertClipboardAsync(window, "E");
             window.Close();
         });
 
@@ -154,11 +154,11 @@ public sealed class HexCopyMenuTests(HeadlessAvaloniaFixture fixture)
 
             tab.HexSelection = new HexSelection(4, 0, HexColumn.Hex);
             await CtrlCAsync(window);
-            Assert.Equal("48 65 6C 6C 6F", await ClipboardTextAsync(window));
+            await AssertClipboardAsync(window, "48 65 6C 6C 6F");
 
             tab.HexSelection = new HexSelection(0, 4, HexColumn.Text);
             await CtrlCAsync(window);
-            Assert.Equal("Hello", await ClipboardTextAsync(window));
+            await AssertClipboardAsync(window, "Hello");
             window.Close();
         });
 
@@ -175,18 +175,21 @@ public sealed class HexCopyMenuTests(HeadlessAvaloniaFixture fixture)
             tab.HexSelection = new HexSelection(0, HexDocument.MaxCopyBytes, HexColumn.Hex);
             RightClick(window, view, 0, HexColumn.Hex, 3);
             await ClickAsync(Item(view, "MenuCopyHex"));
+            await UiWait.UntilAsync(() => harness.StatusLine.Current is not null, "the refusal reached the status line");
 
-            Assert.Equal("before", await ClipboardTextAsync(window));
+            await AssertClipboardAsync(window, "before");
             Assert.Equal("The selection is too large to copy as hex: the limit is 1 MB", harness.StatusLine.Current);
 
             RightClick(window, view, 0, HexColumn.Hex, 3);
             await ClickAsync(Item(view, "MenuCopyRange"));
-            Assert.Equal("0x00000000 - 0x00100000", await ClipboardTextAsync(window));
+            await AssertClipboardAsync(window, "0x00000000 - 0x00100000");
 
             // Exactly at the limit, it is copied.
             tab.HexSelection = new HexSelection(0, HexDocument.MaxCopyBytes - 1, HexColumn.Text);
             await CtrlCAsync(window);
-            Assert.Equal(HexDocument.MaxCopyBytes, (await ClipboardTextAsync(window))?.Length);
+            Assert.Equal(
+                HexDocument.MaxCopyBytes,
+                (await UiWait.ValueAsync(() => ClipboardTextAsync(window), text => text?.Length == HexDocument.MaxCopyBytes))?.Length);
             window.Close();
         });
 
@@ -205,7 +208,7 @@ public sealed class HexCopyMenuTests(HeadlessAvaloniaFixture fixture)
     {
         item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         item.FindLogicalAncestorOfType<ContextMenu>()?.Close();
-        await PumpAsync();
+        await UiWait.SettleAsync();
     }
 
     private static async Task CtrlCAsync(MainWindow window)
@@ -213,10 +216,14 @@ public sealed class HexCopyMenuTests(HeadlessAvaloniaFixture fixture)
         Dispatcher.UIThread.RunJobs();
         window.KeyPress(Key.C, RawInputModifiers.Control, PhysicalKey.C, null);
         window.KeyRelease(Key.C, RawInputModifiers.Control, PhysicalKey.C, null);
-        await PumpAsync();
+        await UiWait.SettleAsync();
     }
 
     private static async Task<string?> ClipboardTextAsync(MainWindow window) => await window.Clipboard!.TryGetTextAsync();
+
+    // A copy reaches the clipboard after the click or the key has returned: read until it holds the text expected.
+    private static async Task AssertClipboardAsync(MainWindow window, string expected)
+        => Assert.Equal(expected, await UiWait.ValueAsync(() => ClipboardTextAsync(window), text => text == expected));
 
     private static MenuItem Item(HexView view, string name)
         => view.FindControl<MenuItem>(name) ?? throw new Xunit.Sdk.XunitException($"No menu item {name}.");
@@ -233,15 +240,6 @@ public sealed class HexCopyMenuTests(HeadlessAvaloniaFixture fixture)
         double right = block.TextLayout.HitTestTextPosition(character + 1).X;
 
         return block.TranslatePoint(new Point(block.Padding.Left + ((left + right) / 2), block.Bounds.Height / 2), window)!.Value;
-    }
-
-    private static async Task PumpAsync()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
     }
 
     private static EditorPaneView Pane(MainWindow window) => window.GetVisualDescendants().OfType<EditorPaneView>().First();

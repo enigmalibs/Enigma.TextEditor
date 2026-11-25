@@ -26,13 +26,13 @@ public sealed class LineEndingAndIndentationToolsTests(HeadlessAvaloniaFixture f
             using EditorHarness harness = new();
             string path = harness.Folder.Write("a.txt", "one\ntwo\n");
             EditorTabViewModel tab = (await harness.Workspace.OpenAsync(path))!;
-            Assert.True(harness.Tools.IsLf);
+            Assert.True(harness.Tools.LineEndingChoices.Choice("LF").IsCurrent);
 
-            harness.Tools.UseCrLfCommand.Execute(null);
+            harness.Tools.LineEndingChoices.Choice("CRLF").Command.Execute(null);
 
             Assert.True(tab.Document.IsDirty);
-            Assert.True(harness.Tools.IsCrLf);
-            Assert.False(harness.Tools.IsLf);
+            Assert.True(harness.Tools.LineEndingChoices.Choice("CRLF").IsCurrent);
+            Assert.False(harness.Tools.LineEndingChoices.Choice("LF").IsCurrent);
 
             await harness.Workspace.SaveAsync(tab.Document);
 
@@ -47,15 +47,15 @@ public sealed class LineEndingAndIndentationToolsTests(HeadlessAvaloniaFixture f
             using EditorHarness harness = new();
             EditorTabViewModel tab = (await harness.Workspace.OpenAsync(harness.Folder.Write("a.txt", "x")))!;
 
-            harness.Tools.IndentWithTabsCommand.Execute(null);
+            harness.Tools.IndentationChoices.Choice("Tabs").Command.Execute(null);
 
             Assert.Equal(Indentation.Tabs(ToolsViewModel.TabSize), tab.Document.Indentation);
-            Assert.True(harness.Tools.IsTabs);
+            Assert.True(harness.Tools.IndentationChoices.Choice("Tabs").IsCurrent);
             Assert.False(tab.Document.IsDirty);
 
-            harness.Tools.IndentWithTwoSpacesCommand.Execute(null);
-            Assert.True(harness.Tools.IsTwoSpaces);
-            Assert.False(harness.Tools.IsTabs);
+            harness.Tools.IndentationChoices.Choice("Spaces: 2").Command.Execute(null);
+            Assert.True(harness.Tools.IndentationChoices.Choice("Spaces: 2").IsCurrent);
+            Assert.False(harness.Tools.IndentationChoices.Choice("Tabs").IsCurrent);
         });
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class LineEndingAndIndentationToolsTests(HeadlessAvaloniaFixture f
             MainWindow window = Show(harness);
             EditorPaneView pane = window.GetVisualDescendants().OfType<EditorPaneView>().Single();
 
-            harness.Tools.IndentWithTabsCommand.Execute(null);
+            harness.Tools.IndentationChoices.Choice("Tabs").Command.Execute(null);
             Dispatcher.UIThread.RunJobs();
             Assert.False(pane.EditorControl.Options.ConvertTabsToSpaces);
 
@@ -89,7 +89,7 @@ public sealed class LineEndingAndIndentationToolsTests(HeadlessAvaloniaFixture f
             MainWindow window = Show(harness);
             EditorPaneView[] panes = [.. window.GetVisualDescendants().OfType<EditorPaneView>()];
 
-            harness.Tools.IndentWithTwoSpacesCommand.Execute(null);
+            harness.Tools.IndentationChoices.Choice("Spaces: 2").Command.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
             Assert.All(panes, pane => Assert.Equal(2, pane.EditorControl.Options.IndentationSize));
@@ -118,8 +118,8 @@ public sealed class LineEndingAndIndentationToolsTests(HeadlessAvaloniaFixture f
             Assert.Equal("Python", window.FindControl<Button>("LanguageStatus")?.Content);
             Assert.Equal("CRLF", window.FindControl<Button>("LineEndingStatus")?.Content);
 
-            harness.Tools.UseLfCommand.Execute(null);
-            harness.Tools.IndentWithTabsCommand.Execute(null);
+            harness.Tools.LineEndingChoices.Choice("LF").Command.Execute(null);
+            harness.Tools.IndentationChoices.Choice("Tabs").Command.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal("LF", window.FindControl<Button>("LineEndingStatus")?.Content);
@@ -139,9 +139,8 @@ public sealed class LineEndingAndIndentationToolsTests(HeadlessAvaloniaFixture f
             MenuItem lineEndings = tools.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Line E_ndings");
             MenuItem indentation = tools.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "_Indentation");
 
-            Assert.Equal(["LF", "CRLF"], lineEndings.Items.OfType<MenuItem>().Select(item => (string?)item.Header));
-            Assert.Equal(["Spaces: 2", "Spaces: 4", "Tabs"], indentation.Items.OfType<MenuItem>().Select(item => (string?)item.Header));
-            Assert.True(lineEndings.Items.OfType<MenuItem>().First().IsChecked);
+            Assert.Equal([("LF", true), ("CRLF", false)], MenuItems.Shown(lineEndings));
+            Assert.Equal(["Spaces: 2", "Spaces: 4", "Tabs"], MenuItems.Shown(indentation).Select(item => item.Header));
             window.Close();
         });
 

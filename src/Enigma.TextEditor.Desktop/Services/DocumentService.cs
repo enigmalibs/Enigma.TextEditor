@@ -150,10 +150,7 @@ public sealed class DocumentService : IDocumentService
 
         try
         {
-            HexDocument hex = HexDocument.Open(fullPath);
-            DocumentContent empty = new(string.Empty, TextFileFormat.Default);
-
-            return _registry.Add(new DocumentViewModel(fullPath, _registry.NextUntitledName(), empty, Indentation.Default, hex));
+            return AddHex(fullPath, await Task.Run(() => HexDocument.Open(fullPath)));
         }
         catch (Exception failure) when (IsFileFailure(failure))
         {
@@ -180,12 +177,7 @@ public sealed class DocumentService : IDocumentService
         {
             if (saved.IsHex)
             {
-                return _registry.FindHex(path) ?? _registry.Add(new DocumentViewModel(
-                    path,
-                    _registry.NextUntitledName(),
-                    new DocumentContent(string.Empty, TextFileFormat.Default),
-                    Indentation.Default,
-                    HexDocument.Open(path)));
+                return _registry.FindHex(path) ?? AddHex(path, await Task.Run(() => HexDocument.Open(path)));
             }
 
             if (_registry.Find(path) is { } open)
@@ -318,6 +310,30 @@ public sealed class DocumentService : IDocumentService
         }
     }
 
+    /// <inheritdoc />
+    public Task<PathKind> ProbeAsync(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        return Task.Run(() => File.Exists(path) ? PathKind.File : Directory.Exists(path) ? PathKind.Folder : PathKind.Missing);
+    }
+
+    // Checked again after the open, which ran away from the UI thread: the same file opened twice meanwhile must still
+    // end up as one buffer, and the handle opened second is let go.
+    private DocumentViewModel AddHex(string fullPath, HexDocument hex)
+    {
+        if (_registry.FindHex(fullPath) is { } raced)
+        {
+            hex.Dispose();
+
+            return raced;
+        }
+
+        DocumentContent empty = new(string.Empty, TextFileFormat.Default);
+
+        return _registry.Add(new DocumentViewModel(fullPath, _registry.NextUntitledName(), empty, Indentation.Default, hex));
+    }
+
     private DocumentViewModel RestoreUntitled(SessionDocument saved, Indentation indentation)
     {
         // The name it had, unless an open buffer has taken it since — then the next free one.
@@ -379,7 +395,9 @@ public sealed class DocumentService : IDocumentService
             ITextSourceVersion written = document.Document.Version;
             TextFileFormat format = document.Format;
 
-            await DocumentFile.WriteAsync(fullPath, text, format);
+            // The encoding and every touch of the disk away from the UI thread: a large file, or a slow or
+            // disconnected network path, must not stop the window while it is written.
+            await Task.Run(() => DocumentFile.WriteAsync(fullPath, text, format));
 
             document.MarkSaved(fullPath, written, format);
 

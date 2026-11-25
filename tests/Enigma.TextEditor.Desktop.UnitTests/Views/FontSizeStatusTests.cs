@@ -43,10 +43,10 @@ public sealed class FontSizeStatusTests(HeadlessAvaloniaFixture fixture)
             // Chosen while the list is open, as a click does: the list follows at once, then the flyout closes.
             MenuItem eighteen = items.Single(item => (string?)item.Header == "18");
             eighteen.Command!.Execute(eighteen.CommandParameter);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => Live(items).Any(item => item.IsChecked && ((string?)item.Header == "18")), "the list checked 18 at once");
             Assert.Equal("18", (string?)Assert.Single(Live(items), item => item.IsChecked).Header);
             Assert.IsType<MenuFlyout>(button.Flyout).Hide();
-            await DrainAsync();
+            await UiWait.UntilAsync(() => (pane.EditorControl.FontSize == 18) && button.Content is "Font Size: 18", "the editors took size 18");
 
             Assert.Equal(18, pane.EditorControl.FontSize);
             Assert.Equal("Font Size: 18", button.Content);
@@ -67,7 +67,7 @@ public sealed class FontSizeStatusTests(HeadlessAvaloniaFixture fixture)
             Button button = window.FindControl<Button>("FontSizeStatus")!;
 
             await harness.SettingsMenu.ZoomInCommand.ExecuteAsync(null);
-            await DrainAsync();
+            await UiWait.UntilAsync(() => button.Content is "Font Size: 15", "the item showed the zoomed size");
 
             Assert.Equal("Font Size: 15", button.Content);
             window.Close();
@@ -84,7 +84,7 @@ public sealed class FontSizeStatusTests(HeadlessAvaloniaFixture fixture)
             Assert.False(button.IsEffectivelyVisible);
 
             await harness.Workspace.OpenHexAsync(harness.Folder.Write("data.bin", [0x00, 0x01, 0x02]));
-            await DrainAsync();
+            await UiWait.UntilAsync(() => harness.StatusBar.IsHexTab && button.IsEffectivelyVisible, "the item showed on the hex tab");
 
             Assert.True(harness.StatusBar.IsHexTab);
             Assert.True(button.IsEffectivelyVisible);
@@ -105,7 +105,10 @@ public sealed class FontSizeStatusTests(HeadlessAvaloniaFixture fixture)
         using (Control.LoadedEvent.AddClassHandler<MenuItem>((item, _) => loaded.Add(item), handledEventsToo: true))
         {
             Click(window, button);
-            await DrainAsync();
+            await UiWait.UntilAsync(
+                () => (button.Flyout is MenuFlyout { IsOpen: true }) && loaded.Any(item => item.DataContext is FontSizeChoice),
+                "the size list opened");
+            await UiWait.SettleAsync();
         }
 
         Assert.True(Assert.IsType<MenuFlyout>(button.Flyout).IsOpen);
@@ -131,14 +134,5 @@ public sealed class FontSizeStatusTests(HeadlessAvaloniaFixture fixture)
         Dispatcher.UIThread.RunJobs();
 
         return window;
-    }
-
-    private static async Task DrainAsync()
-    {
-        for (int round = 0; round < 5; round++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            await Task.Delay(10);
-        }
     }
 }
