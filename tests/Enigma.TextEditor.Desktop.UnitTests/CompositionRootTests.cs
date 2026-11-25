@@ -56,6 +56,7 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
     [InlineData(typeof(ISessionStore))]
     [InlineData(typeof(SessionAutosave))]
     [InlineData(typeof(EditorLifecycle))]
+    [InlineData(typeof(WorkspaceSession))]
     public void TheContainer_ResolvesEveryService(Type serviceType)
     {
         using TempFolder folder = new();

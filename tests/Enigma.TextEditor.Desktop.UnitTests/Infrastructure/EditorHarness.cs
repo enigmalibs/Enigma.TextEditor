@@ -49,7 +49,8 @@ internal sealed class EditorHarness : IDisposable
 
         // Written on the spot rather than on the thread pool: a tick is over once the dispatcher has run it.
         Autosave = new SessionAutosave(Session, Clock, NullLogger<SessionAutosave>.Instance, work => Task.FromResult(work()));
-        Lifecycle = new EditorLifecycle(Workspace, Explorer, firstRun ?? FirstRunState.Returning, FirstRunDialog, Session, Autosave, Shutdown);
+        WorkspaceSession = new WorkspaceSession(Documents, Registry, StatusLine);
+        Lifecycle = new EditorLifecycle(Workspace, WorkspaceSession, Explorer, firstRun ?? FirstRunState.Returning, FirstRunDialog, Session, Autosave, Shutdown);
         Window = new MainWindowViewModel(Workspace, Explorer, StatusBar, Tools, SettingsMenu, Shell, PreferencesPage, About, Help, Shutdown, Lifecycle);
     }
 
@@ -57,6 +58,11 @@ internal sealed class EditorHarness : IDisposable
     /// Gets the clock the autosave ticks on: it moves only when a test moves it.
     /// </summary>
     public ManualTimeProvider Clock { get; } = new();
+
+    /// <summary>
+    /// Gets what turns the editor area into a session and back.
+    /// </summary>
+    public WorkspaceSession WorkspaceSession { get; }
 
     /// <summary>
     /// Gets the window's start and close: first run, session, autosave.

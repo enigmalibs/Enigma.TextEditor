@@ -167,7 +167,7 @@ completion records live in `docs/done/<ID>.md`.
 | - PHASE08        | [Medium] Radio menus as choice lists     | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE09        | [Medium] Command handlers from DI        | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE10        | [Medium] Start-up lifecycle service      | DONE        | (in CODE-REVIEW-0734.md)      |
-| - PHASE11        | [Medium] Workspace session service       | TODO        | (in CODE-REVIEW-0734.md)      |
+| - PHASE11        | [Medium] Workspace session service       | DONE        | (in CODE-REVIEW-0734.md)      |
 | - PHASE12        | [Medium] File intake out of workspace    | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE13        | [Medium] Split the pane view code-behind | TODO        | (in CODE-REVIEW-0734.md)      |
 | - PHASE14        | [Medium] Vim command line out of engine  | TODO        | (in CODE-REVIEW-0734.md)      |

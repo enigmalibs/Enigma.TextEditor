@@ -135,6 +135,7 @@ public static class ServiceCollectionExtensions
 
             // The window's start and close: first run, session restore, autosave, the close's session.
             services.AddSingleton<EditorLifecycle>();
+            services.AddSingleton<WorkspaceSession>();
 
             services.AddSingleton<IThemeService, ThemeService>();
             services.AddSingleton<IAppShutdown, AppShutdown>();

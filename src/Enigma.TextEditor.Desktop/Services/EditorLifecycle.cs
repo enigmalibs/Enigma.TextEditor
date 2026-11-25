@@ -25,6 +25,7 @@ namespace Enigma.TextEditor.Desktop.Services;
 public sealed class EditorLifecycle
 {
     private readonly WorkspaceViewModel _workspace;
+    private readonly WorkspaceSession _workspaceSession;
     private readonly FileExplorerViewModel _explorer;
     private readonly FirstRunState _firstRun;
     private readonly IFirstRunDialogService _firstRunDialog;
@@ -36,6 +37,7 @@ public sealed class EditorLifecycle
     /// Initializes a new instance of the <see cref="EditorLifecycle"/> class.
     /// </summary>
     /// <param name="workspace">The editor area the session is restored into and captured from.</param>
+    /// <param name="workspaceSession">Captures the editor area into a session, and restores one into it.</param>
     /// <param name="explorer">The explorer, whose folder is part of the session.</param>
     /// <param name="firstRun">Whether this is the very first start, decided before the settings were read.</param>
     /// <param name="firstRunDialog">The welcome dialog, shown on a first start only.</param>
@@ -44,6 +46,7 @@ public sealed class EditorLifecycle
     /// <param name="shutdown">Whether the close is throwing unsaved changes away (<c>:qa!</c>).</param>
     public EditorLifecycle(
         WorkspaceViewModel workspace,
+        WorkspaceSession workspaceSession,
         FileExplorerViewModel explorer,
         FirstRunState firstRun,
         IFirstRunDialogService firstRunDialog,
@@ -52,6 +55,7 @@ public sealed class EditorLifecycle
         IAppShutdown shutdown)
     {
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
+        _workspaceSession = workspaceSession ?? throw new ArgumentNullException(nameof(workspaceSession));
         _explorer = explorer ?? throw new ArgumentNullException(nameof(explorer));
         _firstRun = firstRun ?? throw new ArgumentNullException(nameof(firstRun));
         _firstRunDialog = firstRunDialog ?? throw new ArgumentNullException(nameof(firstRunDialog));
@@ -97,7 +101,7 @@ public sealed class EditorLifecycle
 
             if (session is not null)
             {
-                await _workspace.RestoreSessionAsync(session);
+                await _workspaceSession.RestoreAsync(_workspace, session);
             }
 
             await _workspace.OpenStartupFilesAsync(startup);
@@ -120,10 +124,10 @@ public sealed class EditorLifecycle
     /// Captures what the window shows, for the next start: the editor area — its splits, its tabs and, when asked, its
     /// unsaved changes — and the explorer, with its folder.
     /// </summary>
-    /// <param name="keepUnsaved">Whether unsaved changes are kept, as <see cref="WorkspaceViewModel.CaptureSession"/> keeps them.</param>
+    /// <param name="keepUnsaved">Whether unsaved changes are kept, as <see cref="WorkspaceSession.Capture"/> keeps them.</param>
     /// <returns>The session.</returns>
     public SessionState CaptureSession(bool keepUnsaved = false)
-        => _workspace.CaptureSession(keepUnsaved) with
+        => _workspaceSession.Capture(_workspace, keepUnsaved) with
         {
             ExplorerFolder = _explorer.FolderPath,
             ExplorerVisible = _explorer.IsVisible,

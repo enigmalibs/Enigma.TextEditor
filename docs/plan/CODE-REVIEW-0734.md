@@ -290,7 +290,7 @@ Locations: `src/Enigma.TextEditor.Desktop/ViewModels/MainWindowViewModel.cs:45`.
 
 ## PHASE11 — [Medium] SOLID-01 / SOLID-03 Session capture and restore leave `WorkspaceViewModel`
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `WorkspaceViewModel.cs:977-1114`, `:1273-1331`.
 
