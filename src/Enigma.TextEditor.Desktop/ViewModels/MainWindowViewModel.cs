@@ -19,10 +19,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly IAppShutdown _shutdown;
     private readonly IAboutDialogService _about;
     private readonly IHelpDialogService _help;
-    private readonly FirstRunState _firstRun;
-    private readonly IFirstRunDialogService _firstRunDialog;
-    private readonly ISessionStore _session;
-    private readonly SessionAutosave _autosave;
+    private readonly EditorLifecycle _lifecycle;
     private DocumentViewModel? _document;
 
     /// <summary>
@@ -37,11 +34,12 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <param name="settingsPage">What the settings page shows and changes.</param>
     /// <param name="about">The About dialog.</param>
     /// <param name="help">The key-binding help.</param>
-    /// <param name="firstRun">Whether this is the very first start, decided before the settings were read.</param>
-    /// <param name="firstRunDialog">The welcome dialog, shown on a first start only.</param>
     /// <param name="shutdown">Ends the application.</param>
-    /// <param name="session">What the editor showed when it last closed, and where the next close keeps it.</param>
-    /// <param name="autosave">Keeps the session while the editor runs, and writes the close's.</param>
+    /// <param name="lifecycle">What happens as the window opens and closes: first run, session, autosave.</param>
+    /// <remarks>
+    /// Seven of the parameters are the view-models of the window's parts, which it exposes for binding; four are
+    /// services.
+    /// </remarks>
     public MainWindowViewModel(
         WorkspaceViewModel workspace,
         FileExplorerViewModel explorer,
@@ -52,11 +50,8 @@ public sealed class MainWindowViewModel : ObservableObject
         PreferencesViewModel settingsPage,
         IAboutDialogService about,
         IHelpDialogService help,
-        FirstRunState firstRun,
-        IFirstRunDialogService firstRunDialog,
         IAppShutdown shutdown,
-        ISessionStore session,
-        SessionAutosave autosave)
+        EditorLifecycle lifecycle)
     {
         Workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         Explorer = explorer ?? throw new ArgumentNullException(nameof(explorer));
@@ -67,11 +62,8 @@ public sealed class MainWindowViewModel : ObservableObject
         SettingsPage = settingsPage ?? throw new ArgumentNullException(nameof(settingsPage));
         _about = about ?? throw new ArgumentNullException(nameof(about));
         _help = help ?? throw new ArgumentNullException(nameof(help));
-        _firstRun = firstRun ?? throw new ArgumentNullException(nameof(firstRun));
-        _firstRunDialog = firstRunDialog ?? throw new ArgumentNullException(nameof(firstRunDialog));
         _shutdown = shutdown ?? throw new ArgumentNullException(nameof(shutdown));
-        _session = session ?? throw new ArgumentNullException(nameof(session));
-        _autosave = autosave ?? throw new ArgumentNullException(nameof(autosave));
+        _lifecycle = lifecycle ?? throw new ArgumentNullException(nameof(lifecycle));
 
         ExitCommand = new RelayCommand(OnExit);
         AboutCommand = new AsyncRelayCommand(() => _about.ShowAsync());
@@ -157,96 +149,39 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Gets a value indicating whether <see cref="StartAsync"/> is still bringing the editor up. What it shows
     /// meanwhile — the explorer of the previous session — does not take the keyboard from the active pane.
     /// </summary>
-    public bool IsStarting { get; private set; }
+    public bool IsStarting => _lifecycle.IsStarting;
 
     /// <summary>
-    /// Runs what needs the window on screen: the welcome dialog of a first start, then the session the editor last
-    /// closed with, then the files named on the command line, then the session's explorer — and from then on keeps the
-    /// session every few seconds.
+    /// Runs what needs the window on screen — first run, session, files named on the command line, explorer — and from
+    /// then on keeps the session every few seconds (<see cref="EditorLifecycle.StartAsync"/>).
     /// </summary>
     /// <param name="startup">The files and folders named on the command line.</param>
     /// <returns>A task that completes once the files are open and the explorer's folder is listed.</returns>
-    /// <remarks>
-    /// In that order: the window has one dialog host, so a file that fails to open must not ask its
-    /// question while the welcome dialog is up — and the files then open with the editor set up as chosen. The
-    /// session comes back first, so the files named now open beside it, in the pane that had the keyboard. The
-    /// explorer comes last: listing a large folder must not keep the documents waiting. The session is kept only once
-    /// all that went through: its first write replaces the session it was restored from, which a start that failed half
-    /// way must leave as it was.
-    /// </remarks>
-    public async Task StartAsync(StartupFiles startup)
-    {
-        ArgumentNullException.ThrowIfNull(startup);
-
-        IsStarting = true;
-
-        try
-        {
-            if (_firstRun.IsFirstRun)
-            {
-                await _firstRunDialog.ShowAsync();
-            }
-
-            SessionState? session = _session.Load();
-
-            if (session is not null)
-            {
-                await Workspace.RestoreSessionAsync(session);
-            }
-
-            await Workspace.OpenStartupFilesAsync(startup);
-
-            if (session is not null)
-            {
-                await Explorer.RestoreAsync(session.ExplorerFolder, session.ExplorerVisible);
-            }
-
-            // What a close would keep, so that a crash brings back what closing would have.
-            _autosave.Start(() => CaptureSession(keepUnsaved: !_shutdown.DiscardChangesOnExit));
-        }
-        finally
-        {
-            IsStarting = false;
-        }
-    }
+    public Task StartAsync(StartupFiles startup) => _lifecycle.StartAsync(startup);
 
     /// <summary>
-    /// Captures what the window shows, for the next start: the editor area — its splits, its tabs and, when asked,
-    /// its unsaved changes — and the explorer, with its folder.
+    /// Captures what the window shows, for the next start (<see cref="EditorLifecycle.CaptureSession"/>).
     /// </summary>
-    /// <param name="keepUnsaved">Whether unsaved changes are kept, as <see cref="WorkspaceViewModel.CaptureSession"/> keeps them.</param>
+    /// <param name="keepUnsaved">Whether unsaved changes are kept.</param>
     /// <returns>The session.</returns>
-    public SessionState CaptureSession(bool keepUnsaved = false)
-        => Workspace.CaptureSession(keepUnsaved) with
-        {
-            ExplorerFolder = Explorer.FolderPath,
-            ExplorerVisible = Explorer.IsVisible,
-        };
+    public SessionState CaptureSession(bool keepUnsaved = false) => _lifecycle.CaptureSession(keepUnsaved);
 
     /// <summary>
-    /// Keeps what the window shows for the next start as it closes — its splits, its tabs, every unsaved change and
-    /// the explorer — so that closing need not ask about any of them.
+    /// Keeps what the window shows, unsaved changes included, as it closes (<see cref="EditorLifecycle.KeepSessionOnClose"/>).
     /// </summary>
-    /// <returns>
-    /// Whether the session was kept. Not when this instance does not own the session, or the write failed: the
-    /// unsaved changes are then asked about, as before there was a session.
-    /// </returns>
-    /// <remarks>
-    /// After <c>:qa!</c> the changes are not kept — the user said to throw them away — but the tabs and splits are.
-    /// </remarks>
-    public bool KeepSessionOnClose() => _autosave.SaveNow(CaptureSession(keepUnsaved: !_shutdown.DiscardChangesOnExit));
+    /// <returns>Whether the session was kept.</returns>
+    public bool KeepSessionOnClose() => _lifecycle.KeepSessionOnClose();
 
     /// <summary>
-    /// Keeps the splits, the tabs and the explorer for the next start, without unsaved changes — after every one has
-    /// been asked about and saved or thrown away.
+    /// Keeps the splits, the tabs and the explorer, without unsaved changes (<see cref="EditorLifecycle.SaveSession"/>).
     /// </summary>
-    /// <returns>Whether it was kept; not when this instance does not own the session, or the write failed.</returns>
-    public bool SaveSession() => _autosave.SaveNow(CaptureSession());
+    /// <returns>Whether it was kept.</returns>
+    public bool SaveSession() => _lifecycle.SaveSession();
 
     /// <summary>
-    /// The window has closed: the session it kept as it closed is the last one written, and no later tick replaces it.
+    /// The window has closed: no later tick replaces the session it kept (<see cref="EditorLifecycle.WindowClosed"/>).
     /// </summary>
-    public void WindowClosed() => _autosave.Stop();
+    public void WindowClosed() => _lifecycle.WindowClosed();
 
     /// <summary>
     /// Opens the files another launch of the editor handed over to this one, as if they had been named on its own

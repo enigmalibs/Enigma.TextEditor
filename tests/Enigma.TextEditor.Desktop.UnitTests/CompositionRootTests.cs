@@ -55,6 +55,7 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
     [InlineData(typeof(IUnhandledErrorReporter))]
     [InlineData(typeof(ISessionStore))]
     [InlineData(typeof(SessionAutosave))]
+    [InlineData(typeof(EditorLifecycle))]
     public void TheContainer_ResolvesEveryService(Type serviceType)
     {
         using TempFolder folder = new();
@@ -143,11 +144,8 @@ public sealed class CompositionRootTests(HeadlessAvaloniaFixture fixture)
                 host.Services.GetRequiredService<PreferencesViewModel>(),
                 host.Services.GetRequiredService<IAboutDialogService>(),
                 host.Services.GetRequiredService<IHelpDialogService>(),
-                host.Services.GetRequiredService<FirstRunState>(),
-                host.Services.GetRequiredService<IFirstRunDialogService>(),
                 shutdown,
-                host.Services.GetRequiredService<ISessionStore>(),
-                host.Services.GetRequiredService<SessionAutosave>());
+                host.Services.GetRequiredService<EditorLifecycle>());
 
             viewModel.ExitCommand.Execute(null);
 

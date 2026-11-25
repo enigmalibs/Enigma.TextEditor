@@ -269,7 +269,7 @@ Locations: `src/Enigma.TextEditor.Desktop/ViewModels/WorkspaceViewModel.cs:83-90
 
 ## PHASE10 — [Medium] SOLID-01 Start-up and session lifecycle leave `MainWindowViewModel`
 
-**Status:** TODO
+**Status:** DONE
 
 Locations: `src/Enigma.TextEditor.Desktop/ViewModels/MainWindowViewModel.cs:45`.
 
